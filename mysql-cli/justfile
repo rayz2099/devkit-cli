@@ -1,0 +1,13 @@
+clean:
+    bun -e "import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })"
+
+build:
+    bun run build
+
+install: build
+    bun link
+    install -d ~/.config/fish/completions
+    install -m 0644 completions/mysql-cli.fish ~/.config/fish/completions/mysql-cli.fish
+
+test:
+    bun test

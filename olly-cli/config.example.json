@@ -1,0 +1,16 @@
+{
+  "uptrace": {
+    "base_url": "https://uptrace.example.com",
+    "web_base_url": "https://uptrace.example.com",
+    "project_id": 1,
+    "token": "replace-me"
+  },
+  "prometheus": {
+    "base_url": "http://127.0.0.1:9090",
+    "default_step": "15s"
+  },
+  "graylog": {
+    "base_url": "http://127.0.0.1:9000",
+    "token": "replace-me"
+  }
+}

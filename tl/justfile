@@ -1,0 +1,33 @@
+set shell := ["zsh", "-lc"]
+
+bin_dir := "./bin"
+bin_name := "tl"
+bin_path := bin_dir + "/" + bin_name
+
+default:
+    @just --list
+
+help:
+    @just --list
+
+fmt:
+    gofmt -w $(find . -name '*.go' -not -path './.git/*')
+
+test:
+    go test ./...
+
+build:
+    mkdir -p {{bin_dir}}
+    go build -o {{bin_path}} ./cmd/tl
+
+clean:
+    bun -e 'import { rmSync } from "node:fs"; rmSync("{{bin_dir}}", { recursive: true, force: true });'
+
+install:
+    go install ./cmd/tl
+
+run *args:
+    go run ./cmd/tl {{args}}
+
+completion-fish:
+    @go run ./cmd/tl completion fish

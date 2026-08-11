@@ -1,0 +1,16 @@
+{
+  "name": "mysql-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "mysql-cli": "./dist/cli.js"
+  },
+  "scripts": {
+    "test": "bun test",
+    "build": "bun build ./src/cli.ts --target=bun --outfile=dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "license": "GPL-2.0-only"
+}

@@ -1,0 +1,12 @@
+home: "$HOME/projects"
+
+projects:
+  - repo-name: app-api
+    group: backend
+    description: example API service
+  - repo-name: app-gw
+    group: backend
+    description: example gateway
+  - repo-name: app-web
+    group: frontend
+    description: example web app

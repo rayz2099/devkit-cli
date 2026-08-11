@@ -1,0 +1,12 @@
+# Bun / Node.js 依赖目录
+node_modules/
+
+# 构建产物
+dist/
+
+# Bun 编译临时文件
+*.bun-build
+.*.bun-build
+
+# 本地环境杂项
+.DS_Store

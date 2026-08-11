@@ -1,0 +1,21 @@
+set positional-arguments
+set dotenv-load := true
+
+help:
+    @just --list --unsorted
+
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+# 清理构建产物，保持工作区干净。
+clean:
+	bun -e 'import { readdirSync, rmSync } from "node:fs"; const paths = ["dist", ...readdirSync(".").filter((path) => path.endsWith(".bun-build"))]; for (const path of paths) rmSync(path, { recursive: true, force: true });'
+
+# 构建单文件可执行程序。
+build:
+	bun run build
+
+# 安装二进制和 Fish completion 到用户目录。
+install: build
+	mkdir -p "${HOME}/.local/bin"
+	cp dist/har-cli "${HOME}/.local/bin/har-cli"
+	chmod +x "${HOME}/.local/bin/har-cli"

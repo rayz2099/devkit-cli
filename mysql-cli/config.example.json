@@ -1,0 +1,8 @@
+{
+  "profiles": [
+    {
+      "name": "local",
+      "jdbcUrl": "jdbc:mysql://127.0.0.1:3306/app_db?user=app&password=secret&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai"
+    }
+  ]
+}

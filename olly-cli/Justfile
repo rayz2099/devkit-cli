@@ -1,0 +1,58 @@
+set positional-arguments
+set dotenv-load := true
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+bin := "olly-cli"
+install_dir := env_var_or_default("OLLY_INSTALL_DIR", env_var("HOME") + "/.local/bin")
+fish_completion_dir := env_var("HOME") + "/.config/fish/completions"
+
+# 显示 Justfile 可用命令。
+help:
+    @just --list --unsorted
+
+# 执行单测。
+test:
+    bun test
+
+# 执行 TypeScript 类型检查。
+typecheck:
+    bun run typecheck
+
+# 执行完整本地校验。
+check:
+    bun run check
+
+# 清理构建产物, 保持根级控制面可统一执行。
+clean:
+    bun -e 'import { readdirSync, rmSync } from "node:fs"; const paths = ["dist", ...readdirSync(".").filter((path) => path.endsWith(".bun-build"))]; for (const path of paths) rmSync(path, { recursive: true, force: true });'
+
+# 构建单文件可执行程序到 dist/olly-cli。
+build:
+    bun run build
+
+# 本地运行源码版 CLI。示例：just dev --help
+dev *args:
+    bun src/cli.ts {{args}}
+
+# 安装二进制和 Fish completion 到当前用户目录。
+install: build install-fish
+    mkdir -p "{{install_dir}}"
+    cp dist/{{bin}} "{{install_dir}}/{{bin}}"
+    chmod +x "{{install_dir}}/{{bin}}"
+    @echo "installed: {{install_dir}}/{{bin}}"
+
+# 安装 Fish completion。
+install-fish:
+    mkdir -p "{{fish_completion_dir}}"
+    cp completions/{{bin}}.fish "{{fish_completion_dir}}/{{bin}}.fish"
+    @echo "fish completion: {{fish_completion_dir}}/{{bin}}.fish"
+
+# 输出 Fish PATH 集成命令。本地 fish 执行一次即可。
+fish-setup:
+    @echo 'set -Ua fish_user_paths "{{install_dir}}"'
+    @echo 'olly-cli --help'
+
+# 打印本地安装后的自检命令。
+doctor:
+    @echo "{{install_dir}}/{{bin}} --help"
+    @echo "fish -lc 'olly-cli --help'"

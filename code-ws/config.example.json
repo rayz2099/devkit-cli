@@ -1,0 +1,17 @@
+{
+  "workspaceRoot": "$HOME/projects/workspaces",
+  "baseBranch": "main",
+  "remote": "origin",
+  "initAgentsTemplate": "work",
+  "profiles": {
+    "default": {
+      "name": "default profile",
+      "agentsTemplate": "work",
+      "repos": [
+        "app-api",
+        "app-gw",
+        "app-web"
+      ]
+    }
+  }
+}

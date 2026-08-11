@@ -1,0 +1,13 @@
+{
+  "name": "code-ws",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "code-ws": "./src/main.ts"
+  },
+  "scripts": {
+    "test": "bun test src/*.test.ts",
+    "check": "bunx tsc --noEmit --project ../tsconfig.json"
+  },
+  "license": "GPL-2.0-only"
+}

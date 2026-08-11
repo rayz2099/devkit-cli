@@ -1,0 +1,21 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+bin := "code-ws"
+install_dir := env_var("HOME") + "/.local/bin"
+
+default:
+    @just --list
+
+# 清理构建产物, 保持控制面和其他 CLI 一致。
+clean:
+    bun -e 'import { readdirSync, rmSync } from "node:fs"; const paths = ["bin", ...readdirSync(".").filter((path) => path.endsWith(".bun-build"))]; for (const path of paths) rmSync(path, { recursive: true, force: true });'
+
+# 构建单文件可执行程序。
+build:
+    mkdir -p bin
+    bun build --compile --outfile bin/{{bin}} src/main.ts
+
+# 安装到当前用户 PATH 常见目录。
+install: build
+    mkdir -p "{{install_dir}}"
+    install -m 0755 bin/{{bin}} "{{install_dir}}/{{bin}}"
