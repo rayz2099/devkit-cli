@@ -1,99 +1,73 @@
 ---
 name: code
-description: Use for the code phase of a cross-repo workspace task. Each agent works on exactly one project sub-task from tasks/{task-id}/{project}.md, updates only that project section in tasks/task.md, and records the result.
+description: 实施 workspace 项目分账. 当 tasks/task.md 处于 coding、用户要求按计划编码, 或需要修复当前项目编译问题时使用; 默认编译验收, 完成后按总账移交 deploy 或收口.
 ---
 
-# 任务 code 阶段
+# Code
 
 ## 目标
 
-`code` 阶段按 project 拆分执行. 每个 subagent 只处理一个 `tasks/{task-id}/{project}.md`, 修改对应 repo, 并回写该 project 的执行状态.
+一次只实施一个项目分账, 保留用户现有改动, 以项目原生编译命令形成可验证结果.
 
-## 门禁
+## 步骤
 
-开始前必须确认:
+### 1. 领取一个 project
 
-- 已读取 `$ROOT_REPO/spec/context.md`
-- 已读取 `tasks/task.md`
-- `tasks/task.md` 中该 task 当前状态是 `coding`, 或用户明确要求进入 code 阶段
-- 已读取且只领取一个 `tasks/{task-id}/{project}.md`
-- 已检查该 project 对应 repo 的当前 diff
+读取 `$ROOT_REPO/spec/context.md`、`$ROOT_REPO/project.yml`、`tasks/task.md` 和一个未完成的 `tasks/{task-id}/{project}.md`.
 
-条件不满足时, 不要修改代码.
+领取条件:
 
-## 适用场景
+- task 状态为 `coding`, 或用户明确要求实施该分账.
+- project 已登记在 `project.yml`.
+- 所有前置 project 已完成.
+- 当前 repo 的 diff 已检查, 用户改动和计划修改可区分.
 
-- subagent 执行单个 project sub-task.
-- 用户改了 DTO, Agent 修当前 project 内调用方.
-- 用户改了后端方法签名, Agent 修当前 project 编译错误.
-- 用户手动实现业务逻辑, Agent 整理当前 project 的 import、配置和边缘调用.
+条件不成立时, 在当前分账记录原因并标记 `blocked`.
 
-## 工作规则
+完成标准: 已唯一锁定一个 project、一个 repo 和一份 checklist.
 
-- 一个 subagent 只能负责一个 project.
-- 只能修改该 project 对应 repo.
-- 可以读取其他 project 文档, 但不能修改其他 project 的代码或状态.
-- 只能更新 `tasks/task.md` 中自己 task 和 project 下的 checkbox.
-- 必须更新自己的 `tasks/{task-id}/{project}.md` 的 `Result`.
-- 用户改动视为权威.
-- 修改前先看 diff.
-- 不 revert 用户改动, 除非用户明确要求.
-- 如果用户改动突破原计划, 只更新自己 project 文档并说明偏差.
-- 如果发现依赖 project 缺失、状态不对或计划错误, 标记当前 project 为 `blocked`, 不跨界修.
+### 2. 实施分账
 
-## 执行顺序
+按 checklist 顺序修改当前 repo. 用户现有改动是事实基线; 方案发生偏差时, 在当前分账记录实际路径和原因.
 
-默认按 `tasks/task.md` 和 project 依赖顺序执行:
+当前 project 之外的依赖缺口记录为 `blocked`, 留给对应 project 分账处理.
 
-```text
-shared-lib -> 后端服务 -> API/BFF/网关接入 -> 前端界面
-```
+完成标准: checklist 中每项均已完成, 或有明确的跳过、阻塞原因; 修改范围仍属于当前 repo.
 
-共享库如 `shared-lib`、`dt-base` 必须先完成, 下游 project 才能开始.
+### 3. 编译验收
 
-## 产物
+执行分账中从项目事实来源解析出的编译命令. 默认验收止于编译:
 
-更新:
+- 用户明确要求测试时, 再执行分账列出的测试命令.
+- 编译命令会隐式运行测试时, 先向用户说明, 再按用户决定执行或改用项目提供的纯编译命令.
+- 共享库版本变更遵循项目现有版本策略. 发布或部署动作留给 deploy 阶段.
+- 无法解析可靠编译命令时, 记录 `blocked`, 不猜测命令.
 
-```text
-tasks/{task-id}/{project}.md
-tasks/task.md
-```
+完成标准: 编译退出码为 0; 或分账准确记录失败命令、关键错误和阻塞状态. 未执行的验证保持 `not run`.
 
-记录:
+### 4. 回写结果
 
-- 完成了哪些 checklist
-- 实际修改了哪些文件
-- 与计划不同的地方
-- 编译/测试结果
-- 遇到的问题
-- 是否 blocked
+更新当前 `tasks/{task-id}/{project}.md` 的 `Result`:
 
-## 质量门禁
+- 修改文件.
+- checklist 结果.
+- 计划偏差.
+- 编译命令、退出结果和关键输出.
+- 测试结果, 默认 `not run`.
+- 风险或阻塞.
 
-- 修改代码后默认执行 `mcc`.
-- 修改 `shared-lib` 后需要使用 `mvn_version` 升级为 `SNAPSHOT` 版本, 然后执行 `mcd`.
-- 不要求 e2e 测试, 除非用户明确要求.
-- 不能把未执行的验证写成已通过.
+仅同步 `tasks/task.md` 中当前 project 的 checkbox 和摘要状态.
 
-## 完成条件
+完成标准: 分账保存完整证据, 总账与分账状态一致.
 
-单个 project 完成条件:
+### 5. 阶段交接
 
-- `tasks/{task-id}/{project}.md` 的 `Checklist` 已全部完成或明确标记跳过原因
-- `Result` 已记录修改文件和编译结果
-- `tasks/task.md` 中该 project 的 checkbox 已同步更新
+当前 project 完成后, 按依赖顺序领取下一个未完成 project. 所有 project 完成且没有阻塞项时:
 
-task 完成条件由主 Agent 判断:
+- `deploy: required`: 将 task 更新为 `deploy`.
+- `deploy: optional`: 询问用户是否部署; 选择部署则更新为 `deploy`, 接受跳过则更新为 `completed`.
+- `deploy: skip`: 将 task 更新为 `completed`.
 
-- 所有 project section 都完成
-- 每个 project 都有 `Result`
-- 没有未处理 blocked 项
+状态迁移时向用户汇总各项目编译结果、测试执行情况和下一阶段.
 
-## 禁止事项
-
-- 不把用户代码重写成 Agent 自己的方案.
-- 不扩大修改范围.
-- 不用格式化或重构掩盖实际改动.
-- 不修改 `spec/` 中的人类 PRD 或补充文档.
-- 不修改其他 project 的状态.
+完成标准: task 已进入 `deploy`、`completed` 或 `blocked`, 下一阶段可从账本直接继续.

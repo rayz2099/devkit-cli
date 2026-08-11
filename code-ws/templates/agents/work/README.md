@@ -1,31 +1,30 @@
-# work-01 agents
+# work agents
 
-任务级 workspace 的 `.agents` 模板目录, 面向跨 repo 的 dt 任务开发.
+面向跨 repo workspace 的任务模板.
 
-## Workflow
-
-只使用三个阶段:
+## 阶段
 
 ```text
 plan -> code -> deploy
+                ^ optional
 ```
 
-- `plan`: 读取 `spec/` 中的人类 PRD 和补充文档, 生成任务总计划和按 project 拆分的 sub-task.
-- `code`: 每个 subagent 执行一个 `tasks/{task-id}/{project}.md`, 修改对应 repo, 并更新 `tasks/task.md` 状态.
-- `deploy`: 可选阶段, 记录部署、验证、人工验收和失败信息.
+- `plan`: 读取 `spec/` 和项目事实, 生成总账与按 project 拆分的可执行分账.
+- `code`: 按依赖顺序实施分账, 默认只执行编译验收; 测试需用户明确要求.
+- `deploy`: 根据目标环境选择项目已定义的部署方式. 该阶段由计划或用户决定是否执行.
 
-## Directory
-
-`spec/` 是输入上下文目录, 默认由人维护. Agent 必须读取, 但不能修改已有 PRD 或补充文档.
-
-Agent 输出统一写入:
+## 目录
 
 ```text
-tasks
+spec/
+tasks/
 ├── task.md
-└── {task-id}
+└── {task-id}/
     ├── {project}.md
     └── deploy.md
 ```
 
-`tasks/task.md` 是总账和根索引, `tasks/{task-id}/{project}.md` 是分账. task 完成状态以 `tasks/task.md` 中对应 task 的 checklist 全部完成和每个 project 有执行结果为准.
+- `spec/` 是人维护的只读输入.
+- `tasks/task.md` 保存状态、依赖顺序和跨阶段决策.
+- `{project}.md` 保存单项目计划与实施结果.
+- `deploy.md` 保存环境适配器、部署和验证证据.

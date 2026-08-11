@@ -1,211 +1,81 @@
 ---
 name: deploy
-description: Use for the deploy phase of a cross-repo workspace task after project sub-tasks are complete. Records optional test-environment deployment, build tracking, smoke validation, manual validation, or failure notes in tasks/{task-id}/deploy.md and updates tasks/task.md.
+description: 部署已完成编译的 workspace 任务. 当 tasks/task.md 处于 deploy, 或用户明确要求部署、环境验证、记录人工验收时使用; 按目标环境选择项目已定义的部署方式并记录证据.
 ---
 
-# 任务 deploy 阶段
+# Deploy
 
 ## 目标
 
-`deploy` 阶段负责部署到测试环境并记录验证. 这个阶段当前是可选的, 可能由用户手动验证.
+解析目标环境对应的部署方式, 执行经用户授权的部署和验证, 将全过程记录到 `tasks/{task-id}/deploy.md`.
 
-部署和验证优先使用 `prism-cli`. 该 CLI 位于 `$ROOT_REPO/devkit-cli/prism-cli`, 默认配置文件是 `~/.config/prism-cli/config.json`.
+## 步骤
 
-## 门禁
+### 1. 校验交接
 
-开始前必须确认:
+读取 `$ROOT_REPO/spec/context.md`、`$ROOT_REPO/project.yml`、`tasks/task.md` 和所有已执行项目的 `Result`.
 
-- 已读取 `$ROOT_REPO/spec/context.md`
-- 已读取 `tasks/task.md`
-- `tasks/task.md` 中该 task 当前状态是 `deploy`, 或用户明确要求部署或记录验证
-- `tasks/task.md` 中该 task 没有未处理的必做项, 或用户明确接受跳过
-- 用户明确要求部署或记录验证
-- 每个已执行 project 都有 `tasks/{task-id}/{project}.md` 的 `Result`
+执行条件:
 
-如果用户说这一步先不做, 记录跳过, 不要部署.
+- task 状态为 `deploy`, 或用户明确要求本次部署.
+- 所有必做 project 已完成编译, 且没有未处理阻塞项.
+- 部署目标和范围明确.
+- `deploy: optional` 已获得用户确认.
 
-## prism-cli
+用户接受跳过时, 写入 `deploy.md` 并将 task 更新为 `completed`.
 
-`prism-cli` 用于查询构建、创建或复用 Prism 测试环境、更新部署列表和执行 HTTP smoke check. Agent 不需要阅读 prism-cli 源码, 优先通过 help 获取当前命令格式.
+完成标准: 部署授权、目标环境、project/branch/version 均可核对.
 
-### 命令格式
+### 2. 解析环境适配器
 
-本地 fish 里执行:
+按以下优先级寻找当前环境的部署事实:
 
-```bash
-prism-cli <resource> <action> [options]
-```
+1. `tasks/{task-id}/deploy.md` 中已确认的命令和目标.
+2. `spec/context.md` 指向的部署说明.
+3. 各项目的 AGENTS、README、构建脚本或 CI 配置.
+4. 已安装部署 CLI 的 `--help`.
 
-如果 PATH 中没有 `prism-cli`, 在 workspace 内用源码执行:
+环境适配器可能是 Prism、Kubernetes、Terraform、CI/CD pipeline、本地进程或人工部署. 只使用事实来源明确支持当前环境的方式. 当前方式不可用时标记 `blocked`, 将所需信息或权限交给用户.
 
-```bash
-bun run devkit-cli/prism-cli/src/main.ts <resource> <action> [options]
-```
+将选定方式、事实来源、目标环境、执行命令和验证方式先写入 `deploy.md` 的 `Plan`.
 
-执行部署前先看 help:
+完成标准: 唯一选定环境适配器, 且命令参数可从事实来源逐项解释.
 
-```bash
-prism-cli --help
-prism-cli build --help
-prism-cli env --help
-prism-cli health --help
-```
+### 3. 执行部署
 
-源码方式:
+按已记录计划执行:
 
-```bash
-bun run devkit-cli/prism-cli/src/main.ts --help
-bun run devkit-cli/prism-cli/src/main.ts build --help
-bun run devkit-cli/prism-cli/src/main.ts env --help
-bun run devkit-cli/prism-cli/src/main.ts health --help
-```
+- 确认待部署构建与 branch/commit/version 匹配.
+- 创建或复用目标环境.
+- 部署计划内 projects.
+- 每个有副作用的阶段失败后停止后续动作, 保存关键输出和可恢复位置.
 
-全局参数:
+凭据只通过部署工具的既有配置使用, 输出中保留脱敏证据.
 
-```text
---mode agent|human
---output json|table
---config <path>
-```
+完成标准: 每个目标 project 都有明确的部署成功证据, 或 deploy 状态为 `failed`/`blocked` 且失败点完整.
 
-默认配置文件是 `~/.config/prism-cli/config.json`. 禁止直接读取或打印配置文件内容, 因为其中包含 token.
+### 4. 执行约定验证
 
-### 构建检查
+只执行总账或 `deploy.md` 已约定的验证:
 
-部署前先确认每个 project 的构建已经成功:
+- 用户手工验收: 记录执行人、结论和证据.
+- HTTP/RPC smoke: 使用文档或用户给出的 target.
+- 自动测试: 仅在用户明确要求时执行.
+- 未约定 target 或验收方式: 记录 `not run`, 等待用户补充或接受跳过.
 
-```bash
-prism-cli build check \
-  --projects shared-lib,app-api,app-gw \
-  --branch feature/xxx \
-  --hashes '{"app-api":"abc123"}' \
-  --timeout 600 \
-  --poll 30
-```
+完成标准: 每项约定验证均有 `passed`、`failed`、`skipped` 或 `not run` 状态, 且证据与结论一致.
 
-规则:
+### 5. 收口
 
-- `--projects` 是逗号分隔的 project 名.
-- `--branch` 是目标分支.
-- `--hashes` 是可选的 project 到 commit hash 映射, 用来避免部署旧构建.
-- 结果不是成功时, 停止部署并记录到 `deploy.md`.
+更新 `deploy.md` 和 `tasks/task.md`:
 
-只查当前状态、不等待:
+- 部署与约定验证完成, 或用户明确接受跳过: `completed`.
+- 部署命令执行失败: `failed`, task 保持 `deploy`.
+- 缺少环境、权限或关键输入: `blocked`.
 
-```bash
-prism-cli build check \
-  --projects app-api \
-  --branch feature/xxx \
-  --no-wait
-```
+完成标准: 最终状态、环境标识、部署版本、验证范围和后续动作均已记录.
 
-### 创建或复用环境
-
-创建新环境必须传 `--deployments`:
-
-```bash
-prism-cli env deploy \
-  --env 034 \
-  --name task-id \
-  --deployments '[{"name":"app-api","buildNo":"12345","branch":"feature/xxx"}]' \
-  --timeout 300 \
-  --poll 10
-```
-
-复用已有环境:
-
-```bash
-prism-cli env deploy \
-  --env-code 034 \
-  --deployments '[{"name":"app-api","buildNo":"12345","branch":"feature/xxx"}]'
-```
-
-或按 env id 复用:
-
-```bash
-prism-cli env deploy \
-  --env-id ENV_ID \
-  --deployments '[{"name":"app-api","buildNo":"12345","branch":"feature/xxx"}]'
-```
-
-规则:
-
-- `--env-id` 和 `--env-code` 不能同时使用.
-- 新环境没有 `--deployments` 会失败.
-- `--deployments` 格式以 `prism-cli env --help` 为准: `[{ "name": "...", "buildNo": "...", "branch": "..." }]`.
-- deploy 失败或超时时, 停止并记录失败.
-
-### 查询环境
-
-```bash
-prism-cli env get --env-code 034
-prism-cli env get --env-id ENV_ID
-```
-
-必须把输出中的环境标识、状态和 deployment 信息记录到 `deploy.md`.
-
-### 更新环境部署列表
-
-更新部署列表:
-
-```bash
-prism-cli env update \
-  --env-id ENV_ID \
-  --deployments '[{"name":"app-api","buildNo":"12345","branch":"feature/xxx"}]'
-```
-
-需要真正部署并等待时, 优先使用 `env deploy`.
-
-### HTTP smoke check
-
-环境 RUNNING 后, 对用户指定或 `deploy.md` 中计划的 URL 做 smoke check:
-
-```bash
-prism-cli health check \
-  --targets https://example.com/health,https://example.com/api/ping \
-  --timeout 120 \
-  --interval 2
-```
-
-规则:
-
-- 未提供 target 时, 不要臆造 URL, 记录为未执行并等待用户补充.
-- smoke check 失败不能写成验证通过.
-
-## 产物
-
-写入或更新:
-
-```text
-tasks/{task-id}/deploy.md
-tasks/task.md
-```
-
-内容包括:
-
-- repo / branch / build number
-- 测试环境
-- prism-cli 命令和关键输出
-- 部署动作
-- 验证范围
-- 用户手动验证记录
-- 自动验证结果
-- 失败原因和后续动作
-
-## 验证规则
-
-验证可以是:
-
-- 用户手动验证
-- 编译结果
-- 单元测试
-- HTTP smoke test
-- RPC 直测
-- 测试环境走查
-
-验证不是强制自动化. 用户手动验证时, Agent 只负责记录结论和证据.
-
-## deploy.md 推荐结构
+## deploy.md 格式
 
 ```markdown
 # Deploy
@@ -213,27 +83,24 @@ tasks/task.md
 ## Input
 
 - task:
-- branch:
 - projects:
+- branch/commit/version:
+- target:
 
-## Build Check
+## Plan
 
-- command:
-- result:
+- adapter:
+- source:
+- commands:
+- validation:
 
-## Environment
+## Execution
 
-- envId:
-- env:
-- stateLabel:
+- environment:
 - deployments:
-
-## Deploy Action
-
-- command:
 - result:
 
-## Smoke Check
+## Validation
 
 - command:
 - result:
@@ -248,22 +115,5 @@ tasks/task.md
 
 - status: completed | skipped | failed | blocked
 - reason:
+- next:
 ```
-
-## 完成条件
-
-可以把 `tasks/task.md` 中该 task 更新为 `completed` 的条件:
-
-- 用户确认验证完成, 或明确接受跳过验证
-- `deploy.md` 记录了最终状态
-- `tasks/task.md` 中该 task 没有未处理阻塞项
-- `tasks/task.md` 中该 task 已更新为 `completed`
-
-## 禁止事项
-
-- 不默认部署.
-- 不默认要求自动验证.
-- 不把未验证说成已验证.
-- 部署失败时不直接忽略, 必须记录失败现象和下一步.
-- 不直接读取、打印或复制 prism-cli 配置文件内容.
-- 不修改 `spec/` 中的人类 PRD 或补充文档.

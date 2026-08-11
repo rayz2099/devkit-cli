@@ -11,5 +11,8 @@ describe("renderFishCompletion", () => {
     expect(txt).toContain("__code_ws_needs_init_project");
     expect(txt).toContain("__code_ws_projects");
     expect(txt).toContain("fork");
+    expect(txt).toContain("serve");
+    expect(txt).toContain("-l lan");
+    expect(txt).toContain("-l local");
   });
 });

@@ -10,3 +10,12 @@ bun.lockb
 !**/config.example.json
 **/project.yml
 !**/project.example.yml
+
+# 浏览器自动化本地产物
+.playwright-mcp/
+
+# baoyu-design 本地设计沙箱, 不进主线合并
+designs/
+
+# serve 测试临时目录
+**/.tmp-serve-*/

@@ -82,6 +82,68 @@ describe("parseCliArgs", () => {
     });
   });
 
+  test("解析 serve 默认参数", () => {
+    const args = parseCliArgs([
+      "serve",
+    ]);
+
+    expect(args).toEqual({
+      cmd: "serve",
+      path: undefined,
+      lan: true,
+      watch: true,
+      port: undefined,
+    });
+  });
+
+  test("解析 serve path --lan --port", () => {
+    const args = parseCliArgs([
+      "serve",
+      "./docs",
+      "--lan",
+      "--port",
+      "8787",
+    ]);
+
+    expect(args).toEqual({
+      cmd: "serve",
+      path: "./docs",
+      lan: true,
+      watch: true,
+      port: 8787,
+    });
+  });
+
+  test("解析 serve --local", () => {
+    const args = parseCliArgs([
+      "serve",
+      "--local",
+    ]);
+
+    expect(args).toEqual({
+      cmd: "serve",
+      path: undefined,
+      lan: false,
+      watch: true,
+      port: undefined,
+    });
+  });
+
+  test("解析 serve --no-watch", () => {
+    const args = parseCliArgs([
+      "serve",
+      "--no-watch",
+    ]);
+
+    expect(args).toEqual({
+      cmd: "serve",
+      path: undefined,
+      lan: true,
+      watch: false,
+      port: undefined,
+    });
+  });
+
   test("解析 help 参数", () => {
     const args = parseCliArgs([
       "add",

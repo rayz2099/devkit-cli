@@ -1,100 +1,101 @@
 ---
 name: plan
-description: Use for the plan phase of a cross-repo workspace task. Must read $ROOT_REPO/spec/context.md and the PRD files it references, then update tasks/task.md and create tasks/{task-id}/{project}.md files.
+description: 规划跨项目 workspace 任务. 当用户要求分析需求、拆分项目、制定实施计划, 或 code 阶段缺少可执行分账时使用; 产出可直接交给 code 的任务账本.
 ---
 
-# 任务 plan 阶段
+# Plan
 
 ## 目标
 
-`plan` 阶段读取 `spec/` 中的人类 PRD 和补充上下文, 把一个 task 拆成多个 project sub-task, 并产出可被 subagent 执行的清单.
+把 PRD 转换成按依赖排序、可独立实施的项目分账, 并明确编译、测试和部署决策.
 
-## 门禁
+## 步骤
 
-开始前必须确认:
+### 1. 建立事实基线
 
-- 已读取 `$ROOT_REPO/spec/context.md`
-- 已按 `context.md` 读取本次任务需要的 PRD 和补充文档
-- 已确认或创建 `tasks/`
-- 用户已确认进入 `plan` 阶段
+读取:
 
-条件不满足时, 停下来说明缺什么.
+- `$ROOT_REPO/spec/context.md` 及其指向的本次任务文档.
+- `$ROOT_REPO/project.yml`.
+- 涉及项目的开发说明、构建脚本和当前 diff.
+- 已存在的 `tasks/task.md` 和同 task 分账.
 
-## 产物
+事实存在冲突时, 在风险中记录冲突和采用依据. 缺少会改变实现范围的关键事实时, 将 task 标记为 `blocked` 并列出待确认项.
 
-任务根文件:
+完成标准: 需求来源、允许修改的项目、现有改动和项目约束均已登记.
+
+### 2. 拆分依赖图
+
+每个 project 建立一个 `tasks/{task-id}/{project}.md`. 分账必须只覆盖一个 repo, 并包含:
+
+- 范围和不改范围.
+- 前置 project.
+- 必读文件.
+- 预期修改的模块、接口和数据契约.
+- 按顺序执行的 checklist.
+- 项目原生编译命令.
+- 仅在用户明确要求时写入测试命令和测试验收项.
+- 风险、回滚方式和 `Result` 占位.
+
+依赖通常按以下方向排列, 实际顺序以代码依赖为准:
 
 ```text
-tasks/task.md
+shared-lib -> 后端服务 -> API/BFF/网关 -> 前端 -> deploy
 ```
 
-每个 project 一个 sub-task:
+完成标准: 每个涉及项目都有一份可单独交给 code 执行的分账, 且所有跨项目依赖均有前置节点.
 
-```text
-tasks/{task-id}/{project}.md
-```
+### 3. 建立总账和交接决策
 
-## tasks/task.md 内容
+创建或更新 `tasks/task.md` 中当前 task:
 
-`tasks/task.md` 是所有 task 的根索引, 每个 task 一段:
+- `status: planning`.
+- 需求来源、目标和不改范围.
+- 按依赖排序的 projects 和 checklist 摘要.
+- `verification: build` 作为默认值; 用户明确要求测试时追加具体类型.
+- `deploy: required | optional | skip`.
+- 已知部署目标或环境标识; 未知信息保留为待确认项.
+- 全局风险和阻塞项.
 
-- task 背景和目标
-- 需求来源文件
-- 当前状态: `planning`、`coding`、`deploy`、`completed`、`blocked`
-- 涉及 project
-- project 依赖顺序
-- 按 project 分组的总 checklist
-- 不改范围
-- 全局风险
+实际步骤只写在项目分账, 总账不复制完整计划.
 
-推荐结构:
+完成标准: 总账可以唯一确定 project 执行顺序、验收门禁和 code 完成后的下一状态.
+
+### 4. 移交 code
+
+检查所有分账后, 将 task 状态更新为 `coding`, 并向用户摘要说明执行顺序、默认只编译验收以及部署决策.
+
+以下任一情况保持 `planning` 或标记 `blocked`:
+
+- 关键需求仍会改变实现范围.
+- project 不在 `project.yml` 中.
+- 项目分账缺失或无法独立执行.
+- 编译命令尚未从项目事实来源解析.
+
+完成标准: `tasks/task.md` 为 `coding`, 且 code 无需重新推导范围即可领取首个未完成 project.
+
+## 文件格式
+
+`tasks/task.md` 的 task 条目至少包含:
 
 ```markdown
-# Tasks
-
 ## settings-add-fields
 
 - status: planning
+- verification: build
+- deploy: optional
 - source:
   - spec/prd.md
-- branch:
-- it-env-no:
 
 ### Projects
 
-- shared-lib
-- app-api
+- [ ] shared-lib
+- [ ] app-api
 
-### Checklist
-
-#### shared-lib
-
-- [ ] 新增字段定义
-- [ ] mcc 编译通过
-
-#### app-api
-
-- [ ] 接入 metadata 字段
-- [ ] mcc 编译通过
+### Risks
 ```
 
-## tasks/{task-id}/{project}.md 内容
-
-每个 project 计划必须具体到可执行:
-
-- 只能修改哪个 repo
-- 必读上下文文件
-- 依赖哪些 project
-- 改哪些文件或模块
-- 新增/修改哪些字段
-- DTO、接口、API、数据库、配置或 UI 变化
-- 实现顺序
-- 编译或测试命令
-- 风险和回滚
-- 不改范围
-- 执行结果占位
-
-推荐结构:
+项目分账至少包含:
 
 ```markdown
 # {project}
@@ -116,6 +117,11 @@ tasks/{task-id}/{project}.md
 
 - ...
 
+## Verification
+
+- build: `<project-native-command>`
+- tests: user-requested only
+
 ## Checklist
 
 - [ ] ...
@@ -124,32 +130,6 @@ tasks/{task-id}/{project}.md
 
 - modified files:
 - build:
+- tests:
 - risks:
 ```
-
-## 排序规则
-
-通常按这个顺序:
-
-```text
-shared-lib -> 后端服务 -> API/BFF/网关接入 -> 前端界面 -> deploy
-```
-
-共享库如 `shared-lib`、`dt-base` 必须排在下游服务之前.
-
-## 完成条件
-
-只有满足以下条件, 才能把 `tasks/task.md` 中该 task 状态更新为 `coding`:
-
-- `tasks/task.md` 已生成或已更新
-- 每个涉及 project 都有 `tasks/{task-id}/{project}.md`
-- 清单顺序体现依赖关系
-- 每个 project sub-task 都可以交给单独 subagent 执行
-- 用户确认可以开始 code
-
-## 禁止事项
-
-- 不写业务代码.
-- 不修改 `spec/` 中的人类 PRD 或补充文档.
-- 不跳过 `tasks/{task-id}/{project}.md` 只写一个泛泛计划.
-- 不把 deploy 当成必做项.

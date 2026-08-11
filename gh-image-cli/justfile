@@ -1,0 +1,26 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+bin := "gh-image-cli"
+install_dir := env_var("HOME") + "/.local/bin"
+
+help:
+    @just --list --unsorted
+
+clean:
+    bun -e 'import { readdirSync, rmSync } from "node:fs"; const paths = ["dist", ...readdirSync(".").filter((path) => path.endsWith(".bun-build"))]; for (const path of paths) rmSync(path, { recursive: true, force: true });'
+
+build:
+    bun install --frozen-lockfile
+    bun run build
+
+install: build
+    mkdir -p "{{install_dir}}"
+    cp dist/{{bin}} "{{install_dir}}/{{bin}}"
+    chmod +x "{{install_dir}}/{{bin}}"
+    @echo "installed: {{install_dir}}/{{bin}}"
+
+test:
+    bun test
+
+typecheck:
+    bun run typecheck

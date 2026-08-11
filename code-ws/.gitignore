@@ -12,3 +12,7 @@ coverage/
 
 # 本地环境杂项
 .DS_Store
+
+.tmp-serve-test/
+.tmp-serve-http/
+.tmp-serve-*/
