@@ -5,13 +5,15 @@
 ## 阶段
 
 ```text
-plan -> code -> deploy
-                ^ optional
+$dt-plan -> $dt-code -> $dt-deploy
+                        ^ optional
 ```
 
-- `plan`: 读取 `spec/` 和项目事实, 生成总账与按 project 拆分的可执行分账.
-- `code`: 按依赖顺序实施分账, 默认只执行编译验收; 测试需用户明确要求.
-- `deploy`: 根据目标环境选择项目已定义的部署方式. 该阶段由计划或用户决定是否执行.
+路由入口在 `AGENTS.md`. 三个 skill 已注册到全局 `jes-workflow`, 必须显式调用.
+
+- `$dt-plan`: 读取 `spec/` 和项目事实, 生成总账与按 project 拆分的可执行分账.
+- `$dt-code`: 按依赖顺序实施分账, 默认只执行编译验收; 测试需用户明确要求.
+- `$dt-deploy`: 根据目标环境选择项目已定义的部署方式. 该阶段由计划或用户决定是否执行.
 
 ## 目录
 
