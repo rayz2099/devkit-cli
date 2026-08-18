@@ -546,6 +546,7 @@ describe("forkWorkspace", () => {
         copyEntries: (src, dst) => {
           copiedEntries.push(`${src} -> ${dst}`);
         },
+        applyAgents: () => {},
         writeWsFile: (wsDir, branch) => {
           wsFiles.push(`${wsDir}:${branch}`);
           return "diamond-card2.code-workspace";

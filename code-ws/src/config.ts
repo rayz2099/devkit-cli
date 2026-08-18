@@ -18,7 +18,7 @@ type ProjectEntry = {
 
 type ResolveOpts = {
   home: string;
-  moduleRoot: string;
+  templateRoot: string;
 };
 
 function isObj(value: unknown): value is RawObj {
@@ -279,9 +279,7 @@ function resolveProfile(
   return {
     name: profile.name,
     agentsTemplate: join(
-      opts.moduleRoot,
-      "templates",
-      "agents",
+      opts.templateRoot,
       profile.agentsTemplate,
     ),
     repos,
@@ -322,9 +320,7 @@ export function resolveConfig(
     baseBranch: cfg.baseBranch,
     remote: cfg.remote,
     initAgentsTemplate: join(
-      opts.moduleRoot,
-      "templates",
-      "agents",
+      opts.templateRoot,
       cfg.initAgentsTemplate,
     ),
     projects,
@@ -347,23 +343,6 @@ function reqHome(): string {
 /**
  * 单独暴露文件读取, 让测试可以绕开磁盘专注校验规则。
  */
-/**
- * XDG 配置与仓库 templates 解耦: 优先读 conf 目录下 module-root 标记.
- * 兼容旧布局 conf 位于 <module>/conf 时回退到 dirname(confDir).
- */
-export function resolveModuleRoot(confDir: string): string {
-  const marker = join(confDir, "module-root");
-  if (existsSync(marker)) {
-    const value = readFileSync(marker, "utf8").trim();
-    if (value.length === 0) {
-      throw new Error(`module-root is empty: ${marker}`);
-    }
-    return value;
-  }
-
-  return dirname(confDir);
-}
-
 export function loadConfig(path: string): CodeWsCfg {
   if (!existsSync(path)) {
     throw new Error(`config not found: ${path}`);
@@ -383,7 +362,8 @@ export function loadConfig(path: string): CodeWsCfg {
     readFileSync(projectFile, "utf8"),
     {
       home: reqHome(),
-      moduleRoot: resolveModuleRoot(confDir),
+      // 模板只信 XDG, 避免追随 git checkout 被投毒.
+      templateRoot: join(confDir, "templates", "agents"),
     },
   );
 }

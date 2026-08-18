@@ -137,9 +137,10 @@ export function writeWorkspaceProjectFile(
   });
 
   const file = join(wsDir, "project.yml");
+  // 新 workspace 预留 it-env-no, 让 $dt-deploy 能写回自动创建的测试环境编号.
   const topLines = existsSync(file)
     ? readCustomProjectTopLines(readFileSync(file, "utf8"))
-    : [];
+    : ["it-env-no:"];
   writeFileSync(
     file,
     createWorkspaceProjectYaml(

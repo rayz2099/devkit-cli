@@ -2,7 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { copyAgentsTemplate, copyForkWorkspaceEntries } from "./agents";
+import { applyAgentsTemplate, copyForkWorkspaceEntries } from "./agents";
 import { renderFishCompletion } from "./completion";
 import { loadConfig } from "./config";
 import type { Cmd } from "./types";
@@ -214,7 +214,7 @@ function initWorkspace(args: InitArgs): void {
     gitPlan,
     args.verbose,
   );
-  copyAgentsTemplate(agentsTemplate, wsDir);
+  applyAgentsTemplate(agentsTemplate, wsDir);
   const wsFile = writeWorkspaceFile(
     wsDir,
     args.branch,
@@ -403,6 +403,7 @@ type ForkWorkspaceDeps = {
   mkdir?: (path: string) => void;
   runPlan?: (plan: Cmd[], verbose: boolean) => void;
   copyEntries?: (srcWsDir: string, dstWsDir: string) => void;
+  applyAgents?: (tplDir: string, wsDir: string) => void;
   writeWsFile?: (
     wsDir: string,
     branch: string,
@@ -498,6 +499,7 @@ export function forkWorkspace(
   });
   const runPlan = deps.runPlan ?? runGitPlan;
   const copyEntries = deps.copyEntries ?? copyForkWorkspaceEntries;
+  const applyAgents = deps.applyAgents ?? applyAgentsTemplate;
   const writeWsFile = deps.writeWsFile ?? writeWorkspaceFile;
   const writeWsProject = deps.writeWsProject ?? writeWorkspaceProjectFile;
   const log = deps.log ?? console.log;
@@ -553,6 +555,10 @@ export function forkWorkspace(
   );
   copyEntries(
     srcWsDir,
+    dstWsDir,
+  );
+  applyAgents(
+    cfg.initAgentsTemplate,
     dstWsDir,
   );
   const wsFile = writeWsFile(

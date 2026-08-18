@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const forkCopyEntries = [
@@ -6,49 +6,56 @@ const forkCopyEntries = [
   "docs",
   "spec",
   "tasks",
-  "AGENTS.md",
   "README.md",
   ".agents",
 ];
 
+const agentsFile = "AGENTS.md";
+
 /**
- * 复制模板内容而不是模板目录本身, 因为 work-01 已经表达 workspace 根结构。
+ * 只 link 路由说明, 避免 workspace 持有可被 git 仓改写的副本.
  */
-export function copyAgentsTemplate(
+export function applyAgentsTemplate(
   tplDir: string,
   wsDir: string,
 ): void {
-  if (!existsSync(tplDir)) {
-    throw new Error(`agents template not found: ${tplDir}`);
+  const src = join(tplDir, agentsFile);
+  if (!existsSync(src)) {
+    throw new Error(`agents template not found: ${src}`);
   }
 
   mkdirSync(wsDir, {
     recursive: true,
   });
 
-  const entries = readdirSync(tplDir);
-  for (const entry of entries) {
-    const dst = join(wsDir, entry);
-    if (existsSync(dst)) {
-      throw new Error(`workspace template target already exists: ${dst}`);
-    }
+  const dst = join(wsDir, agentsFile);
+  if (existsSync(dst)) {
+    throw new Error(`workspace template target already exists: ${dst}`);
   }
 
-  for (const entry of entries) {
-    cpSync(
-      join(tplDir, entry),
-      join(wsDir, entry),
-      {
-        recursive: true,
-        errorOnExist: true,
-        force: false,
-      },
+  symlinkSync(src, dst);
+
+  const specDir = join(wsDir, "spec");
+  const tasksDir = join(wsDir, "tasks");
+  mkdirSync(specDir, {
+    recursive: true,
+  });
+  mkdirSync(tasksDir, {
+    recursive: true,
+  });
+
+  const ctx = join(specDir, "context.md");
+  if (!existsSync(ctx)) {
+    writeFileSync(
+      ctx,
+      "# Context\n\nDescribe the current task, target services, and links to PRD files here.\n",
     );
   }
 }
 
 /**
- * fork 只复制 workspace 根目录的任务上下文白名单, 因为 repo worktree 必须由 git 重新创建。
+ * fork 只复制 workspace 根目录的任务上下文白名单, 因为 repo worktree 必须由 git 重新创建.
+ * AGENTS.md 不在此列, 由 applyAgentsTemplate 重新 link 到 XDG.
  */
 export function copyForkWorkspaceEntries(
   srcWsDir: string,

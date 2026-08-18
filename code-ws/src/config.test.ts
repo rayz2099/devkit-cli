@@ -68,16 +68,16 @@ describe("resolveConfig", () => {
       ].join("\n"),
       {
         home: "/home/dev",
-        moduleRoot: "/repo/devkit-cli/code-ws",
+        templateRoot: "/home/dev/.config/code-ws/templates/agents",
       },
     );
 
     expect(resolved.workspaceRoot).toBe("/home/dev/projects/workspaces");
     expect(resolved.initAgentsTemplate).toBe(
-      "/repo/devkit-cli/code-ws/templates/agents/work",
+      "/home/dev/.config/code-ws/templates/agents/work",
     );
     expect(resolved.profiles.daily?.agentsTemplate).toBe(
-      "/repo/devkit-cli/code-ws/templates/agents/work-01",
+      "/home/dev/.config/code-ws/templates/agents/work-01",
     );
     expect(resolved.profiles.daily?.repos).toEqual([
       {
@@ -127,7 +127,7 @@ describe("resolveConfig", () => {
       ].join("\n"),
       {
         home: "/home/dev",
-        moduleRoot: "/repo/devkit-cli/code-ws",
+        templateRoot: "/home/dev/.config/code-ws/templates/agents",
       },
     );
 
@@ -174,13 +174,13 @@ describe("resolveConfig", () => {
       ].join("\n"),
       {
         home: "/home/dev",
-        moduleRoot: "/repo/devkit-cli/code-ws",
+        templateRoot: "/home/dev/.config/code-ws/templates/agents",
       },
     );
 
     expect(resolved.profiles.renamed?.name).toBe("daily backend workspace");
     expect(resolved.profiles.renamed?.agentsTemplate).toBe(
-      "/repo/devkit-cli/code-ws/templates/agents/work-01",
+      "/home/dev/.config/code-ws/templates/agents/work-01",
     );
   });
 });
