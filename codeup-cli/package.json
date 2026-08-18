@@ -1,0 +1,19 @@
+{
+  "name": "codeup-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "codeup-cli": "./dist/codeup-cli"
+  },
+  "scripts": {
+    "build": "bun build ./src/cli.ts --compile --outfile dist/codeup-cli",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "check": "bun test && tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  },
+  "license": "GPL-2.0-only"
+}

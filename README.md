@@ -17,6 +17,7 @@
 | `har-cli` | Analyze HAR files and extract request URIs |
 | `tl` | Go CLI for EN/ZH text and Markdown (`tl md --fast`) |
 | `jenkins-cli` | Profile-based Jenkins client with human/agent output and Fish completion |
+| `codeup-cli` | Profile-based Codeup client: repos, git push, change requests, webhook list |
 
 ### Requirements
 
@@ -41,6 +42,7 @@ Configs live in XDG paths:
 - `~/.config/mysql-cli/config.json`
 - `~/.config/tl/config.json`
 - `~/.config/jenkins-cli/config.json`
+- `~/.config/codeup-cli/config.json`
 
 Copy examples first if needed:
 
@@ -51,6 +53,7 @@ cp olly-cli/config.example.json ~/.config/olly-cli/config.json
 cp mysql-cli/config.example.json ~/.config/mysql-cli/config.json
 cp tl/config.example.json ~/.config/tl/config.json
 cp jenkins-cli/config.example.json ~/.config/jenkins-cli/config.json
+cp codeup-cli/config.example.json ~/.config/codeup-cli/config.json
 ```
 
 `just install` bootstraps missing XDG configs from `*.example.*` and never overwrites existing files.
@@ -76,6 +79,7 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 | `har-cli` | 分析 HAR 并提取请求 URI |
 | `tl` | Go 中英翻译, 支持纯文本和 Markdown (`tl md --fast`) |
 | `jenkins-cli` | 基于 profile 的 Jenkins 客户端, 含 human/agent 输出和 Fish completion |
+| `codeup-cli` | 基于 profile 的 Codeup 客户端: 仓库, git push, Change Request, webhook 只读 |
 
 ### 依赖
 
@@ -100,6 +104,7 @@ just build code-ws
 - `~/.config/mysql-cli/config.json`
 - `~/.config/tl/config.json`
 - `~/.config/jenkins-cli/config.json`
+- `~/.config/codeup-cli/config.json`
 
 `just install` 仅在配置缺失时从 `*.example.*` 引导, 不覆盖已有文件.
 

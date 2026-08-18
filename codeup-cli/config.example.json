@@ -1,0 +1,10 @@
+{
+  "defaultProfile": "work",
+  "profiles": [
+    {
+      "name": "work",
+      "url": "https://codeup.aliyun.com/<organizationId>",
+      "token": ""
+    }
+  ]
+}
