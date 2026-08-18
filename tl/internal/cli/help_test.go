@@ -80,3 +80,12 @@ func indexOf(text string, target string) int {
 	}
 	return -1
 }
+
+func TestHelpTextContainsFastFlag(t *testing.T) {
+	t.Parallel()
+
+	text := HelpText([]string{"md", "-h"})
+	if !containsAll(text, "tl md en2zh --fast [file]", "--fast") {
+		t.Fatalf("HelpText() = %q, want fast flag usage", text)
+	}
+}

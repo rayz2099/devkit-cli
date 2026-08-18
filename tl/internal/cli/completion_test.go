@@ -57,3 +57,15 @@ func TestCompletionScriptContainsVersionOption(t *testing.T) {
 		t.Fatalf("script = %q, want version option", script)
 	}
 }
+
+func TestCompletionScriptContainsFastFlag(t *testing.T) {
+	t.Parallel()
+
+	script, err := CompletionScript([]string{"completion", "fish"})
+	if err != nil {
+		t.Fatalf("CompletionScript() error = %v", err)
+	}
+	if !strings.Contains(script, "-l fast") {
+		t.Fatalf("script = %q, want fast option", script)
+	}
+}

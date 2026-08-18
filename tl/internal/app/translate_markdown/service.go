@@ -24,12 +24,15 @@ type ServiceDependencies struct {
 	Translator   translation.Translator
 	Concurrency  int
 	ProgressSink ProgressSink
+	// Fast 只改变打包, 不改 AST 抽取和回填.
+	Fast bool
 }
 
 type Service struct {
 	translator   translation.Translator
 	concurrency  int
 	progressSink ProgressSink
+	fast         bool
 }
 
 func New(deps ServiceDependencies) *Service {
@@ -41,6 +44,7 @@ func New(deps ServiceDependencies) *Service {
 		translator:   deps.Translator,
 		concurrency:  concurrency,
 		progressSink: deps.ProgressSink,
+		fast:         deps.Fast,
 	}
 }
 
@@ -53,16 +57,73 @@ func (s *Service) Translate(ctx context.Context, direction translation.Direction
 		return source, nil
 	}
 
-	translations := make([]string, len(units))
-	type job struct {
-		index int
-		text  string
+	jobs, err := s.planJobs(source, units)
+	if err != nil {
+		return nil, err
+	}
+
+	translations, err := s.runJobs(ctx, direction, jobs, len(units))
+	if err != nil {
+		return nil, err
+	}
+	return document.Render(translations)
+}
+
+type translateJob struct {
+	indexes []int
+	texts   []string
+	payload string
+}
+
+// planJobs 默认一 unit 一请求; fast 按文档体积把相邻 unit 收成更少请求.
+func (s *Service) planJobs(source []byte, units []markdown.TextUnit) ([]translateJob, error) {
+	if !s.fast {
+		jobs := make([]translateJob, 0, len(units))
+		for index, unit := range units {
+			jobs = append(jobs, translateJob{
+				indexes: []int{index},
+				texts:   []string{unit.Text},
+				payload: unit.Text,
+			})
+		}
+		return jobs, nil
+	}
+
+	groups := markdown.PackUnitIndexes(units, markdown.FastPackBudget(len(source)))
+	jobs := make([]translateJob, 0, len(groups))
+	for _, indexes := range groups {
+		texts := make([]string, 0, len(indexes))
+		for _, index := range indexes {
+			texts = append(texts, units[index].Text)
+		}
+		payload := texts[0]
+		if len(texts) > 1 {
+			payload = markdown.EncodePack(texts)
+		}
+		jobs = append(jobs, translateJob{
+			indexes: indexes,
+			texts:   texts,
+			payload: payload,
+		})
+	}
+	return jobs, nil
+}
+
+func (s *Service) runJobs(
+	ctx context.Context,
+	direction translation.Direction,
+	jobs []translateJob,
+	totalUnits int,
+) ([]string, error) {
+	translations := make([]string, totalUnits)
+	type queueItem struct {
+		job translateJob
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	jobs := make(chan job)
+	queue := make(chan queueItem)
 	errCh := make(chan error, 1)
 	var doneUnits atomic.Int64
 	var once sync.Once
@@ -72,8 +133,8 @@ func (s *Service) Translate(ctx context.Context, direction translation.Direction
 		workers.Add(1)
 		go func() {
 			defer workers.Done()
-			for current := range jobs {
-				translated, err := s.translator.Translate(ctx, direction, current.text)
+			for current := range queue {
+				translated, err := s.translator.Translate(ctx, direction, current.job.payload)
 				if err != nil {
 					once.Do(func() {
 						errCh <- err
@@ -82,29 +143,40 @@ func (s *Service) Translate(ctx context.Context, direction translation.Direction
 					return
 				}
 
-				translations[current.index] = translated
+				parts, err := splitJobResult(current.job, translated)
+				if err != nil {
+					once.Do(func() {
+						errCh <- err
+						cancel()
+					})
+					return
+				}
+				for offset, index := range current.job.indexes {
+					translations[index] = parts[offset]
+				}
+
 				if s.progressSink != nil {
-					done := int(doneUnits.Add(1))
+					done := int(doneUnits.Add(int64(len(current.job.indexes))))
 					s.progressSink(Progress{
 						DoneUnits:  done,
-						TotalUnits: len(units),
+						TotalUnits: totalUnits,
 					})
 				}
 			}
 		}()
 	}
 
-	for index, unit := range units {
+	for _, job := range jobs {
 		select {
 		case <-ctx.Done():
 			break
-		case jobs <- job{index: index, text: unit.Text}:
+		case queue <- queueItem{job: job}:
 		}
 		if ctx.Err() != nil {
 			break
 		}
 	}
-	close(jobs)
+	close(queue)
 	workers.Wait()
 
 	select {
@@ -112,6 +184,12 @@ func (s *Service) Translate(ctx context.Context, direction translation.Direction
 		return nil, err
 	default:
 	}
+	return translations, nil
+}
 
-	return document.Render(translations)
+func splitJobResult(job translateJob, translated string) ([]string, error) {
+	if len(job.texts) == 1 {
+		return []string{translated}, nil
+	}
+	return markdown.DecodePack(translated, job.texts)
 }

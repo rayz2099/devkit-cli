@@ -5,3 +5,4 @@
 - [todo-03.md](./todo-03.md): 根命令 plain-text 翻译与 CLI 文案补全
 - [todo-04.md](./todo-04.md): OpenAI-compatible provider 流式响应修复
 - [todo-05.md](./todo-05.md): `tl --version` 与统一版本号入口
+- [todo-06.md](./todo-06.md): `tl md --fast` 按文档大小合并翻译请求
