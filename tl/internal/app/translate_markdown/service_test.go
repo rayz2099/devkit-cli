@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"git.internal.linran.top/linran/tl/internal/domain/markdown"
 	"git.internal.linran.top/linran/tl/internal/domain/translation"
 )
 
@@ -120,4 +121,79 @@ func (r *recordingTranslator) Translate(_ context.Context, _ translation.Directi
 		return "", err
 	}
 	return result, nil
+}
+
+func TestServiceFastModePacksUnitsIntoFewerRequests(t *testing.T) {
+	t.Parallel()
+
+	source := []byte("# hello\n\n## next\n\nworld\n")
+	_, units, err := markdown.Parse(source)
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if len(units) < 2 {
+		t.Fatalf("unit count = %d, want at least 2", len(units))
+	}
+
+	texts := make([]string, 0, len(units))
+	for _, unit := range units {
+		texts = append(texts, unit.Text)
+	}
+	translated := make([]string, len(texts))
+	for i, text := range texts {
+		translated[i] = strings.ReplaceAll(text, "hello", "你好")
+		translated[i] = strings.ReplaceAll(translated[i], "next", "下一节")
+		translated[i] = strings.ReplaceAll(translated[i], "world", "世界")
+	}
+
+	translator := &recordingTranslator{
+		results: map[string]string{
+			markdown.EncodePack(texts): markdown.EncodePack(translated),
+		},
+	}
+	var events []Progress
+	service := New(ServiceDependencies{
+		Translator:   translator,
+		Fast:         true,
+		ProgressSink: func(progress Progress) { events = append(events, progress) },
+	})
+
+	output, err := service.Translate(context.Background(), translation.DirectionEnToZh, source)
+	if err != nil {
+		t.Fatalf("Translate() error = %v", err)
+	}
+	if len(translator.calls) != 1 {
+		t.Fatalf("call count = %d, want 1 packed request; calls=%q", len(translator.calls), translator.calls)
+	}
+	if len(events) != 1 || events[0].DoneUnits != len(units) || events[0].TotalUnits != len(units) {
+		t.Fatalf("progress = %#v, want one event covering %d units", events, len(units))
+	}
+	got := string(output)
+	if !strings.Contains(got, "# 你好") || !strings.Contains(got, "## 下一节") || !strings.Contains(got, "世界") {
+		t.Fatalf("output = %q, want packed translations spliced back", got)
+	}
+}
+
+func TestServiceDefaultModeKeepsOneRequestPerUnit(t *testing.T) {
+	t.Parallel()
+
+	source := []byte("# hello\n\n## next\n\nworld\n")
+	translator := &recordingTranslator{
+		results: map[string]string{
+			"# hello\n":          "# 你好\n",
+			"## next\n\nworld\n": "## 下一节\n\n世界\n",
+		},
+	}
+	service := New(ServiceDependencies{Translator: translator})
+	output, err := service.Translate(context.Background(), translation.DirectionEnToZh, source)
+	if err != nil {
+		t.Fatalf("Translate() error = %v", err)
+	}
+	if len(translator.calls) != 2 {
+		t.Fatalf("call count = %d, want 2; calls=%q", len(translator.calls), translator.calls)
+	}
+	got := string(output)
+	if !strings.Contains(got, "# 你好") || !strings.Contains(got, "## 下一节") {
+		t.Fatalf("output = %q, want per-unit translations", got)
+	}
 }

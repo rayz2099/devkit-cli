@@ -28,6 +28,7 @@ complete -c tl -n '__fish_use_subcommand' -a completion -d 'Print shell completi
 
 complete -c tl -n '__fish_seen_subcommand_from md; and not __fish_seen_subcommand_from en2zh zh2en' -a en2zh -d 'Translate English Markdown to Chinese'
 complete -c tl -n '__fish_seen_subcommand_from md; and not __fish_seen_subcommand_from en2zh zh2en' -a zh2en -d 'Translate Chinese Markdown to English'
+complete -c tl -n '__fish_seen_subcommand_from md' -l fast -d 'Pack Markdown units by document size'
 complete -c tl -n '__fish_seen_subcommand_from md' -a "(__fish_complete_path)" -d 'Markdown file path'
 
 complete -c tl -n '__fish_seen_subcommand_from completion; and not __fish_seen_subcommand_from fish' -a fish -d 'Fish shell completion'

@@ -3,8 +3,10 @@ package cli
 import (
 	"bytes"
 	"context"
+	"strings"
 	"testing"
 
+	"git.internal.linran.top/linran/tl/internal/domain/markdown"
 	"git.internal.linran.top/linran/tl/internal/domain/translation"
 )
 
@@ -150,4 +152,44 @@ func (s stubTranslator) Translate(_ context.Context, _ translation.Direction, te
 		return "", context.Canceled
 	}
 	return result, nil
+}
+
+func TestRunFastFlagPacksMarkdownUnits(t *testing.T) {
+	t.Parallel()
+
+	source := "# hello\n\n## next\n\nworld\n"
+	_, units, err := markdown.Parse([]byte(source))
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	texts := make([]string, 0, len(units))
+	translated := make([]string, 0, len(units))
+	for _, unit := range units {
+		texts = append(texts, unit.Text)
+		item := strings.ReplaceAll(unit.Text, "hello", "你好")
+		item = strings.ReplaceAll(item, "next", "下一节")
+		item = strings.ReplaceAll(item, "world", "世界")
+		translated = append(translated, item)
+	}
+
+	var stdout bytes.Buffer
+	app := New(AppDependencies{
+		Stdin:  bytes.NewBufferString(source),
+		Stdout: &stdout,
+		Stderr: &bytes.Buffer{},
+		Translator: stubTranslator{
+			results: map[string]string{
+				markdown.EncodePack(texts): markdown.EncodePack(translated),
+			},
+		},
+	})
+
+	err = app.Run(context.Background(), []string{"md", "en2zh", "--fast"})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	got := stdout.String()
+	if !strings.Contains(got, "# 你好") || !strings.Contains(got, "## 下一节") {
+		t.Fatalf("stdout = %q, want packed fast translation", got)
+	}
 }

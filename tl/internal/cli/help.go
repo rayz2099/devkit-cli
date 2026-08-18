@@ -33,12 +33,17 @@ func HelpText(args []string) string {
 Usage:
   tl md en2zh [file]
   tl md zh2en [file]
+  tl md en2zh --fast [file]
+
+Flags:
+  --fast      pack text units by document size into fewer LLM requests
 
 Behavior:
   - [file] omitted: read Markdown from stdin
   - translated Markdown is written to stdout
   - progress bar and errors are written to stderr
   - translations run per text unit; no batch requests
+  - --fast keeps AST extract/splice and only changes packing
 
 Config:
   ~/.config/tl/config.json
@@ -56,6 +61,7 @@ Usage:
   tl zh2en [text]
   tl md en2zh [file]
   tl md zh2en [file]
+  tl md en2zh --fast [file]
   tl --version
   tl completion fish
   tl help

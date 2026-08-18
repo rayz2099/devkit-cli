@@ -61,20 +61,16 @@ func (a *App) Run(ctx context.Context, args []string) error {
 }
 
 func (a *App) runMarkdown(ctx context.Context, args []string) error {
-	if len(args) == 0 {
-		return errors.New(markdownUsage)
-	}
-
-	direction, err := parseDirection(args[0])
+	direction, paths, fast, err := parseMarkdownArgs(args)
 	if err != nil {
 		return err
 	}
-	input, err := a.readMarkdownInput(args[1:])
+	input, err := a.readMarkdownInput(paths)
 	if err != nil {
 		return err
 	}
 
-	translator, err := a.resolveMarkdownTranslator()
+	translator, err := a.resolveMarkdownTranslator(fast)
 	if err != nil {
 		return err
 	}
@@ -155,7 +151,7 @@ func parseDirection(raw string) (translation.Direction, error) {
 	}
 }
 
-func (a *App) resolveMarkdownTranslator() (translate_markdown.Runner, error) {
+func (a *App) resolveMarkdownTranslator(fast bool) (translate_markdown.Runner, error) {
 	if a.markdownTranslator != nil {
 		return a.markdownTranslator, nil
 	}
@@ -171,7 +167,29 @@ func (a *App) resolveMarkdownTranslator() (translate_markdown.Runner, error) {
 		Translator:   a.translator,
 		Concurrency:  a.concurrency,
 		ProgressSink: progressSink,
+		Fast:         fast,
 	}), nil
+}
+
+// parseMarkdownArgs 只剥离 --fast, 其余位置语义与旧命令兼容.
+func parseMarkdownArgs(args []string) (translation.Direction, []string, bool, error) {
+	rest := make([]string, 0, len(args))
+	fast := false
+	for _, arg := range args {
+		if arg == "--fast" {
+			fast = true
+			continue
+		}
+		rest = append(rest, arg)
+	}
+	if len(rest) == 0 {
+		return "", nil, fast, errors.New(markdownUsage)
+	}
+	direction, err := parseDirection(rest[0])
+	if err != nil {
+		return "", nil, fast, err
+	}
+	return direction, rest[1:], fast, nil
 }
 
 func (a *App) resolveTextTranslator() (translate_text.Runner, error) {
@@ -188,5 +206,5 @@ func (a *App) resolveTextTranslator() (translate_text.Runner, error) {
 
 const (
 	rootUsage     = "usage: tl <en2zh|zh2en> [text]"
-	markdownUsage = "usage: tl md <en2zh|zh2en> [file]"
+	markdownUsage = "usage: tl md <en2zh|zh2en> [--fast] [file]"
 )
