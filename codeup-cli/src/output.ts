@@ -90,7 +90,7 @@ export function webhookText(hooks: Webhook[]): string {
     return "No webhooks found\n";
   }
   return renderTable(
-    ["ID", "URL", "PUSH", "MR", "TAG", "NOTE", "SECRET"],
+    ["ID", "URL", "PUSH", "MR", "TAG", "NOTE", "SECRET", "UPDATED"],
     hooks.map((hook) => [
       hook.id,
       hook.url,
@@ -99,6 +99,7 @@ export function webhookText(hooks: Webhook[]): string {
       yn(hook.tagPushEvents),
       yn(hook.noteEvents),
       hook.secretToken,
+      hook.updatedAt,
     ]),
   );
 }
@@ -110,8 +111,23 @@ export function maskHooks(hooks: Webhook[], showSecrets: boolean): Webhook[] {
   }
   return hooks.map((hook) => ({
     ...hook,
+    url: maskHookUrl(hook.url),
     secretToken: hook.secretToken === "" ? "" : "***",
   }));
+}
+
+/** 为什么: 有的 hook 把 secret 放在 url query, 只打码 secretToken 会漏. */
+function maskHookUrl(raw: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return raw;
+  }
+  if (parsed.searchParams.has("token")) {
+    parsed.searchParams.set("token", "***");
+  }
+  return parsed.toString();
 }
 
 function yn(value: boolean): string {

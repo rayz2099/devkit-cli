@@ -48,6 +48,7 @@ codeup-cli webhook list [--repo group/project] [--show-secrets]
 - `cr list` defaults to `--state opened`. Use `--state all` or `--state merged`.
 - Short repo names resolve through the local index. Run `init` first.
 - Webhook is read-only. `secretToken` is masked unless `--show-secrets`.
+- Webhook delivery history is a Codeup web-console API. The OpenAPI token cannot read it, and this CLI does not store browser cookies.
 - Merge is not exposed.
 
 ## License

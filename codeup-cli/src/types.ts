@@ -50,6 +50,8 @@ export type Webhook = {
   mergeRequestsEvents: boolean;
   tagPushEvents: boolean;
   noteEvents: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type PushOut = {

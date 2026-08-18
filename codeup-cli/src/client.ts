@@ -1,5 +1,11 @@
 import { encodeRepoId } from "./org";
-import { CodeupErr, type ChangeRequest, type Repo, type Runtime, type Webhook } from "./types";
+import {
+  CodeupErr,
+  type ChangeRequest,
+  type Repo,
+  type Runtime,
+  type Webhook,
+} from "./types";
 
 type Query = Record<string, string | number | undefined>;
 
@@ -111,23 +117,19 @@ export class CodeupClient {
     title: string;
     description?: string;
   }): Promise<ChangeRequest> {
-    const repoId = await this.numericId(opts.repo);
-    const body: Record<string, unknown> = {
-      title: opts.title,
-      sourceBranch: opts.source,
-      targetBranch: opts.target,
-      sourceProjectId: repoId,
-      targetProjectId: repoId,
-      createFrom: "COMMAND_LINE",
-    };
-    if (opts.description !== undefined) {
-      body.description = opts.description;
-    }
+    const projectId = toProjectId(await this.numericId(opts.repo));
+    await this.requireRemoteBranch(opts.repo, opts.source);
     const raw = await this.request<unknown>(
       "POST",
       this.repoPath(opts.repo, "/changeRequests"),
       undefined,
-      body,
+      crCreateBody({
+        projectId,
+        source: opts.source,
+        target: opts.target,
+        title: opts.title,
+        description: opts.description,
+      }),
     );
     return this.toCr(raw);
   }
@@ -140,10 +142,23 @@ export class CodeupClient {
     const repoId = await this.numericId(repo);
     const raw = await this.request<unknown>(
       "GET",
-      `/oapi/v1/codeup/organizations/${this.runtime.orgId}/repositories/${repoId}/hooks`,
+      `/oapi/v1/codeup/organizations/${this.runtime.orgId}/repositories/${repoId}/webhooks`,
       { page, perPage },
     );
     return asArray(raw, "webhook list").map((item) => this.toHook(item));
+  }
+
+  /** 为什么: COMMAND_LINE 要 sourceCommit, 先确认远端分支比吃 400 便宜. */
+  private async requireRemoteBranch(repo: string, branch: string): Promise<void> {
+    const encoded = encodeURIComponent(branch);
+    try {
+      await this.request<unknown>("GET", this.repoPath(repo, `/branches/${encoded}`));
+    } catch (err) {
+      if (err instanceof CodeupErr && err.code === 2) {
+        throw new CodeupErr(`source branch not on remote: ${branch}; push first`, 1);
+      }
+      throw err;
+    }
   }
 
   private async numericId(repo: string): Promise<string> {
@@ -265,11 +280,13 @@ export class CodeupClient {
     return {
       id: String(id),
       url: asStr(rec.url),
-      secretToken: asStr(rec.secretToken),
+      secretToken: asStr(rec.token),
       pushEvents: asBool(rec.pushEvents),
-      mergeRequestsEvents: asBool(rec.mergeRequestsEvents),
+      mergeRequestsEvents: asBool(rec.mergeRequestEvents),
       tagPushEvents: asBool(rec.tagPushEvents),
       noteEvents: asBool(rec.noteEvents),
+      createdAt: asStr(rec.createdAt),
+      updatedAt: asStr(rec.updatedAt),
     };
   }
 }
@@ -297,6 +314,34 @@ function asBool(value: unknown): boolean {
     throw new CodeupErr("expected boolean field", 3);
   }
   return value;
+}
+
+/** 为什么: COMMAND_LINE 会强制 sourceCommit, OpenAPI 创建体里根本没有这个字段. */
+export function crCreateBody(opts: {
+  projectId: number;
+  source: string;
+  target: string;
+  title: string;
+  description?: string;
+}): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    title: opts.title,
+    sourceBranch: opts.source,
+    targetBranch: opts.target,
+    sourceProjectId: opts.projectId,
+    targetProjectId: opts.projectId,
+  };
+  if (opts.description !== undefined) {
+    body.description = opts.description;
+  }
+  return body;
+}
+
+export function toProjectId(repoId: string): number {
+  if (!/^\d+$/.test(repoId)) {
+    throw new CodeupErr(`invalid repository project id: ${repoId}`, 3);
+  }
+  return Number(repoId);
 }
 
 function clipBody(text: string): string {
