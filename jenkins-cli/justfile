@@ -1,0 +1,37 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+bin := "jenkins-cli"
+install_dir := env_var_or_default("JENKINS_INSTALL_DIR", env_var("HOME") + "/.local/bin")
+fish_completion_dir := env_var("HOME") + "/.config/fish/completions"
+
+help:
+    @just --list --unsorted
+
+test:
+    bun test
+
+typecheck:
+    bun run typecheck
+
+check:
+    bun run check
+
+clean:
+    bun -e 'import { readdirSync, rmSync } from "node:fs"; const paths = ["dist", ...readdirSync(".").filter((path) => path.endsWith(".bun-build"))]; for (const path of paths) rmSync(path, { recursive: true, force: true });'
+
+build:
+    bun run build
+
+dev *args:
+    bun src/cli.ts {{args}}
+
+install: build install-fish
+    mkdir -p "{{install_dir}}"
+    cp dist/{{bin}} "{{install_dir}}/{{bin}}"
+    chmod +x "{{install_dir}}/{{bin}}"
+    @echo "installed: {{install_dir}}/{{bin}}"
+
+install-fish:
+    mkdir -p "{{fish_completion_dir}}"
+    bun src/cli.ts completion fish > "{{fish_completion_dir}}/{{bin}}.fish"
+    @echo "fish completion: {{fish_completion_dir}}/{{bin}}.fish"
