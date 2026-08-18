@@ -1,0 +1,8 @@
+{
+  "nacos_server_addr": "127.0.0.1:8848",
+  "nacos_username": "",
+  "nacos_password": "",
+  "nacos_namespace": "public",
+  "namespaces": ["public"],
+  "nacos_output": "text"
+}
