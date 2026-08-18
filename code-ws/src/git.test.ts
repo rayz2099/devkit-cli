@@ -513,8 +513,8 @@ describe("workspace cleanup safety", () => {
           cmds.push(args);
           return "";
         },
-        isMerged: (_cwd, ancestor, descendant) =>
-          ancestor === "HEAD" && descendant === "FETCH_HEAD",
+        isMerged: (_cwd, head, target) =>
+          head === "HEAD" && target === "origin/master",
       },
     );
 

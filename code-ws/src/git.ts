@@ -476,20 +476,20 @@ function isGitWorktree(path: string): boolean {
 }
 
 /**
- * 用提交祖先关系判断是否已合并, 因为 commit 数量不能区分未合并和远端引用过期。
+ * 用合入后的 tree 判断是否已合并, 因为 squash/rebase 合入后 commit SHA 不再是 master 祖先.
  */
-function isAncestor(
+function isMergedByTree(
   cwd: string,
-  ancestor: string,
-  descendant: string,
+  head: string,
+  target: string,
 ): boolean {
-  const ret = spawnSync(
+  const mergeRet = spawnSync(
     "git",
     [
-      "merge-base",
-      "--is-ancestor",
-      ancestor,
-      descendant,
+      "merge-tree",
+      "--write-tree",
+      target,
+      head,
     ],
     {
       cwd,
@@ -498,15 +498,33 @@ function isAncestor(
     },
   );
 
-  if (ret.status === 0) {
-    return true;
-  }
-  if (ret.status === 1) {
+  if (mergeRet.status === 1) {
     return false;
   }
+  if (mergeRet.status !== 0) {
+    const err = mergeRet.stderr.length > 0 ? mergeRet.stderr : mergeRet.stdout;
+    throw new Error(`git check failed: ${err.trim()}`);
+  }
 
-  const err = ret.stderr.length > 0 ? ret.stderr : ret.stdout;
-  throw new Error(`git check failed: ${err.trim()}`);
+  const treeRet = spawnSync(
+    "git",
+    [
+      "rev-parse",
+      `${target}^{tree}`,
+    ],
+    {
+      cwd,
+      encoding: "utf8",
+      stdio: "pipe",
+    },
+  );
+
+  if (treeRet.status !== 0) {
+    const err = treeRet.stderr.length > 0 ? treeRet.stderr : treeRet.stdout;
+    throw new Error(`git check failed: ${err.trim()}`);
+  }
+
+  return mergeRet.stdout.trim() === treeRet.stdout.trim();
 }
 
 export type DisposableWorktreeDeps = {
@@ -515,13 +533,13 @@ export type DisposableWorktreeDeps = {
   gitOut?: (cwd: string, args: string[]) => string;
   isMerged?: (
     cwd: string,
-    ancestor: string,
-    descendant: string,
+    head: string,
+    target: string,
   ) => boolean;
 };
 
 /**
- * 删除 worktree 前必须确认没有未提交改动, 且 HEAD 已合并到最新远端目标分支。
+ * 删除 worktree 前必须确认没有未提交改动, 且 HEAD 相对最新远端目标分支没有独有变更.
  */
 export function assertDisposableWorktrees(
   wsDir: string,
@@ -533,7 +551,7 @@ export function assertDisposableWorktrees(
   const pathExists = deps.pathExists ?? existsSync;
   const isTree = deps.isTree ?? isGitWorktree;
   const gitOut = deps.gitOut ?? gitOutput;
-  const isMerged = deps.isMerged ?? isAncestor;
+  const isMerged = deps.isMerged ?? isMergedByTree;
 
   for (const repo of repos) {
     const repoBranch = repoBaseBranch(
@@ -564,14 +582,15 @@ export function assertDisposableWorktrees(
         repoBranch,
       ],
     );
-    if (!isMerged(dst, "HEAD", "FETCH_HEAD")) {
+    const remoteRef = `${remote}/${repoBranch}`;
+    if (!isMerged(dst, "HEAD", remoteRef)) {
       const commits = gitOut(
         dst,
         [
           "git",
           "rev-list",
           "--count",
-          "FETCH_HEAD..HEAD",
+          `${remoteRef}..HEAD`,
         ],
       );
       throw new Error(unsafeWorkMsg(
