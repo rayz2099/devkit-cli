@@ -15,7 +15,8 @@
 | `olly-cli` | Query Prometheus / Uptrace / Graylog |
 | `mysql-cli` | Profile-based MySQL helper with Fish completion |
 | `har-cli` | Analyze HAR files and extract request URIs |
-| `tl` | Go CLI for EN/ZH translation |
+| `tl` | Go CLI for EN/ZH text and Markdown (`tl md --fast`) |
+| `jenkins-cli` | Profile-based Jenkins client with human/agent output and Fish completion |
 
 ### Requirements
 
@@ -39,6 +40,7 @@ Configs live in XDG paths:
 - `~/.config/olly-cli/config.json`
 - `~/.config/mysql-cli/config.json`
 - `~/.config/tl/config.json`
+- `~/.config/jenkins-cli/config.json`
 
 Copy examples first if needed:
 
@@ -48,6 +50,7 @@ cp code-ws/project.example.yml ~/.config/code-ws/project.yml
 cp olly-cli/config.example.json ~/.config/olly-cli/config.json
 cp mysql-cli/config.example.json ~/.config/mysql-cli/config.json
 cp tl/config.example.json ~/.config/tl/config.json
+cp jenkins-cli/config.example.json ~/.config/jenkins-cli/config.json
 ```
 
 `just install` bootstraps missing XDG configs from `*.example.*` and never overwrites existing files.
@@ -71,7 +74,8 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 | `olly-cli` | 查询 Prometheus / Uptrace / Graylog |
 | `mysql-cli` | 基于 profile 的 MySQL 辅助工具, 含 Fish completion |
 | `har-cli` | 分析 HAR 并提取请求 URI |
-| `tl` | Go 实现的中英翻译 CLI |
+| `tl` | Go 中英翻译, 支持纯文本和 Markdown (`tl md --fast`) |
+| `jenkins-cli` | 基于 profile 的 Jenkins 客户端, 含 human/agent 输出和 Fish completion |
 
 ### 依赖
 
@@ -95,6 +99,7 @@ just build code-ws
 - `~/.config/olly-cli/config.json`
 - `~/.config/mysql-cli/config.json`
 - `~/.config/tl/config.json`
+- `~/.config/jenkins-cli/config.json`
 
 `just install` 仅在配置缺失时从 `*.example.*` 引导, 不覆盖已有文件.
 
