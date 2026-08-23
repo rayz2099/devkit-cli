@@ -110,11 +110,11 @@ describe("copyForkWorkspaceEntries", () => {
       "docs",
       "spec",
       "tasks",
-      "README.md",
       ".agents",
     ]);
     expect(readFileSync(join(dst, "docs", "prd.md"), "utf8")).toBe("prd");
     expect(existsSync(join(dst, "AGENTS.md"))).toBe(false);
+    expect(existsSync(join(dst, "README.md"))).toBe(false);
     expect(existsSync(join(dst, "diamond-card.code-workspace"))).toBe(false);
     expect(existsSync(join(dst, "app-api"))).toBe(false);
   });

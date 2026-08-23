@@ -27,7 +27,7 @@ workspace 内的 `project.yml` 会写入固定 `branch` 和项目 `description`,
 
 `sync master` 需要在 workspace 目录或其子目录执行, 它只会把每个项目的本地主分支更新到远程同名分支, 不会 checkout、merge 或 push。项目可在 `project.yml` 中用 `branch` 覆盖主分支, 未声明时默认 `master`。
 
-`fork <branch>` 需要在 workspace 目录或其子目录执行, 它会先检查当前 workspace 中所有 repo 没有未提交改动, 再从当前 repo worktree 的 `HEAD` 派生目标分支 worktree。它会复制固定枚举的任务上下文: `project.yml`, `docs/`, `spec/`, `tasks/`, `README.md`, `.agents/`, 再把 XDG `AGENTS.md` 重新 link 到目标 workspace, 并生成 `.code-workspace` 和 `project.yml` 分支名.
+`fork <branch>` 需要在 workspace 目录或其子目录执行, 它会先检查当前 workspace 中所有 repo 没有未提交改动, 再从当前 repo worktree 的 `HEAD` 派生目标分支 worktree。它会复制固定枚举的任务上下文: `project.yml`, `docs/`, `spec/`, `tasks/`, `.agents/`, 再把 XDG `AGENTS.md` 重新 link 到目标 workspace, 并生成 `.code-workspace` 和 `project.yml` 分支名. 不复制根 `README.md`, 避免把旧阶段图带进新 workspace.
 
 `destroy` 需要在 workspace 目录或其子目录执行, 卸载前会检查各 worktree 是否存在未提交改动, 以及相对 `origin/<baseBranch>` 是否还有未合入的本地 commit; 任一不安全条件都会提示并立即终止. 通过后才按 `project.yml` 执行 `git worktree remove --force`. 不会改写 `project.yml` / `.code-workspace`, 也不会删除 workspace 目录, 方便后续淬炼复用.
 

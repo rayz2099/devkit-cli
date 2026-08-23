@@ -6,7 +6,6 @@ const forkCopyEntries = [
   "docs",
   "spec",
   "tasks",
-  "README.md",
   ".agents",
 ];
 
@@ -55,7 +54,8 @@ export function applyAgentsTemplate(
 
 /**
  * fork 只复制 workspace 根目录的任务上下文白名单, 因为 repo worktree 必须由 git 重新创建.
- * AGENTS.md 不在此列, 由 applyAgentsTemplate 重新 link 到 XDG.
+ * AGENTS.md / README.md 不在此列: AGENTS.md 由 applyAgentsTemplate 重新 link 到 XDG;
+ * README 常残留旧阶段图, 工作流只认 $dt-init, 不随 fork 传播.
  */
 export function copyForkWorkspaceEntries(
   srcWsDir: string,
