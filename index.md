@@ -18,3 +18,4 @@ just build code-ws
 | `tl` | Go 实现的命令行翻译工具. |
 | `mysql-cli` | MySQL 连接和查询辅助 CLI, 并提供 Fish completion. |
 | `har-cli` | HAR 文件分析 CLI. |
+| `alist-cli` | Alist 客户端: ls / put / mkdir / 目录 sync. |
