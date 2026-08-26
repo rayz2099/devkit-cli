@@ -19,13 +19,15 @@
 | `jenkins-cli` | Profile-based Jenkins client with human/agent output and Fish completion |
 | `codeup-cli` | Profile-based Codeup client: repos, git push, change requests, webhook list |
 | `alist-cli` | Profile-based Alist client: ls, put, mkdir, directory sync |
+| `dsn-cli` | Profile-based query CLI for mysql/doris/redis/mongodb/elasticsearch |
 
 ### Requirements
 
 - [Bun](https://bun.sh)
 - [just](https://github.com/casey/just)
 - Go (for `tl`)
-- `mysql` client (for `mysql-cli`)
+- `mysql` client (for `mysql-cli` and `dsn-cli` Console)
+- `redis-cli` / `mongosh` (for `dsn-cli` Console)
 
 ### Quick start
 
@@ -45,6 +47,8 @@ Configs live in XDG paths:
 - `~/.config/jenkins-cli/config.json`
 - `~/.config/codeup-cli/config.json`
 - `~/.config/alist-cli/config.json` (env: `ALIST_ADDRESS` / `ALIST_USERNAME` / `ALIST_PASSWORD`)
+- `~/.config/dsn-cli/config.json`
+- `~/.config/dsn-cli/config.json`
 
 Copy examples first if needed:
 
@@ -57,6 +61,7 @@ cp tl/config.example.json ~/.config/tl/config.json
 cp jenkins-cli/config.example.json ~/.config/jenkins-cli/config.json
 cp codeup-cli/config.example.json ~/.config/codeup-cli/config.json
 cp alist-cli/config.example.json ~/.config/alist-cli/config.json
+cp dsn-cli/config.example.json ~/.config/dsn-cli/config.json
 ```
 
 `just install` bootstraps missing XDG configs from `*.example.*` and never overwrites existing files.
@@ -84,13 +89,15 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 | `jenkins-cli` | 基于 profile 的 Jenkins 客户端, 含 human/agent 输出和 Fish completion |
 | `codeup-cli` | 基于 profile 的 Codeup 客户端: 仓库, git push, Change Request, webhook 只读 |
 | `alist-cli` | 基于 profile 的 Alist 客户端: ls, put, mkdir, 目录同步 |
+| `dsn-cli` | 基于 profile 查询 mysql/doris/redis/mongodb/elasticsearch |
 
 ### 依赖
 
 - Bun
 - just
 - Go (`tl`)
-- `mysql` 客户端 (`mysql-cli`)
+- `mysql` 客户端 (`mysql-cli` / `dsn-cli` Console)
+- `redis-cli` / `mongosh` (`dsn-cli` Console)
 
 ### 快速开始
 
@@ -110,6 +117,7 @@ just build code-ws
 - `~/.config/jenkins-cli/config.json`
 - `~/.config/codeup-cli/config.json`
 - `~/.config/alist-cli/config.json` (env: `ALIST_ADDRESS` / `ALIST_USERNAME` / `ALIST_PASSWORD`)
+- `~/.config/dsn-cli/config.json`
 
 `just install` 仅在配置缺失时从 `*.example.*` 引导, 不覆盖已有文件.
 

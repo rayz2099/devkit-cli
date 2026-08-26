@@ -1,0 +1,29 @@
+{
+  "profiles": [
+    {
+      "name": "buy",
+      "kind": "mysql",
+      "url": "mysql://readonly@127.0.0.1:3306/buy"
+    },
+    {
+      "name": "dw",
+      "kind": "doris",
+      "url": "mysql://readonly@127.0.0.1:9030/dw"
+    },
+    {
+      "name": "cache",
+      "kind": "redis",
+      "url": "redis://127.0.0.1:6379/0"
+    },
+    {
+      "name": "mongo",
+      "kind": "mongodb",
+      "url": "mongodb://127.0.0.1:27017/app"
+    },
+    {
+      "name": "es",
+      "kind": "elasticsearch",
+      "url": "https://127.0.0.1:9200"
+    }
+  ]
+}
