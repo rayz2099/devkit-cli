@@ -21,7 +21,7 @@ test("query 需要 -p 和单参数语句", () => {
     stmt: "SELECT 1",
     output: "table",
     limit: undefined,
-    connectSec: 1,
+    connectSec: 3,
     execSec: 30,
   });
   expect(() => parseArgs(["query", "SELECT 1"])).toThrow("-p is required");
@@ -38,7 +38,7 @@ test("agent 前缀和 --output --limit", () => {
     stmt: "PING",
     output: "table",
     limit: 10,
-    connectSec: 1,
+    connectSec: 3,
     execSec: 30,
   });
   expect(parseArgs(["-p", "buy", "query", "SELECT 1", "--output", "json"]).kind).toBe(
@@ -49,4 +49,24 @@ test("agent 前缀和 --output --limit", () => {
 test("--timeout 覆盖执行秒数", () => {
   const cmd = parseArgs(["-p", "buy", "query", "SELECT 1", "--timeout", "120", "--connect-timeout", "2"]);
   expect(cmd).toMatchObject({ kind: "query", execSec: 120, connectSec: 2 });
+});
+
+test("doctor 不需要 -p, 默认连接 3s", () => {
+  expect(parseArgs(["doctor"])).toEqual({
+    kind: "doctor",
+    audience: "human",
+    profile: undefined,
+    output: "table",
+    connectSec: 3,
+    execSec: 5,
+  });
+  expect(parseArgs(["agent", "doctor", "-p", "buy", "--timeout", "8"])).toEqual({
+    kind: "doctor",
+    audience: "agent",
+    profile: "buy",
+    output: "table",
+    connectSec: 3,
+    execSec: 8,
+  });
+  expect(() => parseArgs(["doctor", "extra"])).toThrow("unexpected argument");
 });

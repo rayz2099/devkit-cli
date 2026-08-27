@@ -1,9 +1,28 @@
-import { Client as EsClient } from "@elastic/elasticsearch";
+import { Client as EsClient, HttpConnection } from "@elastic/elasticsearch";
 import { Redis } from "ioredis";
 import { MongoClient } from "mongodb";
 import mysql from "mysql2/promise";
 import { parseRestQuery, splitArgs } from "./gate";
 import { DsnErr, type Kind, type QueryOut, type Timeouts } from "./types";
+
+/** 为什么: doctor 只探连通, 必须用各 Kind 最小只读语句, 不能让用户语句或 Gate 介入. */
+export function probeStmt(kind: Kind): string {
+  switch (kind) {
+    case "mysql":
+    case "doris":
+      return "SELECT 1";
+    case "redis":
+      return "PING";
+    case "mongodb":
+      return '{"ping":1}';
+    case "elasticsearch":
+      return "GET /";
+    default: {
+      const _never: never = kind;
+      return _never;
+    }
+  }
+}
 
 /** 为什么: Query 走 TS driver, 不 spawn 官方客户端, 才能在出站前过 Gate. */
 export async function runDriver(
@@ -86,9 +105,16 @@ async function queryRedis(url: string, stmt: string, timeouts: Timeouts): Promis
   const redis = new Redis(url, {
     lazyConnect: true,
     maxRetriesPerRequest: 0,
+    enableOfflineQueue: false,
     connectTimeout: timeouts.connectMs,
     commandTimeout: timeouts.execMs,
+    retryStrategy() {
+      // 为什么: 探测失败必须停, 不能重连把超时拖过 deadline.
+      return null;
+    },
   });
+  // 为什么: ioredis 在 socket 失败时 emit error, 无 listener 会打 Unhandled error event 污染 doctor.
+  redis.on("error", () => {});
   try {
     await redis.connect();
     const rest = args.slice(1);
@@ -133,10 +159,12 @@ function mongoOut(out: Record<string, unknown>): QueryOut {
   return docsOut([out]);
 }
 
+/** 为什么: Bun 的 undici.Pool 没有 close, 必须用 HttpConnection, 否则成功请求会被 close 打成失败. */
 async function queryEs(url: string, stmt: string, timeouts: Timeouts): Promise<QueryOut> {
   const parsed = parseRestQuery(stmt);
   const client = new EsClient({
     node: url,
+    Connection: HttpConnection,
     pingTimeout: timeouts.connectMs,
     requestTimeout: timeouts.execMs,
     maxRetries: 0,

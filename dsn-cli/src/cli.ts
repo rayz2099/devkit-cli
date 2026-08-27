@@ -10,7 +10,7 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<number> 
       return out.code;
     }
     process.stdout.write(out.body);
-    return 0;
+    return out.code ?? 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);

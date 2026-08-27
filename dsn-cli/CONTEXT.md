@@ -45,9 +45,13 @@ Registered implementation for one Kind. Opens a connection and runs Query. `dori
 _Avoid_: wrapper, vendor CLI as the Query runtime, JDBC as the runtime
 
 **Audience**:
-Who consumes Query stdout. Omitted means `human`. Prefix `agent` means JSON, never Console, and applies the result row cap.
+Who consumes stdout. Omitted means `human`. Prefix `agent` means JSON, never Console, and applies the result row cap on Query.
 _Avoid_: --json, mixing with `--output`
 
 **Output**:
-Format of Query stdout. Human default is table; `--output` may be `json` (NDJSON), `csv`, or `plain`. Agent is always one JSON object with `rows` and `truncated`, and ignores `--output`. Console is the vendor client's stdout.
+Format of Query and Doctor stdout. Human default is table; `--output` may be `json` (NDJSON), `csv`, or `plain`. Agent is always one JSON object with `rows` and `truncated`, and ignores `--output`. Console is the vendor client's stdout.
 _Avoid_: applying --output to Console or agent
+
+**Doctor**:
+A connectivity probe of Profiles. Default is all Profiles in parallel; `-p` limits to one. Uses a Driver ping, not Query. Gate does not run. One Profile's hang does not wait the others: each has a deadline.
+_Avoid_: health as cluster semantics, sequential scan, fail-fast abort of remaining Profiles

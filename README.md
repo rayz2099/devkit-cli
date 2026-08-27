@@ -48,7 +48,6 @@ Configs live in XDG paths:
 - `~/.config/codeup-cli/config.json`
 - `~/.config/alist-cli/config.json` (env: `ALIST_ADDRESS` / `ALIST_USERNAME` / `ALIST_PASSWORD`)
 - `~/.config/dsn-cli/config.json`
-- `~/.config/dsn-cli/config.json`
 
 Copy examples first if needed:
 

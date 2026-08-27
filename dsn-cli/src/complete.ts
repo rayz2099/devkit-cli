@@ -1,7 +1,7 @@
 import { takeCmd } from "./args";
 import { loadFileCfg, profileNames } from "./config";
 
-const ROOT_CMDS = ["query", "completion", "agent", "human"];
+const ROOT_CMDS = ["query", "doctor", "completion", "agent", "human"];
 
 /** 为什么: 补全只给已经能确定的候选, 不去猜 statement 正文. */
 export async function completeLines(tokens: string[], current: string): Promise<string> {
@@ -25,7 +25,7 @@ export async function completeValues(tokens: string[], current: string): Promise
   if (pos[0] === "agent" || pos[0] === "human") {
     const rest = pos.slice(1);
     if (rest.length === 0 || (rest.length === 1 && rest[0] === current)) {
-      return ["query"];
+      return ["query", "doctor"];
     }
     if (rest[0] === "completion") {
       return ["fish"];

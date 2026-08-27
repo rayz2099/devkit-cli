@@ -1,29 +1,68 @@
 {
+  // ~/.config/dsn-cli/config.json
+  // 允许注释和尾逗号. access 省略即 read.
   "profiles": [
+    // mysql://user:password@host:3306/db
     {
       "name": "buy",
       "kind": "mysql",
-      "url": "mysql://readonly@127.0.0.1:3306/buy"
+      "url": "mysql://readonly@127.0.0.1:3306/buy",
     },
+    // 写库: access write 跳过 Gate. 密码特殊字符要 percent-encode.
+    {
+      "name": "buy-rw",
+      "kind": "mysql",
+      "url": "mysql://app:secret@127.0.0.1:3306/buy",
+      "access": "write",
+    },
+    // doris 仍用 mysql://, FE 查询口默认 9030
     {
       "name": "dw",
       "kind": "doris",
-      "url": "mysql://readonly@127.0.0.1:9030/dw"
+      "url": "mysql://readonly@127.0.0.1:9030/dw",
     },
+    // redis://[:password@]host:6379/db ; TLS 用 rediss://
     {
       "name": "cache",
       "kind": "redis",
-      "url": "redis://127.0.0.1:6379/0"
+      "url": "redis://127.0.0.1:6379/0",
     },
+    {
+      "name": "cache-auth",
+      "kind": "redis",
+      "url": "redis://:s3cret@127.0.0.1:6379/2",
+    },
+    {
+      "name": "cache-tls",
+      "kind": "redis",
+      "url": "rediss://:s3cret@127.0.0.1:6380/0",
+    },
+    // mongodb://user:password@host:27017/db ; Atlas 用 mongodb+srv://
     {
       "name": "mongo",
       "kind": "mongodb",
-      "url": "mongodb://127.0.0.1:27017/app"
+      "url": "mongodb://127.0.0.1:27017/app",
     },
+    {
+      "name": "mongo-auth",
+      "kind": "mongodb",
+      "url": "mongodb://app:secret@127.0.0.1:27017/app",
+    },
+    {
+      "name": "mongo-atlas",
+      "kind": "mongodb",
+      "url": "mongodb+srv://app:secret@cluster.mongodb.net/app",
+    },
+    // http:// 或 https:// ; 可带 basic auth. 无 Console.
     {
       "name": "es",
       "kind": "elasticsearch",
-      "url": "https://127.0.0.1:9200"
-    }
-  ]
+      "url": "https://127.0.0.1:9200",
+    },
+    {
+      "name": "es-local",
+      "kind": "elasticsearch",
+      "url": "http://elastic:secret@127.0.0.1:9200",
+    },
+  ],
 }

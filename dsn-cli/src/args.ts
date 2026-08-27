@@ -39,6 +39,9 @@ export function parseArgs(argv: string[]): CliCmd {
   if (head === "query") {
     return parseQuery(rest.slice(1), flags, audience, profile);
   }
+  if (head === "doctor") {
+    return parseDoctor(rest.slice(1), flags, audience, profile);
+  }
   if (head === "completion") {
     throw new Error("usage: dsn-cli completion fish");
   }
@@ -68,8 +71,30 @@ function parseQuery(
     stmt,
     output: readOutput(flags.get("--output")),
     limit: readLimit(flags.get("--limit")),
-    connectSec: readSec(flags.get("--connect-timeout"), 1),
+    connectSec: readSec(flags.get("--connect-timeout"), 3),
     execSec: readSec(flags.get("--timeout"), 30),
+  };
+}
+
+function parseDoctor(
+  rest: string[],
+  flags: Map<string, string>,
+  audience: Audience,
+  profile: string | undefined,
+): CliCmd {
+  if (rest.length > 0) {
+    throw new Error("doctor: unexpected argument");
+  }
+  if (profile !== undefined && profile.trim() === "") {
+    throw new Error("-p is required");
+  }
+  return {
+    kind: "doctor",
+    audience,
+    profile,
+    output: readOutput(flags.get("--output")),
+    connectSec: readSec(flags.get("--connect-timeout"), 3),
+    execSec: readSec(flags.get("--timeout"), 5),
   };
 }
 
@@ -90,16 +115,29 @@ Usage:
   dsn-cli agent -p <profile> query '<stmt>' [--limit N] [--timeout S]
 `;
   }
+  if (topic === "doctor") {
+    return `dsn-cli doctor
+
+Usage:
+  dsn-cli doctor [-p <profile>] [--output json|csv|plain] [--timeout S] [--connect-timeout S]
+  dsn-cli agent doctor [-p <profile>] [--timeout S]
+
+Probes Profiles with concurrency 4. Deadline is --connect-timeout + --timeout (defaults 3s + 5s).
+`;
+  }
   return `dsn-cli
 
 Usage:
   dsn-cli -p <profile>
   dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--limit N] [--timeout S]
   dsn-cli agent -p <profile> query '<stmt>' [--limit N] [--timeout S]
+  dsn-cli doctor [-p <profile>] [--timeout S] [--connect-timeout S]
+  dsn-cli agent doctor [-p <profile>] [--timeout S]
   dsn-cli completion fish
 
 TTY -p opens the vendor client (mysql / redis-cli / mongosh).
 agent and non-TTY cannot enter that Console.
+doctor probes with concurrency 4; a hung Profile does not stall the rest.
 `;
 }
 

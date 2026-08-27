@@ -1,12 +1,13 @@
 import { helpText, parseArgs } from "./args";
 import { completeLines } from "./complete";
-import { loadFileCfg, resolveRuntime } from "./config";
+import { loadFileCfg, pickProfile, resolveRuntime } from "./config";
 import { isTty, runConsole } from "./console";
+import { checkProfiles, doctorOut, driverProbe } from "./doctor";
 import { runDriver } from "./drivers";
 import { fishScript } from "./fish";
 import { gateQuery } from "./gate";
 import { agentLimit, capRows, renderQuery, renderText } from "./output";
-import type { RunOut } from "./types";
+import type { CliCmd, FileCfg, RunOut } from "./types";
 
 /** 为什么: 命令分发和渲染绑在一起, 避免 Console 和 Query 各自决定 Audience. */
 export async function runCmd(argv: string[]): Promise<RunOut> {
@@ -21,7 +22,12 @@ export async function runCmd(argv: string[]): Promise<RunOut> {
     return { type: "stdout", body: await completeLines(cmd.tokens, cmd.current) };
   }
 
-  const runtime = resolveRuntime(await loadFileCfg(), cmd.audience, cmd.profile);
+  const fileCfg = await loadFileCfg();
+  if (cmd.kind === "doctor") {
+    return await execDoctor(cmd, fileCfg);
+  }
+
+  const runtime = resolveRuntime(fileCfg, cmd.audience, cmd.profile);
   const profile = runtime.profile;
 
   if (cmd.kind === "console") {
@@ -50,4 +56,22 @@ export async function runCmd(argv: string[]): Promise<RunOut> {
     capped.truncated,
   );
   return { type: "stdout", body };
+}
+
+/** 为什么: doctor 面向整份 Profile 列表, 失败要出表还要非 0, 不能在第一处 throw. */
+async function execDoctor(
+  cmd: Extract<CliCmd, { kind: "doctor" }>,
+  fileCfg: FileCfg,
+): Promise<RunOut> {
+  const wanted = cmd.profile;
+  const profiles = wanted === undefined ? fileCfg.profiles : [pickProfile(fileCfg, wanted)];
+  const timeouts = {
+    connectMs: Math.round(cmd.connectSec * 1000),
+    execMs: Math.round(cmd.execSec * 1000),
+  };
+  const rows = await checkProfiles(profiles, timeouts, driverProbe);
+  const failed = rows.some((row) => row.status === "fail");
+  const data = doctorOut(rows);
+  const body = renderQuery(cmd.audience, cmd.output, data, false);
+  return { type: "stdout", body, code: failed ? 3 : 0 };
 }

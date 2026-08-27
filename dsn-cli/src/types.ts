@@ -52,10 +52,18 @@ export type CliCmd =
       limit?: number;
       connectSec: number;
       execSec: number;
+    }
+  | {
+      kind: "doctor";
+      audience: Audience;
+      profile?: string;
+      output: OutputFmt;
+      connectSec: number;
+      execSec: number;
     };
 
 export type RunOut =
-  | { type: "stdout"; body: string }
+  | { type: "stdout"; body: string; code?: number }
   | { type: "exit"; code: number };
 
 /** 为什么: agent 要靠退出码区分用法错误、门禁拒绝和驱动失败, 不能全挤进 1. */
