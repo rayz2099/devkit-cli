@@ -6,6 +6,8 @@ import { checkProfiles, doctorOut, driverProbe } from "./doctor";
 import { runDriver } from "./drivers";
 import { fishScript } from "./fish";
 import { gateQuery } from "./gate";
+import { writeTopicCache } from "./kafka-cache";
+import { isKafkaListen, isKafkaTopics } from "./kafka-stmt";
 import { agentLimit, capRows, renderQuery, renderText } from "./output";
 import type { CliCmd, FileCfg, RunOut } from "./types";
 
@@ -47,13 +49,23 @@ export async function runCmd(argv: string[]): Promise<RunOut> {
     execMs: Math.round(cmd.execSec * 1000),
   };
   const raw = await runDriver(profile.kind, profile.url, cmd.stmt, timeouts);
+  if (profile.kind === "kafka" && isKafkaTopics(cmd.stmt)) {
+    await writeTopicCache(
+      profile.name,
+      raw.rows.map((row) => String(row.name ?? "")),
+    );
+  }
   const limit = runtime.audience === "agent" ? agentLimit(cmd.limit) : 0;
   const capped = capRows(raw.rows, limit);
+  const humanListen =
+    profile.kind === "kafka" && runtime.audience === "human" && isKafkaListen(cmd.stmt);
+  const output = humanListen && cmd.output === "table" ? "json" : cmd.output;
   const body = renderQuery(
     runtime.audience,
-    cmd.output,
+    output,
     { columns: raw.columns, rows: capped.rows },
     capped.truncated,
+    cmd.pretty,
   );
   return { type: "stdout", body };
 }
@@ -72,6 +84,6 @@ async function execDoctor(
   const rows = await checkProfiles(profiles, timeouts, driverProbe);
   const failed = rows.some((row) => row.status === "fail");
   const data = doctorOut(rows);
-  const body = renderQuery(cmd.audience, cmd.output, data, false);
+  const body = renderQuery(cmd.audience, cmd.output, data, false, cmd.pretty);
   return { type: "stdout", body, code: failed ? 3 : 0 };
 }

@@ -1,6 +1,6 @@
 export type Audience = "human" | "agent";
 
-export type Kind = "mysql" | "doris" | "redis" | "mongodb" | "elasticsearch";
+export type Kind = "mysql" | "doris" | "redis" | "mongodb" | "elasticsearch" | "kafka";
 
 export type Access = "read" | "write";
 
@@ -49,6 +49,7 @@ export type CliCmd =
       profile: string;
       stmt: string;
       output: OutputFmt;
+      pretty: boolean;
       limit?: number;
       connectSec: number;
       execSec: number;
@@ -58,6 +59,7 @@ export type CliCmd =
       audience: Audience;
       profile?: string;
       output: OutputFmt;
+      pretty: boolean;
       connectSec: number;
       execSec: number;
     };
@@ -82,4 +84,5 @@ export const KINDS: Kind[] = [
   "redis",
   "mongodb",
   "elasticsearch",
+  "kafka",
 ];

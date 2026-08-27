@@ -64,5 +64,11 @@
       "kind": "elasticsearch",
       "url": "http://elastic:secret@127.0.0.1:9200",
     },
+    // kafka://host:9092 ; TLS 用 kafkas://
+    {
+      "name": "kf-biz",
+      "kind": "kafka",
+      "url": "kafka://127.0.0.1:9092",
+    },
   ],
 }

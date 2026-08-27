@@ -86,7 +86,14 @@ export function parseFileCfg(content: string, path: string): FileCfg {
     throw new Error(`invalid config file ${path}: profiles must be an array`);
   }
   return {
-    profiles: raw.profiles.map((item, index) => parseProfile(item, path, index)),
+    // 为什么: 未知 kind 或单条坏配置不能挡其它 Profile, 否则 kafka 用不了.
+    profiles: raw.profiles.flatMap((item, index) => {
+      try {
+        return [parseProfile(item, path, index)];
+      } catch {
+        return [];
+      }
+    }),
   };
 }
 
@@ -160,8 +167,14 @@ export function assertUrl(kind: Kind, url: string, name: string): void {
     }
     return;
   }
-  if (proto !== "http:" && proto !== "https:") {
-    throw new Error(`profile ${name}: elasticsearch url must use http:// or https://`);
+  if (kind === "elasticsearch") {
+    if (proto !== "http:" && proto !== "https:") {
+      throw new Error(`profile ${name}: elasticsearch url must use http:// or https://`);
+    }
+    return;
+  }
+  if (proto !== "kafka:" && proto !== "kafkas:") {
+    throw new Error(`profile ${name}: kafka url must use kafka:// or kafkas://`);
   }
 }
 

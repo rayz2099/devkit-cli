@@ -1,7 +1,7 @@
 import type { Audience, CliCmd, OutputFmt } from "./types";
 
 const VALUE_FLAGS = new Set(["-p", "--profile", "--output", "--limit", "--timeout", "--connect-timeout"]);
-const BOOL_FLAGS = new Set(["-h", "--help"]);
+const BOOL_FLAGS = new Set(["-h", "--help", "--pretty"]);
 
 /** 为什么: 自己解析 argv, Audience 前缀和 -p 才能前后插, 不绑框架. */
 export function parseArgs(argv: string[]): CliCmd {
@@ -57,19 +57,20 @@ function parseQuery(
   if (profile === undefined || profile.trim() === "") {
     throw new Error("-p is required");
   }
-  const stmt = rest[0];
-  if (stmt === undefined || stmt.trim() === "") {
+  const stmt = rest.join(" ").trim();
+  if (stmt === "") {
     throw new Error("query: missing statement");
   }
-  if (rest.length > 1) {
-    throw new Error("query: statement must be a single argument");
-  }
+  const output = readOutput(flags.get("--output"));
+  const pretty = flags.has("--pretty");
+  assertPretty(output, pretty);
   return {
     kind: "query",
     audience,
     profile,
     stmt,
-    output: readOutput(flags.get("--output")),
+    output,
+    pretty,
     limit: readLimit(flags.get("--limit")),
     connectSec: readSec(flags.get("--connect-timeout"), 3),
     execSec: readSec(flags.get("--timeout"), 30),
@@ -88,11 +89,15 @@ function parseDoctor(
   if (profile !== undefined && profile.trim() === "") {
     throw new Error("-p is required");
   }
+  const output = readOutput(flags.get("--output"));
+  const pretty = flags.has("--pretty");
+  assertPretty(output, pretty);
   return {
     kind: "doctor",
     audience,
     profile,
-    output: readOutput(flags.get("--output")),
+    output,
+    pretty,
     connectSec: readSec(flags.get("--connect-timeout"), 3),
     execSec: readSec(flags.get("--timeout"), 5),
   };
@@ -111,7 +116,8 @@ export function helpText(topic?: string): string {
     return `dsn-cli query
 
 Usage:
-  dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--limit N] [--timeout S]
+  dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--pretty] [--limit N] [--timeout S]
+  dsn-cli -p <profile> query peek <topic> [n]
   dsn-cli agent -p <profile> query '<stmt>' [--limit N] [--timeout S]
 `;
   }
@@ -119,7 +125,7 @@ Usage:
     return `dsn-cli doctor
 
 Usage:
-  dsn-cli doctor [-p <profile>] [--output json|csv|plain] [--timeout S] [--connect-timeout S]
+  dsn-cli doctor [-p <profile>] [--output json|csv|plain] [--pretty] [--timeout S] [--connect-timeout S]
   dsn-cli agent doctor [-p <profile>] [--timeout S]
 
 Probes Profiles with concurrency 4. Deadline is --connect-timeout + --timeout (defaults 3s + 5s).
@@ -129,7 +135,8 @@ Probes Profiles with concurrency 4. Deadline is --connect-timeout + --timeout (d
 
 Usage:
   dsn-cli -p <profile>
-  dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--limit N] [--timeout S]
+  dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--pretty] [--limit N] [--timeout S]
+  dsn-cli -p <profile> query peek <topic> [n]
   dsn-cli agent -p <profile> query '<stmt>' [--limit N] [--timeout S]
   dsn-cli doctor [-p <profile>] [--timeout S] [--connect-timeout S]
   dsn-cli agent doctor [-p <profile>] [--timeout S]
@@ -168,6 +175,12 @@ export function takeCmd(argv: string[]): { flags: Map<string, string>; pos: stri
     pos.push(token);
   }
   return { flags, pos };
+}
+
+function assertPretty(output: OutputFmt, pretty: boolean): void {
+  if (pretty && output !== "json") {
+    throw new Error("--pretty requires --output json");
+  }
 }
 
 function readOutput(raw: string | undefined): OutputFmt {

@@ -1,4 +1,8 @@
+import { parseKafkaStmt } from "./kafka-stmt";
+import { splitArgs } from "./split";
 import { DsnErr, type Access, type Kind } from "./types";
+
+export { splitArgs };
 
 const SQL_READ = new Set([
   "SELECT",
@@ -77,7 +81,11 @@ export function gateQuery(kind: Kind, access: Access, stmt: string): void {
     gateMongo(stmt);
     return;
   }
-  gateEs(stmt);
+  if (kind === "elasticsearch") {
+    gateEs(stmt);
+    return;
+  }
+  gateKafka(stmt);
 }
 
 function reject(message: string): never {
@@ -140,6 +148,10 @@ function gateEs(stmt: string): void {
   if (parsed.method !== "GET" && parsed.method !== "HEAD") {
     reject(`blocked head: ${parsed.method}`);
   }
+}
+
+function gateKafka(stmt: string): void {
+  parseKafkaStmt(stmt);
 }
 
 type SqlTok =
@@ -262,41 +274,6 @@ function skipSqlString(input: string, start: number, quote: string): number {
     index += 1;
   }
   return input.length;
-}
-
-/** 为什么: Redis 命令行和官方客户端一样按空白+引号切开, 头永远是第一个 token. */
-export function splitArgs(stmt: string): string[] {
-  const args: string[] = [];
-  let index = 0;
-  while (index < stmt.length) {
-    while (index < stmt.length && /\s/.test(stmt[index] ?? "")) {
-      index += 1;
-    }
-    if (index >= stmt.length) {
-      break;
-    }
-    const ch = stmt[index] ?? "";
-    if (ch === "'" || ch === '"') {
-      const start = index + 1;
-      index += 1;
-      while (index < stmt.length && stmt[index] !== ch) {
-        if (stmt[index] === "\\") {
-          index += 2;
-          continue;
-        }
-        index += 1;
-      }
-      args.push(stmt.slice(start, index));
-      index += 1;
-      continue;
-    }
-    const start = index;
-    while (index < stmt.length && !/\s/.test(stmt[index] ?? "")) {
-      index += 1;
-    }
-    args.push(stmt.slice(start, index));
-  }
-  return args;
 }
 
 export function parseRestQuery(stmt: string): { method: string; path: string; body?: unknown } {

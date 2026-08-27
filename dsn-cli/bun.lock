@@ -7,6 +7,7 @@
       "dependencies": {
         "@elastic/elasticsearch": "^8.17.1",
         "ioredis": "^5.6.1",
+        "kafkajs": "^2.2.4",
         "mongodb": "^6.18.0",
         "mysql2": "^3.14.3",
       },
@@ -66,6 +67,8 @@
     "is-property": ["is-property@1.0.2", "https://packages.aliyun.com/696621912baf901da4b64b75/npm/npm-registry/is-property/-/is-property-1.0.2.tgz", {}, "sha512-Ks/IoX00TtClbGQr4TWXemAnktAQvYB7HzcCxDGqEZU6oCmb2INHuOoKxbtR+HFkmYWBKv/dOZtGRiAjDhj92g=="],
 
     "json-with-bigint": ["json-with-bigint@3.5.12", "https://packages.aliyun.com/696621912baf901da4b64b75/npm/npm-registry/json-with-bigint/-/json-with-bigint-3.5.12.tgz", {}, "sha512-uwbF/wSSuOgC7qqlq27Xp5B6a2MHVug3t0idZdTqu0JnlFvgJuH7ju+KAk/J06C7GfhoYy2gnb9wz2INqcne7w=="],
+
+    "kafkajs": ["kafkajs@2.2.4", "https://packages.aliyun.com/696621912baf901da4b64b75/npm/npm-registry/kafkajs/-/kafkajs-2.2.4.tgz", {}, "sha512-j/YeapB1vfPT2iOIUn/vxdyKEuhuY2PxMBvf5JWux6iSaukAccrMtXEY/Lb7OvavDhOWME589bpLrEdnVHjfjA=="],
 
     "long": ["long@5.3.2", "https://packages.aliyun.com/696621912baf901da4b64b75/npm/npm-registry/long/-/long-5.3.2.tgz", {}, "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA=="],
 

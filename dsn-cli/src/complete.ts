@@ -1,9 +1,11 @@
 import { takeCmd } from "./args";
-import { loadFileCfg, profileNames } from "./config";
+import { loadFileCfg, pickProfile, profileNames } from "./config";
+import { kafkaComplete } from "./kafka-stmt";
+import { readTopicCache } from "./kafka-cache";
 
 const ROOT_CMDS = ["query", "doctor", "completion", "agent", "human"];
 
-/** 为什么: 补全只给已经能确定的候选, 不去猜 statement 正文. */
+/** 为什么: kafka topic 补全只读缓存, 其它 kind 仍不猜 statement 正文. */
 export async function completeLines(tokens: string[], current: string): Promise<string> {
   const values = await completeValues(tokens, current);
   const matched = values.filter((item) => item.startsWith(current));
@@ -30,12 +32,11 @@ export async function completeValues(tokens: string[], current: string): Promise
     if (rest[0] === "completion") {
       return ["fish"];
     }
-    return [];
   }
   if (pos[0] === "completion") {
     return pos.length <= 2 && (pos[1] === undefined || pos[1] === current) ? ["fish"] : [];
   }
-  return [];
+  return await kafkaStmtComplete(tokens, pos);
 }
 
 function safeTake(tokens: string[]): { flags: Map<string, string>; pos: string[] } {
@@ -52,4 +53,36 @@ async function loadProfiles(): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+async function kafkaStmtComplete(tokens: string[], pos: string[]): Promise<string[]> {
+  const rest = queryRest(pos);
+  if (rest === undefined) {
+    return [];
+  }
+  const { flags } = safeTake(tokens);
+  const name = flags.get("-p") ?? flags.get("--profile");
+  if (name === undefined) {
+    return [];
+  }
+  try {
+    const profile = pickProfile(await loadFileCfg(), name);
+    if (profile.kind !== "kafka") {
+      return [];
+    }
+    return kafkaComplete(rest, await readTopicCache(profile.name));
+  } catch {
+    return [];
+  }
+}
+
+function queryRest(pos: string[]): string[] | undefined {
+  let rest = pos;
+  if (rest[0] === "agent" || rest[0] === "human") {
+    rest = rest.slice(1);
+  }
+  if (rest[0] !== "query") {
+    return undefined;
+  }
+  return rest.slice(1);
 }

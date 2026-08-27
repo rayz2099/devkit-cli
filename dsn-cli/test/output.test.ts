@@ -25,3 +25,8 @@ test("人 json 是 NDJSON, agent 是对象", () => {
   expect(agent).toContain(`"truncated": true`);
   expect(agent).toContain(`"rows"`);
 });
+
+test("人 json --pretty 是缩进数组", () => {
+  const pretty = renderQuery("human", "json", data, false, true);
+  expect(pretty).toBe(`${JSON.stringify(data.rows, null, 2)}\n`);
+});

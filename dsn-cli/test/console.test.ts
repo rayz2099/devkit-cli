@@ -19,6 +19,11 @@ test("redis / mongo 展开官方客户端", () => {
   });
 });
 
+test("kafka / elasticsearch 没有 Console", () => {
+  expect(() => consoleSpec("kafka", "kafka://127.0.0.1:9092")).toThrow("no Console");
+  expect(() => consoleSpec("elasticsearch", "http://127.0.0.1:9200")).toThrow("no Console");
+});
+
 test("es 没有 Console", () => {
   expect(() => consoleSpec("elasticsearch", "https://127.0.0.1:9200")).toThrow("no Console");
 });

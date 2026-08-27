@@ -15,6 +15,7 @@ complete -c dsn-cli -f
 complete -c dsn-cli -a '(__dsn_cli_complete)'
 complete -c dsn-cli -s p -l profile -x -a '(__dsn_cli_complete)' -d 'profile name'
 complete -c dsn-cli -l output -x -a 'json csv plain' -d 'human query format'
+complete -c dsn-cli -l pretty -d 'pretty-print json output'
 complete -c dsn-cli -l limit -r -d 'agent row cap'
 complete -c dsn-cli -l timeout -r -d 'query timeout seconds'
 complete -c dsn-cli -l connect-timeout -r -d 'connect timeout seconds'

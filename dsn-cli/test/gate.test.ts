@@ -43,3 +43,13 @@ test("Redis / Mongo / ES 头", () => {
   expect(blocked("elasticsearch", "POST /orders/_search")).toContain("POST");
   gateQuery("elasticsearch", "write", "POST /orders/_bulk {}");
 });
+
+test("kafka 只读头是小写, peek n 有硬顶", () => {
+  gateQuery("kafka", "read", "topics");
+  gateQuery("kafka", "read", "peek album_audit_log");
+  gateQuery("kafka", "read", "peek album_audit_log 50 partition 0");
+  gateQuery("kafka", "read", "listen album_audit_log");
+  expect(blocked("kafka", "PEEK album_audit_log")).toContain("PEEK");
+  expect(blocked("kafka", "produce album_audit_log")).toContain("produce");
+  expect(blocked("kafka", "peek album_audit_log 501")).toContain("1..500");
+});

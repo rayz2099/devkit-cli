@@ -20,15 +20,20 @@ export function renderQuery(
   output: OutputFmt,
   data: QueryOut,
   truncated: boolean,
+  pretty = false,
 ): string {
   if (audience === "agent") {
     return `${JSON.stringify({ rows: data.rows.map(plainRow), truncated }, jsonReplacer, 2)}\n`;
   }
   if (output === "json") {
-    if (data.rows.length === 0) {
+    const rows = data.rows.map(plainRow);
+    if (pretty) {
+      return `${JSON.stringify(rows, jsonReplacer, 2)}\n`;
+    }
+    if (rows.length === 0) {
       return "";
     }
-    return `${data.rows.map((row) => JSON.stringify(plainRow(row), jsonReplacer)).join("\n")}\n`;
+    return `${rows.map((row) => JSON.stringify(row, jsonReplacer)).join("\n")}\n`;
   }
   if (output === "csv") {
     return renderCsv(data);

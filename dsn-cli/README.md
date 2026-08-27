@@ -1,6 +1,6 @@
 # dsn-cli
 
-按 profile 查询 mysql / doris / redis / mongodb / elasticsearch。人可以进官方客户端；agent 只能走 `query`。
+按 profile 查询 mysql / doris / redis / mongodb / elasticsearch / kafka。人可以进官方客户端；agent 只能走 `query`。
 
 没有 `defaultProfile`。`query` / Console 必须带 `-p`；`doctor` 默认探全部 profile。没有统一查询语言：每种 kind 用它自己的语句。
 
@@ -23,6 +23,7 @@ Console 额外依赖 PATH 上的官方客户端：
 | `redis` | `redis-cli` |
 | `mongodb` | `mongosh` |
 | `elasticsearch` | 无，只能 `query` |
+| `kafka` | 无，只能 `query` |
 
 ## 配置
 
@@ -45,7 +46,7 @@ Console 额外依赖 PATH 上的官方客户端：
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `name` | 是 | `-p` 用的名字 |
-| `kind` | 是 | `mysql` / `doris` / `redis` / `mongodb` / `elasticsearch` |
+| `kind` | 是 | `mysql` / `doris` / `redis` / `mongodb` / `elasticsearch` / `kafka` |
 | `url` | 是 | 标准连接 URL，scheme 必须和 kind 对齐 |
 | `access` | 否 | `read`（默认，走 Gate）或 `write`（原样转发，不跑 Gate） |
 
@@ -178,11 +179,38 @@ path 里的库名会传给 `db.command`。没有 path 时用驱动默认库。
 
 scheme 只能是 `http://` 或 `https://`。没有 Console。
 
+### kafka
+
+```jsonc
+{
+  "name": "kf-biz",
+  "kind": "kafka",
+  "url": "kafka://127.0.0.1:9092"
+}
+```
+
+TLS 用 `kafkas://`。`user:pass@` 走 SASL PLAIN。一个 bootstrap 即可。没有 Console。
+
+语句头小写。`topics` 刷新本机 Topic Cache，供 Fish 补全；补全不打集群。`peek` / `listen` 不进 consumer group、不 commit。
+
+```bash
+dsn-cli -p kf-biz query topics
+dsn-cli -p kf-biz query peek album_audit_log 20
+dsn-cli -p kf-biz query peek album_audit_log 20 --output json --pretty
+dsn-cli -p kf-biz query peek album_audit_log 20 partition 0
+dsn-cli -p kf-biz query listen album_audit_log --timeout 10
+dsn-cli agent -p kf-biz query peek album_audit_log 5
+dsn-cli -p kf-biz query listen album_audit_log | grep something
+```
+
+`peek` 默认 50 条，超过 500 Gate 拒绝。`listen` 从当前 high watermark 跟新 Record，对人默认 NDJSON；到 `--timeout`、SIGINT 或 500 条为止。内部 topic 默认不进 `topics` / 缓存。
+
 ## 用法
 
 ```bash
 dsn-cli -p <profile>
-dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--timeout S] [--connect-timeout S]
+dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--pretty] [--timeout S] [--connect-timeout S]
+dsn-cli -p <profile> query peek <topic> [n]
 dsn-cli agent -p <profile> query '<stmt>' [--limit N] [--timeout S] [--connect-timeout S]
 dsn-cli doctor [-p <profile>] [--timeout S] [--connect-timeout S]
 dsn-cli agent doctor [-p <profile>]
@@ -191,9 +219,9 @@ dsn-cli completion fish
 
 - 省略 audience 就是 `human`。
 - TTY 下只写 `-p` 会 exec 官方客户端；`agent`、管道、elasticsearch 都不能进 Console。
-- `query` 的语句必须是一个 argv 参数。
+- `query` 的语句可以是一个 argv，也可以是多个 token 拼成一条（方便补全 topic）。
 - `--timeout` 默认 30s（执行），`--connect-timeout` 默认 3s。
-- `--output` 只对人有效：默认 table，`json` 是 NDJSON，还有 `csv` / `plain`。
+- `--output` 只对人有效：默认 table，`json` 是 NDJSON，还有 `csv` / `plain`。`--pretty` 必须配 `--output json`，打成缩进的 JSON 数组。
 - `--limit` 只对 agent 有效：默认 1000 行，`0` 表示不截。人的结果不截。
 - Gate、`--output`、`--limit` 都不作用于 Console。
 - `doctor` 最多 4 路并发探测，单个 profile 挂死不会拖住其余项。
@@ -217,6 +245,7 @@ ping 语句按 kind 固定：
 | `redis` | `PING` |
 | `mongodb` | `{"ping":1}` |
 | `elasticsearch` | `GET /` |
+| `kafka` | `ping`（只打 metadata） |
 
 人默认 table，列是 `name kind status ms error`。任一失败退出码 `3`，仍打印全表。agent 是 `{ rows, truncated }`。
 

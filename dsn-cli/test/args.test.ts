@@ -13,21 +13,23 @@ test("-p 无 query 是 Console", () => {
   });
 });
 
-test("query 需要 -p 和单参数语句", () => {
+test("query 需要 -p, 多 token 拼成一条语句", () => {
   expect(parseArgs(["-p", "buy", "query", "SELECT 1"])).toEqual({
     kind: "query",
     audience: "human",
     profile: "buy",
     stmt: "SELECT 1",
     output: "table",
+    pretty: false,
     limit: undefined,
     connectSec: 3,
     execSec: 30,
   });
   expect(() => parseArgs(["query", "SELECT 1"])).toThrow("-p is required");
-  expect(() => parseArgs(["-p", "buy", "query", "SELECT", "1"])).toThrow(
-    "single argument",
-  );
+  expect(parseArgs(["-p", "kf-biz", "query", "peek", "album_audit_log", "5"])).toMatchObject({
+    kind: "query",
+    stmt: "peek album_audit_log 5",
+  });
 });
 
 test("agent 前缀和 --output --limit", () => {
@@ -37,6 +39,7 @@ test("agent 前缀和 --output --limit", () => {
     profile: "buy",
     stmt: "PING",
     output: "table",
+    pretty: false,
     limit: 10,
     connectSec: 3,
     execSec: 30,
@@ -57,6 +60,7 @@ test("doctor 不需要 -p, 默认连接 3s", () => {
     audience: "human",
     profile: undefined,
     output: "table",
+    pretty: false,
     connectSec: 3,
     execSec: 5,
   });
@@ -65,8 +69,27 @@ test("doctor 不需要 -p, 默认连接 3s", () => {
     audience: "agent",
     profile: "buy",
     output: "table",
+    pretty: false,
     connectSec: 3,
     execSec: 8,
   });
   expect(() => parseArgs(["doctor", "extra"])).toThrow("unexpected argument");
+});
+
+test("--pretty 只配 --output json", () => {
+  const cmd = parseArgs([
+    "-p",
+    "kf-biz",
+    "query",
+    "peek",
+    "t",
+    "5",
+    "--output",
+    "json",
+    "--pretty",
+  ]);
+  expect(cmd).toMatchObject({ kind: "query", output: "json", pretty: true });
+  expect(() => parseArgs(["-p", "kf-biz", "query", "peek", "t", "--pretty"])).toThrow(
+    "--pretty requires --output json",
+  );
 });

@@ -3,6 +3,7 @@ import { Redis } from "ioredis";
 import { MongoClient } from "mongodb";
 import mysql from "mysql2/promise";
 import { parseRestQuery, splitArgs } from "./gate";
+import { queryKafka } from "./kafka";
 import { DsnErr, type Kind, type QueryOut, type Timeouts } from "./types";
 
 /** 为什么: doctor 只探连通, 必须用各 Kind 最小只读语句, 不能让用户语句或 Gate 介入. */
@@ -17,6 +18,8 @@ export function probeStmt(kind: Kind): string {
       return '{"ping":1}';
     case "elasticsearch":
       return "GET /";
+    case "kafka":
+      return "ping";
     default: {
       const _never: never = kind;
       return _never;
@@ -41,7 +44,10 @@ export async function runDriver(
     if (kind === "mongodb") {
       return await queryMongo(url, stmt, timeouts);
     }
-    return await queryEs(url, stmt, timeouts);
+    if (kind === "elasticsearch") {
+      return await queryEs(url, stmt, timeouts);
+    }
+    return await queryKafka(url, stmt, timeouts);
   } catch (error) {
     if (error instanceof DsnErr) {
       throw error;

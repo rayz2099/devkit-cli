@@ -34,6 +34,7 @@ test("probeStmt 按 kind 固定 ping", () => {
   expect(probeStmt("redis")).toBe("PING");
   expect(probeStmt("mongodb")).toBe('{"ping":1}');
   expect(probeStmt("elasticsearch")).toBe("GET /");
+  expect(probeStmt("kafka")).toBe("ping");
 });
 
 test("doctor 并行, 挂死的 profile 不拖住其余", async () => {
