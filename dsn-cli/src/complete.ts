@@ -2,10 +2,11 @@ import { takeCmd } from "./args";
 import { loadFileCfg, pickProfile, profileNames } from "./config";
 import { kafkaComplete } from "./kafka-stmt";
 import { readTopicCache } from "./kafka-cache";
+import { pgCatalogComplete } from "./pg-stmt";
 
 const ROOT_CMDS = ["query", "doctor", "completion", "agent", "human"];
 
-/** 为什么: kafka topic 补全只读缓存, 其它 kind 仍不猜 statement 正文. */
+/** 为什么: kafka topic 补全只读缓存; postgres 只补目录头, 不补表名. */
 export async function completeLines(tokens: string[], current: string): Promise<string> {
   const values = await completeValues(tokens, current);
   const matched = values.filter((item) => item.startsWith(current));
@@ -36,7 +37,7 @@ export async function completeValues(tokens: string[], current: string): Promise
   if (pos[0] === "completion") {
     return pos.length <= 2 && (pos[1] === undefined || pos[1] === current) ? ["fish"] : [];
   }
-  return await kafkaStmtComplete(tokens, pos);
+  return await kindStmtComplete(tokens, pos);
 }
 
 function safeTake(tokens: string[]): { flags: Map<string, string>; pos: string[] } {
@@ -55,7 +56,7 @@ async function loadProfiles(): Promise<string[]> {
   }
 }
 
-async function kafkaStmtComplete(tokens: string[], pos: string[]): Promise<string[]> {
+async function kindStmtComplete(tokens: string[], pos: string[]): Promise<string[]> {
   const rest = queryRest(pos);
   if (rest === undefined) {
     return [];
@@ -67,10 +68,13 @@ async function kafkaStmtComplete(tokens: string[], pos: string[]): Promise<strin
   }
   try {
     const profile = pickProfile(await loadFileCfg(), name);
-    if (profile.kind !== "kafka") {
-      return [];
+    if (profile.kind === "kafka") {
+      return kafkaComplete(rest, await readTopicCache(profile.name));
     }
-    return kafkaComplete(rest, await readTopicCache(profile.name));
+    if (profile.kind === "postgres") {
+      return pgCatalogComplete(rest);
+    }
+    return [];
   } catch {
     return [];
   }

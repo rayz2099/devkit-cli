@@ -21,6 +21,12 @@
       "kind": "doris",
       "url": "mysql://readonly@127.0.0.1:9030/dw",
     },
+    // postgres://user:password@host:5432/db ; 也接受 postgresql://. TLS 用 ?sslmode=
+    {
+      "name": "app",
+      "kind": "postgres",
+      "url": "postgres://readonly@127.0.0.1:5432/app",
+    },
     // redis://[:password@]host:6379/db ; TLS 用 rediss://
     {
       "name": "cache",

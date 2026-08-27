@@ -37,7 +37,7 @@ test("未知 kind 跳过, 不影响其它 profile", () => {
   const cfg = parseFileCfg(
     `{
       "profiles": [
-        { "name": "pg-it", "kind": "postgres", "url": "postgres://127.0.0.1/db" },
+        { "name": "pg-it", "kind": "oracle", "url": "oracle://127.0.0.1/db" },
         { "name": "kf-biz", "kind": "kafka", "url": "kafka://127.0.0.1:9092" }
       ]
     }`,
@@ -45,6 +45,23 @@ test("未知 kind 跳过, 不影响其它 profile", () => {
   );
   expect(cfg.profiles).toHaveLength(1);
   expect(cfg.profiles[0]?.name).toBe("kf-biz");
+});
+
+test("postgres url 接受 postgres:// 和 postgresql://", () => {
+  const cfg = parseFileCfg(
+    `{ "profiles": [
+      { "name": "pg", "kind": "postgres", "url": "postgres://readonly@127.0.0.1:5432/app" },
+      { "name": "pg-iana", "kind": "postgres", "url": "postgresql://readonly@127.0.0.1:5432/app" }
+    ] }`,
+    "/tmp/pg.json",
+  );
+  expect(cfg.profiles).toHaveLength(2);
+  expect(cfg.profiles[0]?.kind).toBe("postgres");
+  const skipped = parseFileCfg(
+    `{ "profiles": [{ "name": "x", "kind": "postgres", "url": "mysql://127.0.0.1:5432/db" }] }`,
+    "/tmp/pg.json",
+  );
+  expect(skipped.profiles).toHaveLength(0);
 });
 
 test("kafka url 必须是 kafka:// 或 kafkas://", () => {

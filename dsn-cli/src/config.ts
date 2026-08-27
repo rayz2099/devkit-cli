@@ -173,9 +173,20 @@ export function assertUrl(kind: Kind, url: string, name: string): void {
     }
     return;
   }
-  if (proto !== "kafka:" && proto !== "kafkas:") {
-    throw new Error(`profile ${name}: kafka url must use kafka:// or kafkas://`);
+  if (kind === "postgres") {
+    if (proto !== "postgres:" && proto !== "postgresql:") {
+      throw new Error(`profile ${name}: postgres url must use postgres:// or postgresql://`);
+    }
+    return;
   }
+  if (kind === "kafka") {
+    if (proto !== "kafka:" && proto !== "kafkas:") {
+      throw new Error(`profile ${name}: kafka url must use kafka:// or kafkas://`);
+    }
+    return;
+  }
+  const _never: never = kind;
+  void _never;
 }
 
 /** 为什么: 每次执行读盘, fish 补全和真实命令看到同一份 XDG 配置. */

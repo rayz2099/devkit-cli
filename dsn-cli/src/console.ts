@@ -17,6 +17,9 @@ export function consoleSpec(kind: Kind, url: string): ConsoleSpec {
   if (kind === "mongodb") {
     return { bin: "mongosh", args: [url] };
   }
+  if (kind === "postgres") {
+    return { bin: "psql", args: [url] };
+  }
   throw new Error(`kind ${kind} has no Console`);
 }
 

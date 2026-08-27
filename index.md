@@ -19,4 +19,4 @@ just build code-ws
 | `mysql-cli` | MySQL 连接和查询辅助 CLI, 并提供 Fish completion. |
 | `har-cli` | HAR 文件分析 CLI. |
 | `alist-cli` | Alist 客户端: ls / put / mkdir / 目录 sync. |
-| `dsn-cli` | 多数据源查询 CLI: mysql / doris / redis / mongodb / elasticsearch. |
+| `dsn-cli` | 多数据源查询 CLI: mysql / doris / postgres / redis / mongodb / elasticsearch / kafka. |

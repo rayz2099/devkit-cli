@@ -1,4 +1,5 @@
 import { parseKafkaStmt } from "./kafka-stmt";
+import { parsePgCatalog, pgCatalogHead } from "./pg-stmt";
 import { splitArgs } from "./split";
 import { DsnErr, type Access, type Kind } from "./types";
 
@@ -14,6 +15,19 @@ const SQL_READ = new Set([
   "USE",
 ]);
 const DORIS_READ = new Set([...SQL_READ, "SWITCH"]);
+const PG_READ = new Set([
+  "SELECT",
+  "WITH",
+  "TABLE",
+  "VALUES",
+  "TABLES",
+  "COLUMNS",
+  "DDL",
+  "DESC",
+  "DESCRIBE",
+  "SHOW",
+  "EXPLAIN",
+]);
 
 const SELECT_TAILS: string[][] = [
   ["INTO", "OUTFILE"],
@@ -22,6 +36,38 @@ const SELECT_TAILS: string[][] = [
   ["FOR", "SHARE"],
   ["LOCK", "IN", "SHARE", "MODE"],
 ];
+
+const PG_LOCK_TAILS: string[][] = [
+  ["FOR", "UPDATE"],
+  ["FOR", "SHARE"],
+  ["FOR", "NO", "KEY", "UPDATE"],
+  ["FOR", "KEY", "SHARE"],
+];
+
+const PG_INNER_HEADS = new Set([
+  "SELECT",
+  "WITH",
+  "TABLE",
+  "VALUES",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "MERGE",
+  "CREATE",
+  "DROP",
+  "ALTER",
+  "TRUNCATE",
+  "REFRESH",
+  "CALL",
+  "DO",
+  "COPY",
+  "DECLARE",
+  "PREPARE",
+  "EXECUTE",
+  "VACUUM",
+]);
+
+type SqlDialect = "mysql" | "postgres";
 
 const REDIS_READ = new Set([
   "GET",
@@ -69,7 +115,7 @@ export function gateQuery(kind: Kind, access: Access, stmt: string): void {
   if (access === "write") {
     return;
   }
-  if (kind === "mysql" || kind === "doris") {
+  if (kind === "mysql" || kind === "doris" || kind === "postgres") {
     gateSql(kind, stmt);
     return;
   }
@@ -85,31 +131,96 @@ export function gateQuery(kind: Kind, access: Access, stmt: string): void {
     gateEs(stmt);
     return;
   }
-  gateKafka(stmt);
+  if (kind === "kafka") {
+    gateKafka(stmt);
+    return;
+  }
+  const _never: never = kind;
+  void _never;
 }
 
 function reject(message: string): never {
   throw new DsnErr(message, 2);
 }
 
-function gateSql(kind: Kind, stmt: string): void {
-  const words = sqlWords(stmt);
+function sqlDialect(kind: "mysql" | "doris" | "postgres"): SqlDialect {
+  return kind === "postgres" ? "postgres" : "mysql";
+}
+
+function sqlAllow(kind: "mysql" | "doris" | "postgres"): Set<string> {
+  if (kind === "doris") {
+    return DORIS_READ;
+  }
+  if (kind === "postgres") {
+    return PG_READ;
+  }
+  return SQL_READ;
+}
+
+function gateSql(kind: "mysql" | "doris" | "postgres", stmt: string): void {
+  const dialect = sqlDialect(kind);
+  const words = sqlWords(stmt, dialect);
   const head = words[0];
   if (head === undefined) {
     reject("empty statement");
   }
-  const allow = kind === "doris" ? DORIS_READ : SQL_READ;
+  const allow = sqlAllow(kind);
   if (!allow.has(head)) {
     reject(`blocked head: ${head}`);
   }
-  if (sqlHasTail(stmt)) {
+  if (sqlHasTail(stmt, dialect)) {
     reject("multi-statement is blocked");
   }
+  if (kind === "postgres") {
+    if (pgCatalogHead(stmt) !== undefined) {
+      parsePgCatalog(stmt);
+      return;
+    }
+    gatePgTails(head, words);
+    return;
+  }
   if (head === "SELECT" || head === "WITH") {
-    const tail = matchSelectTail(words);
+    const tail = matchSelectTail(words, SELECT_TAILS);
     if (tail !== undefined) {
       reject(`blocked ${tail}`);
     }
+  }
+}
+
+/** 为什么: postgres 的写形尾巴和 mysql 不同, 不能共用 SELECT_TAILS. */
+function gatePgTails(head: string, words: string[]): void {
+  if (head === "SHOW" && words[1] === "TABLES") {
+    reject("blocked SHOW TABLES; use TABLES or TABLES LIKE <pattern>");
+  }
+  if (head === "SHOW" && words[1] === "CREATE") {
+    reject("blocked SHOW CREATE; use DDL <table>");
+  }
+  if (head === "SHOW" && words[1] === "COLUMNS") {
+    reject("blocked SHOW COLUMNS; use COLUMNS <table>");
+  }
+  if (head === "SELECT" || head === "WITH" || head === "TABLE" || head === "VALUES") {
+    const lock = matchSelectTail(words, PG_LOCK_TAILS);
+    if (lock !== undefined) {
+      reject(`blocked ${lock}`);
+    }
+  }
+  if ((head === "SELECT" || head === "WITH") && containsSeq(words, ["INTO"])) {
+    reject("blocked INTO");
+  }
+  if (head === "EXPLAIN") {
+    gateExplainAnalyze(words);
+  }
+}
+
+/** 为什么: EXPLAIN ANALYZE 会执行内层语句, 只拦选项位的 ANALYZE, 不拦 FROM analyze. */
+function gateExplainAnalyze(words: string[]): void {
+  const analyzeAt = words.indexOf("ANALYZE");
+  if (analyzeAt < 0) {
+    return;
+  }
+  const innerAt = words.findIndex((word, index) => index > 0 && PG_INNER_HEADS.has(word));
+  if (innerAt < 0 || analyzeAt < innerAt) {
+    reject("blocked ANALYZE");
   }
 }
 
@@ -160,14 +271,14 @@ type SqlTok =
   | { kind: "semi" };
 
 /** 为什么: 只要语句头和分号, 不做 vendor parser, 字符串里的 ; 不能当第二句. */
-export function sqlWords(stmt: string): string[] {
-  return tokenizeSql(stmt)
+function sqlWords(stmt: string, dialect: SqlDialect): string[] {
+  return tokenizeSql(stmt, dialect)
     .filter((tok) => tok.kind === "word")
     .map((tok) => tok.value);
 }
 
-function sqlHasTail(stmt: string): boolean {
-  const toks = tokenizeSql(stmt);
+function sqlHasTail(stmt: string, dialect: SqlDialect): boolean {
+  const toks = tokenizeSql(stmt, dialect);
   const semi = toks.findIndex((tok) => tok.kind === "semi");
   if (semi < 0) {
     return false;
@@ -175,8 +286,8 @@ function sqlHasTail(stmt: string): boolean {
   return toks.slice(semi + 1).some((tok) => tok.kind !== "semi");
 }
 
-function matchSelectTail(words: string[]): string | undefined {
-  for (const seq of SELECT_TAILS) {
+function matchSelectTail(words: string[], tails: string[][]): string | undefined {
+  for (const seq of tails) {
     if (containsSeq(words, seq)) {
       return seq.join(" ");
     }
@@ -200,7 +311,7 @@ function containsSeq(words: string[], seq: string[]): boolean {
   return false;
 }
 
-function tokenizeSql(input: string): SqlTok[] {
+function tokenizeSql(input: string, dialect: SqlDialect): SqlTok[] {
   const toks: SqlTok[] = [];
   let index = 0;
   while (index < input.length) {
@@ -217,7 +328,7 @@ function tokenizeSql(input: string): SqlTok[] {
       }
       continue;
     }
-    if (ch === "#") {
+    if (dialect === "mysql" && ch === "#") {
       index += 1;
       while (index < input.length && input[index] !== "\n") {
         index += 1;
@@ -232,8 +343,16 @@ function tokenizeSql(input: string): SqlTok[] {
       index += 2;
       continue;
     }
+    if (dialect === "postgres" && ch === "$") {
+      const end = skipDollarString(input, index);
+      if (end !== undefined) {
+        toks.push({ kind: "string" });
+        index = end;
+        continue;
+      }
+    }
     if (ch === "'" || ch === '"' || ch === "`") {
-      index = skipSqlString(input, index, ch);
+      index = skipSqlString(input, index, ch, dialect);
       toks.push({ kind: "string" });
       continue;
     }
@@ -256,11 +375,32 @@ function tokenizeSql(input: string): SqlTok[] {
   return toks;
 }
 
-function skipSqlString(input: string, start: number, quote: string): number {
+/** 为什么: $tag$ 里的分号不是第二句; $1 占位符不能当 dollar-quote. */
+function skipDollarString(input: string, start: number): number | undefined {
+  let index = start + 1;
+  if (index < input.length && /[A-Za-z_]/.test(input[index] ?? "")) {
+    index += 1;
+    while (index < input.length && /[A-Za-z0-9_]/.test(input[index] ?? "")) {
+      index += 1;
+    }
+  }
+  if (input[index] !== "$") {
+    return undefined;
+  }
+  const open = input.slice(start, index + 1);
+  const from = index + 1;
+  const closeAt = input.indexOf(open, from);
+  if (closeAt < 0) {
+    return input.length;
+  }
+  return closeAt + open.length;
+}
+
+function skipSqlString(input: string, start: number, quote: string, dialect: SqlDialect): number {
   let index = start + 1;
   while (index < input.length) {
     const ch = input[index] ?? "";
-    if (ch === "\\" && quote !== "`") {
+    if (dialect === "mysql" && ch === "\\" && quote !== "`") {
       index += 2;
       continue;
     }

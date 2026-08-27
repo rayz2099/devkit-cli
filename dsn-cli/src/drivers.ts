@@ -2,8 +2,11 @@ import { Client as EsClient, HttpConnection } from "@elastic/elasticsearch";
 import { Redis } from "ioredis";
 import { MongoClient } from "mongodb";
 import mysql from "mysql2/promise";
+import { Client } from "pg";
 import { parseRestQuery, splitArgs } from "./gate";
 import { queryKafka } from "./kafka";
+import { runPgCatalog } from "./pg-catalog";
+import { parsePgCatalog, pgCatalogHead } from "./pg-stmt";
 import { DsnErr, type Kind, type QueryOut, type Timeouts } from "./types";
 
 /** 为什么: doctor 只探连通, 必须用各 Kind 最小只读语句, 不能让用户语句或 Gate 介入. */
@@ -11,6 +14,7 @@ export function probeStmt(kind: Kind): string {
   switch (kind) {
     case "mysql":
     case "doris":
+    case "postgres":
       return "SELECT 1";
     case "redis":
       return "PING";
@@ -38,6 +42,9 @@ export async function runDriver(
     if (kind === "mysql" || kind === "doris") {
       return await queryMysql(url, stmt, timeouts);
     }
+    if (kind === "postgres") {
+      return await queryPostgres(url, stmt, timeouts);
+    }
     if (kind === "redis") {
       return await queryRedis(url, stmt, timeouts);
     }
@@ -47,7 +54,11 @@ export async function runDriver(
     if (kind === "elasticsearch") {
       return await queryEs(url, stmt, timeouts);
     }
-    return await queryKafka(url, stmt, timeouts);
+    if (kind === "kafka") {
+      return await queryKafka(url, stmt, timeouts);
+    }
+    const _never: never = kind;
+    return _never;
   } catch (error) {
     if (error instanceof DsnErr) {
       throw error;
@@ -55,6 +66,48 @@ export async function runDriver(
     const message = error instanceof Error ? error.message : String(error);
     throw new DsnErr(message, 3);
   }
+}
+
+/** 为什么: Query 必须走协议驱动才能过 Gate, 不能 spawn psql. */
+async function queryPostgres(url: string, stmt: string, timeouts: Timeouts): Promise<QueryOut> {
+  const client = new Client({
+    connectionString: url,
+    connectionTimeoutMillis: timeouts.connectMs,
+    statement_timeout: timeouts.execMs,
+    query_timeout: timeouts.execMs,
+  });
+  try {
+    await client.connect();
+    if (pgCatalogHead(stmt) !== undefined) {
+      const spec = parsePgCatalog(stmt);
+      return await runPgCatalog(client, spec);
+    }
+    const res = await client.query(stmt);
+    if (Array.isArray(res)) {
+      throw new DsnErr("multiple result sets", 3);
+    }
+    return pgOut(res);
+  } finally {
+    await client.end();
+  }
+}
+
+function pgOut(res: {
+  fields: Array<{ name: string }>;
+  rows: object[];
+  command: string;
+  rowCount: number | null;
+}): QueryOut {
+  if (res.fields.length === 0) {
+    return {
+      columns: ["command", "rowCount"],
+      rows: [{ command: res.command, rowCount: res.rowCount ?? 0 }],
+    };
+  }
+  return {
+    columns: res.fields.map((field) => field.name),
+    rows: res.rows.map((row) => asRow(row)),
+  };
 }
 
 async function queryMysql(url: string, stmt: string, timeouts: Timeouts): Promise<QueryOut> {

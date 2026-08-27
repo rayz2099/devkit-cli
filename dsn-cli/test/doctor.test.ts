@@ -31,6 +31,7 @@ async function fakeProbe(_kind: Kind, url: string): Promise<void> {
 test("probeStmt 按 kind 固定 ping", () => {
   expect(probeStmt("mysql")).toBe("SELECT 1");
   expect(probeStmt("doris")).toBe("SELECT 1");
+  expect(probeStmt("postgres")).toBe("SELECT 1");
   expect(probeStmt("redis")).toBe("PING");
   expect(probeStmt("mongodb")).toBe('{"ping":1}');
   expect(probeStmt("elasticsearch")).toBe("GET /");

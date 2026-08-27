@@ -142,7 +142,7 @@ Usage:
   dsn-cli agent doctor [-p <profile>] [--timeout S]
   dsn-cli completion fish
 
-TTY -p opens the vendor client (mysql / redis-cli / mongosh).
+TTY -p opens the vendor client (mysql / psql / redis-cli / mongosh).
 agent and non-TTY cannot enter that Console.
 doctor probes with concurrency 4; a hung Profile does not stall the rest.
 `;

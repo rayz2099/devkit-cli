@@ -1,6 +1,13 @@
 export type Audience = "human" | "agent";
 
-export type Kind = "mysql" | "doris" | "redis" | "mongodb" | "elasticsearch" | "kafka";
+export type Kind =
+  | "mysql"
+  | "doris"
+  | "postgres"
+  | "redis"
+  | "mongodb"
+  | "elasticsearch"
+  | "kafka";
 
 export type Access = "read" | "write";
 
@@ -81,6 +88,7 @@ export class DsnErr extends Error {
 export const KINDS: Kind[] = [
   "mysql",
   "doris",
+  "postgres",
   "redis",
   "mongodb",
   "elasticsearch",

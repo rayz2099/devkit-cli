@@ -8,6 +8,15 @@ test("mysql/doris 展开官方 mysql argv", () => {
   });
 });
 
+test("postgres 把整段 url 交给 psql", () => {
+  expect(
+    consoleSpec("postgres", "postgres://u:p@127.0.0.1:5432/app?sslmode=require"),
+  ).toEqual({
+    bin: "psql",
+    args: ["postgres://u:p@127.0.0.1:5432/app?sslmode=require"],
+  });
+});
+
 test("redis / mongo 展开官方客户端", () => {
   expect(consoleSpec("redis", "redis://:s3cret@127.0.0.1:6379/2")).toEqual({
     bin: "redis-cli",

@@ -1,6 +1,6 @@
 # dsn-cli
 
-按 profile 查询 mysql / doris / redis / mongodb / elasticsearch / kafka。人可以进官方客户端；agent 只能走 `query`。
+按 profile 查询 mysql / doris / postgres / redis / mongodb / elasticsearch / kafka。人可以进官方客户端；agent 只能走 `query`。
 
 没有 `defaultProfile`。`query` / Console 必须带 `-p`；`doctor` 默认探全部 profile。没有统一查询语言：每种 kind 用它自己的语句。
 
@@ -20,6 +20,7 @@ Console 额外依赖 PATH 上的官方客户端：
 | kind | Console |
 | --- | --- |
 | `mysql` / `doris` | `mysql` |
+| `postgres` | `psql` |
 | `redis` | `redis-cli` |
 | `mongodb` | `mongosh` |
 | `elasticsearch` | 无，只能 `query` |
@@ -46,7 +47,7 @@ Console 额外依赖 PATH 上的官方客户端：
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `name` | 是 | `-p` 用的名字 |
-| `kind` | 是 | `mysql` / `doris` / `redis` / `mongodb` / `elasticsearch` / `kafka` |
+| `kind` | 是 | `mysql` / `doris` / `postgres` / `redis` / `mongodb` / `elasticsearch` / `kafka` |
 | `url` | 是 | 标准连接 URL，scheme 必须和 kind 对齐 |
 | `access` | 否 | `read`（默认，走 Gate）或 `write`（原样转发，不跑 Gate） |
 
@@ -82,6 +83,28 @@ cp dsn-cli/config.example.json ~/.config/dsn-cli/config.json
 ```
 
 scheme 只能是 `mysql://`。
+
+### postgres
+
+```jsonc
+{
+  "name": "app",
+  "kind": "postgres",
+  "url": "postgres://readonly@127.0.0.1:5432/app"
+}
+```
+
+也接受 `postgresql://`。TLS 用查询参数，不另发明 scheme：
+
+```jsonc
+{
+  "name": "app-tls",
+  "kind": "postgres",
+  "url": "postgres://readonly@127.0.0.1:5432/app?sslmode=require"
+}
+```
+
+path 是库名。Query 是 SQL，不是 `\d`。Console 是 `psql <url>`。
 
 ### doris
 
@@ -218,7 +241,7 @@ dsn-cli completion fish
 ```
 
 - 省略 audience 就是 `human`。
-- TTY 下只写 `-p` 会 exec 官方客户端；`agent`、管道、elasticsearch 都不能进 Console。
+- TTY 下只写 `-p` 会 exec 官方客户端；`agent`、管道、elasticsearch / kafka 都不能进 Console。
 - `query` 的语句可以是一个 argv，也可以是多个 token 拼成一条（方便补全 topic）。
 - `--timeout` 默认 30s（执行），`--connect-timeout` 默认 3s。
 - `--output` 只对人有效：默认 table，`json` 是 NDJSON，还有 `csv` / `plain`。`--pretty` 必须配 `--output json`，打成缩进的 JSON 数组。
@@ -241,7 +264,7 @@ ping 语句按 kind 固定：
 
 | kind | ping |
 | --- | --- |
-| `mysql` / `doris` | `SELECT 1` |
+| `mysql` / `doris` / `postgres` | `SELECT 1` |
 | `redis` | `PING` |
 | `mongodb` | `{"ping":1}` |
 | `elasticsearch` | `GET /` |
@@ -268,6 +291,33 @@ dsn-cli -p buy query --output json 'SELECT id, name FROM orders LIMIT 3'
 
 ```bash
 dsn-cli -p buy-rw query 'INSERT INTO t (name) VALUES ("x")'
+```
+
+### postgres
+
+```bash
+dsn-cli -p app query tables
+dsn-cli -p app query tables like order%
+dsn-cli -p app query "tables like %order%"
+dsn-cli -p app query columns orders
+dsn-cli -p app query desc orders
+dsn-cli -p app query ddl orders
+dsn-cli -p app query 'SELECT id, name FROM orders LIMIT 10'
+dsn-cli -p app query 'TABLE orders LIMIT 10'
+dsn-cli -p app query 'SHOW search_path'
+dsn-cli -p app query 'EXPLAIN SELECT 1'
+```
+
+`access: read` 允许头：`SELECT` / `WITH` / `TABLE` / `VALUES` / `TABLES` / `COLUMNS` / `DDL` / `DESC` / `DESCRIBE` / `SHOW` / `EXPLAIN`。
+
+`tables` 列用户基表；`columns` / `desc` 列字段；`ddl` 重建 `CREATE TABLE`（不是 `pg_dump`）。`LIKE` 只匹配表名。不是 `SHOW TABLES` / `SHOW CREATE`，也不是 `\d`。
+
+会被拒：`INSERT` / `UPDATE` / `DELETE` / `SET` / `COPY` / `USE`、`SHOW TABLES`、`SHOW CREATE`、`SELECT … INTO`、`SELECT … FOR UPDATE`、`EXPLAIN ANALYZE`、多语句。`\d` 不是 Query。
+
+写库把该 profile 的 `access` 改成 `write`：
+
+```bash
+dsn-cli -p app-rw query 'INSERT INTO t (name) VALUES (''x'')'
 ```
 
 ### doris
