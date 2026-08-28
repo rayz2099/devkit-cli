@@ -16,7 +16,6 @@ just build code-ws
 | `code-ws` | VS Code workspace 初始化 CLI, 基于配置创建 worktree, 生成 `.code-workspace` 和 `.agents`. |
 | `olly-cli` | Prometheus / Uptrace / Graylog 查询 CLI. |
 | `tl` | Go 实现的命令行翻译工具. |
-| `mysql-cli` | MySQL 连接和查询辅助 CLI, 并提供 Fish completion. |
 | `har-cli` | HAR 文件分析 CLI. |
 | `alist-cli` | Alist 客户端: ls / put / mkdir / 目录 sync. |
 | `dsn-cli` | 多数据源查询 CLI: mysql / doris / postgres / redis / mongodb / elasticsearch / kafka. |

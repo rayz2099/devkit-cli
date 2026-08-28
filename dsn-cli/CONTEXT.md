@@ -38,7 +38,7 @@ _Avoid_: exec, eval, -e, REPL, mongosh JS, unified QL, --topic as a second diale
 
 **Console**:
 TTY exec of the Kind's vendor client (`mysql`, `psql`, `redis-cli`, `mongosh`). No Gate. `agent` and non-TTY cannot enter it. Kinds without a vendor client have no Console.
-_Avoid_: our REPL, mysql-cli, wrapping vendor stdin as Query, Shell as a dsn-cli noun
+_Avoid_: our REPL, wrapping vendor stdin as Query, Shell as a dsn-cli noun
 
 **Driver**:
 Registered implementation for one Kind. Opens a connection and runs Query. `doris` reuses the MySQL-protocol Driver and keeps its own Gate allowlist. postgres has its own protocol Driver. Console does not use the Driver.

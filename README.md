@@ -13,7 +13,6 @@
 | --- | --- |
 | `code-ws` | Create VS Code workspaces from multi-repo profiles and worktrees |
 | `olly-cli` | Query Prometheus / Uptrace / Graylog |
-| `mysql-cli` | Profile-based MySQL helper with Fish completion |
 | `har-cli` | Analyze HAR files and extract request URIs |
 | `tl` | Go CLI for EN/ZH text and Markdown (`tl md --fast`) |
 | `jenkins-cli` | Profile-based Jenkins client with human/agent output and Fish completion |
@@ -26,7 +25,7 @@
 - [Bun](https://bun.sh)
 - [just](https://github.com/casey/just)
 - Go (for `tl`)
-- `mysql` client (for `mysql-cli` and `dsn-cli` Console)
+- `mysql` client (for `dsn-cli` Console)
 - `redis-cli` / `mongosh` / `psql` (for `dsn-cli` Console)
 
 ### Quick start
@@ -42,7 +41,6 @@ Configs live in XDG paths:
 
 - `~/.config/code-ws/config.json` + `project.yml`
 - `~/.config/olly-cli/config.json`
-- `~/.config/mysql-cli/config.json`
 - `~/.config/tl/config.json`
 - `~/.config/jenkins-cli/config.json`
 - `~/.config/codeup-cli/config.json`
@@ -55,7 +53,6 @@ Copy examples first if needed:
 cp code-ws/config.example.json ~/.config/code-ws/config.json
 cp code-ws/project.example.yml ~/.config/code-ws/project.yml
 cp olly-cli/config.example.json ~/.config/olly-cli/config.json
-cp mysql-cli/config.example.json ~/.config/mysql-cli/config.json
 cp tl/config.example.json ~/.config/tl/config.json
 cp jenkins-cli/config.example.json ~/.config/jenkins-cli/config.json
 cp codeup-cli/config.example.json ~/.config/codeup-cli/config.json
@@ -82,7 +79,6 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 | --- | --- |
 | `code-ws` | 基于 profile/worktree 初始化 VS Code workspace |
 | `olly-cli` | 查询 Prometheus / Uptrace / Graylog |
-| `mysql-cli` | 基于 profile 的 MySQL 辅助工具, 含 Fish completion |
 | `har-cli` | 分析 HAR 并提取请求 URI |
 | `tl` | Go 中英翻译, 支持纯文本和 Markdown (`tl md --fast`) |
 | `jenkins-cli` | 基于 profile 的 Jenkins 客户端, 含 human/agent 输出和 Fish completion |
@@ -95,7 +91,7 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 - Bun
 - just
 - Go (`tl`)
-- `mysql` 客户端 (`mysql-cli` / `dsn-cli` Console)
+- `mysql` 客户端 (`dsn-cli` Console)
 - `redis-cli` / `mongosh` / `psql` (`dsn-cli` Console)
 
 ### 快速开始
@@ -111,7 +107,6 @@ just build code-ws
 
 - `~/.config/code-ws/config.json` + `project.yml`
 - `~/.config/olly-cli/config.json`
-- `~/.config/mysql-cli/config.json`
 - `~/.config/tl/config.json`
 - `~/.config/jenkins-cli/config.json`
 - `~/.config/codeup-cli/config.json`
