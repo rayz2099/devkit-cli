@@ -476,6 +476,66 @@ function isGitWorktree(path: string): boolean {
 }
 
 /**
+ * 分支没有独有 merge commit 且每个普通提交都有等价 patch 时可安全清理。
+ */
+export function isPatchHistoryMerged(
+  cherry: string,
+  mergeCommits: string,
+): boolean {
+  const mergeCount = Number.parseInt(mergeCommits.trim(), 10);
+  if (mergeCount !== 0) {
+    return false;
+  }
+
+  const commits = cherry
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  return commits.every((line) => line.startsWith("- "));
+}
+
+/**
+ * 主分支后续演进可能让 tree 合并冲突，因此还需按 patch 历史确认 squash/rebase 结果。
+ */
+function isMergedByPatchHistory(
+  cwd: string,
+  head: string,
+  target: string,
+): boolean {
+  const range = `${target}..${head}`;
+  const mergeArgs = [
+    "git",
+    "rev-list",
+    "--count",
+    "--merges",
+    range,
+  ];
+  const mergeCommits = gitOutput(
+    cwd,
+    mergeArgs,
+  );
+  if (Number.parseInt(mergeCommits.trim(), 10) !== 0) {
+    return false;
+  }
+
+  const cherryArgs = [
+    "git",
+    "cherry",
+    target,
+    head,
+  ];
+  const cherry = gitOutput(
+    cwd,
+    cherryArgs,
+  );
+  return isPatchHistoryMerged(
+    cherry,
+    mergeCommits,
+  );
+}
+
+/**
  * 用合入后的 tree 判断是否已合并, 因为 squash/rebase 合入后 commit SHA 不再是 master 祖先.
  */
 function isMergedByTree(
@@ -498,33 +558,40 @@ function isMergedByTree(
     },
   );
 
-  if (mergeRet.status === 1) {
-    return false;
-  }
-  if (mergeRet.status !== 0) {
+  if (mergeRet.status !== 0 && mergeRet.status !== 1) {
     const err = mergeRet.stderr.length > 0 ? mergeRet.stderr : mergeRet.stdout;
     throw new Error(`git check failed: ${err.trim()}`);
   }
 
-  const treeRet = spawnSync(
-    "git",
-    [
-      "rev-parse",
-      `${target}^{tree}`,
-    ],
-    {
-      cwd,
-      encoding: "utf8",
-      stdio: "pipe",
-    },
-  );
+  if (mergeRet.status === 0) {
+    const treeRet = spawnSync(
+      "git",
+      [
+        "rev-parse",
+        `${target}^{tree}`,
+      ],
+      {
+        cwd,
+        encoding: "utf8",
+        stdio: "pipe",
+      },
+    );
 
-  if (treeRet.status !== 0) {
-    const err = treeRet.stderr.length > 0 ? treeRet.stderr : treeRet.stdout;
-    throw new Error(`git check failed: ${err.trim()}`);
+    if (treeRet.status !== 0) {
+      const err = treeRet.stderr.length > 0 ? treeRet.stderr : treeRet.stdout;
+      throw new Error(`git check failed: ${err.trim()}`);
+    }
+
+    if (mergeRet.stdout.trim() === treeRet.stdout.trim()) {
+      return true;
+    }
   }
 
-  return mergeRet.stdout.trim() === treeRet.stdout.trim();
+  return isMergedByPatchHistory(
+    cwd,
+    head,
+    target,
+  );
 }
 
 export type DisposableWorktreeDeps = {

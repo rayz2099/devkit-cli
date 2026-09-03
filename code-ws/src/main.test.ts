@@ -365,6 +365,13 @@ describe("destroyWorkspace", () => {
         wsDir: "/tmp/spec101-workspace",
         repos: [
           "app-gw",
+        ],
+        remote: "origin",
+        baseBranch: "master",
+      },
+      {
+        wsDir: "/tmp/spec101-workspace",
+        repos: [
           "app-api",
         ],
         remote: "origin",
@@ -374,6 +381,8 @@ describe("destroyWorkspace", () => {
     expect(plans).toEqual([
       [
         "app-gw",
+      ],
+      [
         "app-api",
       ],
     ]);
@@ -383,7 +392,7 @@ describe("destroyWorkspace", () => {
     ]);
   });
 
-  test("存在未提交改动或未合并 commit 时终止且不卸载 worktree", () => {
+  test("单仓不安全时继续卸载其他安全 worktree", () => {
     const plans: string[][] = [];
     const logs: string[] = [];
 
@@ -405,6 +414,12 @@ describe("destroyWorkspace", () => {
               group: "backend",
               branch: "master",
             },
+            {
+              name: "app-api",
+              path: "/src/app-api",
+              group: "backend",
+              branch: "master",
+            },
           ],
           profiles: {},
         },
@@ -413,15 +428,18 @@ describe("destroyWorkspace", () => {
           branch: "feature/spec101",
           repos: [
             "app-gw",
+            "app-api",
           ],
           checkoutBranches: {},
         },
         {
-          assertDisposable: () => {
-            throw new Error(
-              "workspace cleanup aborted: repo=app-gw path=/tmp/spec101-workspace/app-gw\n" +
-                "reason: uncommitted changes",
-            );
+          assertDisposable: (_wsDir, repos) => {
+            if (repos[0]?.name === "app-gw") {
+              throw new Error(
+                "workspace cleanup aborted: repo=app-gw path=/tmp/spec101-workspace/app-gw\n" +
+                  "reason: uncommitted changes",
+              );
+            }
           },
           runPlan: (plan) => {
             plans.push(plan.map((cmd) => cmd.repo));
@@ -431,14 +449,24 @@ describe("destroyWorkspace", () => {
           },
         },
       ),
-    ).toThrow("uncommitted changes");
+    ).toThrow(
+      "workspace cleanup incomplete: cleared=1 failed=1",
+    );
 
-    expect(plans).toEqual([]);
-    expect(logs).toEqual([]);
+    expect(plans).toEqual([
+      [
+        "app-api",
+      ],
+    ]);
+    expect(logs).toEqual([
+      "workspace worktrees cleared: 1/2",
+      "workspace directory kept: /tmp/spec101-workspace",
+    ]);
   });
 
-  test("worktree remove 失败时立即终止", () => {
+  test("单仓 worktree remove 失败时继续卸载其他仓库", () => {
     const logs: string[] = [];
+    const plans: string[] = [];
 
     expect(() =>
       destroyWorkspace(
@@ -458,6 +486,12 @@ describe("destroyWorkspace", () => {
               group: "backend",
               branch: "master",
             },
+            {
+              name: "app-api",
+              path: "/src/app-api",
+              group: "backend",
+              branch: "master",
+            },
           ],
           profiles: {},
         },
@@ -466,13 +500,18 @@ describe("destroyWorkspace", () => {
           branch: "feature/spec101",
           repos: [
             "app-gw",
+            "app-api",
           ],
           checkoutBranches: {},
         },
         {
           assertDisposable: () => {},
-          runPlan: () => {
-            throw new Error("remove failed");
+          runPlan: (plan) => {
+            const repo = plan[0]?.repo ?? "";
+            plans.push(repo);
+            if (repo === "app-gw") {
+              throw new Error("remove failed");
+            }
           },
           log: (msg) => {
             logs.push(msg);
@@ -481,7 +520,14 @@ describe("destroyWorkspace", () => {
       ),
     ).toThrow("remove failed");
 
-    expect(logs).toEqual([]);
+    expect(plans).toEqual([
+      "app-gw",
+      "app-api",
+    ]);
+    expect(logs).toEqual([
+      "workspace worktrees cleared: 1/2",
+      "workspace directory kept: /tmp/spec101-workspace",
+    ]);
   });
 });
 

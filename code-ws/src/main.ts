@@ -422,7 +422,7 @@ function removeWsDir(path: string): void {
 
 /**
  * 只卸载 git worktree, 因为 workspace 文档与元数据要保留给后续淬炼复用.
- * 卸载前拦截未提交改动和未合入主分支的本地 commit, 避免丢代码.
+ * 每个仓库独立校验和卸载, 因为单仓异常不应阻断其他安全仓库清理.
  */
 export function destroyWorkspace(
   args: DestroyWorkspaceArgs,
@@ -438,20 +438,41 @@ export function destroyWorkspace(
     cfg,
     wsProject,
   );
+  const failures: string[] = [];
+  let cleared = 0;
 
-  assertDisposable(
-    wsDir,
-    repos,
-    cfg.remote,
-    cfg.baseBranch,
-  );
-  runPlan(
-    buildWorktreeRemovePlan(
-      wsDir,
-      repos,
-    ),
-    args.verbose,
-  );
+  for (const repo of repos) {
+    try {
+      assertDisposable(
+        wsDir,
+        [repo],
+        cfg.remote,
+        cfg.baseBranch,
+      );
+      const plan = buildWorktreeRemovePlan(
+        wsDir,
+        [repo],
+      );
+      runPlan(
+        plan,
+        args.verbose,
+      );
+      cleared += 1;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      failures.push(msg);
+    }
+  }
+
+  if (failures.length > 0) {
+    log(`workspace worktrees cleared: ${cleared}/${repos.length}`);
+    log(`workspace directory kept: ${wsDir}`);
+    const summary = [
+      `workspace cleanup incomplete: cleared=${cleared} failed=${failures.length}`,
+      ...failures,
+    ];
+    throw new Error(summary.join("\n\n"));
+  }
 
   log(`workspace worktrees cleared: ${wsDir}`);
   log(`workspace directory kept: ${wsDir}`);

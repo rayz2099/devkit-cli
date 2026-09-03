@@ -29,7 +29,7 @@ workspace 内的 `project.yml` 会写入固定 `branch` 和项目 `description`,
 
 `fork <branch>` 需要在 workspace 目录或其子目录执行, 它会先检查当前 workspace 中所有 repo 没有未提交改动, 再从当前 repo worktree 的 `HEAD` 派生目标分支 worktree。它会复制固定枚举的任务上下文: `project.yml`, `docs/`, `spec/`, `tasks/`, `.agents/`, 再把 XDG `AGENTS.md` 重新 link 到目标 workspace, 并生成 `.code-workspace` 和 `project.yml` 分支名. 不复制根 `README.md`, 避免把旧阶段图带进新 workspace.
 
-`destroy` 需要在 workspace 目录或其子目录执行, 卸载前会检查各 worktree 是否存在未提交改动, 以及相对 `origin/<baseBranch>` 是否还有未合入的本地 commit; 任一不安全条件都会提示并立即终止. 通过后才按 `project.yml` 执行 `git worktree remove --force`. 不会改写 `project.yml` / `.code-workspace`, 也不会删除 workspace 目录, 方便后续淬炼复用.
+`destroy` 需要在 workspace 目录或其子目录执行. 它会逐仓执行安全检查和 `git worktree remove --force`; 单仓失败不阻断其他仓库, 全部处理后汇总失败并返回非零. 安全检查会拒绝未提交改动和未合入 `origin/<baseBranch>` 的提交, 同时识别 squash/rebase/cherry-pick 产生的等价 patch. 不会改写 `project.yml` / `.code-workspace`, 也不会删除 workspace 目录, 方便后续淬炼复用.
 
 `projects` 会输出 config 解析后的 project name, 供 fish completion 动态提示项目名。
 

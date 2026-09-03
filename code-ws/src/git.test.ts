@@ -12,6 +12,7 @@ import {
   gitStepLabel,
   hasUnsafeWork,
   hasUncommittedWork,
+  isPatchHistoryMerged,
   parseBranchWorktreePath,
   runGitPlanKeepGoing,
   shouldConfirmRemoveProject,
@@ -491,6 +492,27 @@ describe("buildForkGitPlan", () => {
 });
 
 describe("workspace cleanup safety", () => {
+  test("全部提交存在 patch 等价提交时视为已合并", () => {
+    expect(isPatchHistoryMerged(
+      "- abc first\n- def second\n",
+      "0\n",
+    )).toBe(true);
+  });
+
+  test("存在独有 patch 时不能视为已合并", () => {
+    expect(isPatchHistoryMerged(
+      "- abc first\n+ def second\n",
+      "0\n",
+    )).toBe(false);
+  });
+
+  test("分支含独有 merge commit 时不使用 patch 等价判定", () => {
+    expect(isPatchHistoryMerged(
+      "- abc first\n",
+      "1\n",
+    )).toBe(false);
+  });
+
   test("刷新远端目标分支后允许删除已合并 worktree", () => {
     const cmds: string[][] = [];
 
