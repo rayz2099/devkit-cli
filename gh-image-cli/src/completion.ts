@@ -1,5 +1,6 @@
 export function fishCompletion(): string {
   return String.raw`complete -c gh-image-cli -f
+complete -c gh-image-cli -s c -l config -r -d 'config file'
 
 function __gh_image_cli_aliases
     gh-image-cli __complete aliases 2>/dev/null

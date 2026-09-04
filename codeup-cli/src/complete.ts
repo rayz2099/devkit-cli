@@ -1,4 +1,4 @@
-import { takeCmd } from "./args";
+import { cfgFlag, takeCmd } from "./args";
 import { hintRepos, loadIndex } from "./cache";
 import { loadFileCfg, pickProfile } from "./config";
 import { parseOrgId } from "./org";
@@ -15,13 +15,17 @@ export async function completeLines(tokens: string[], current: string): Promise<
 }
 
 export async function completeValues(tokens: string[], current: string): Promise<string[]> {
+  const last = tokens[tokens.length - 1];
+  if (last === "-c" || last === "--config") {
+    return [];
+  }
   const { flags, pos } = safeTake(tokens);
   const profile = flags.get("-p") ?? flags.get("--profile");
-  if (tokens[tokens.length - 1] === "-p" || tokens[tokens.length - 1] === "--profile") {
-    return await loadProfiles();
+  if (last === "-p" || last === "--profile") {
+    return await loadProfiles(flags);
   }
   if (tokens[tokens.length - 1] === "--repo") {
-    return await loadRepoHints(profile);
+    return await loadRepoHints(flags, profile);
   }
   if (pos.length === 0) {
     return ROOT_CMDS;
@@ -31,25 +35,27 @@ export async function completeValues(tokens: string[], current: string): Promise
   }
   const head = pos[0];
   if (head === "agent" || head === "human") {
-    return completeAfterAudience(pos.slice(1), current, profile);
+    return completeAfterAudience(pos.slice(1), current, flags, profile);
   }
-  return completeCmd(pos, current, profile);
+  return completeCmd(pos, current, flags, profile);
 }
 
 async function completeAfterAudience(
   pos: string[],
   current: string,
+  flags: Map<string, string>,
   profile?: string,
 ): Promise<string[]> {
   if (pos.length === 0 || (pos.length === 1 && pos[0] === current)) {
     return ROOT_CMDS.filter((item) => item !== "agent" && item !== "human");
   }
-  return completeCmd(pos, current, profile);
+  return completeCmd(pos, current, flags, profile);
 }
 
 async function completeCmd(
   pos: string[],
   current: string,
+  flags: Map<string, string>,
   profile?: string,
 ): Promise<string[]> {
   const head = pos[0];
@@ -58,7 +64,7 @@ async function completeCmd(
       return CR_SUB;
     }
     if (pos[1] === "list" && pos.length <= 3) {
-      return loadRepoHints(profile);
+      return loadRepoHints(flags, profile);
     }
     return [];
   }
@@ -67,7 +73,7 @@ async function completeCmd(
       return WEBHOOK_SUB;
     }
     if (pos[1] === "list" && pos.length <= 3) {
-      return loadRepoHints(profile);
+      return loadRepoHints(flags, profile);
     }
     return [];
   }
@@ -85,18 +91,18 @@ function safeTake(tokens: string[]): { flags: Map<string, string>; pos: string[]
   }
 }
 
-async function loadProfiles(): Promise<string[]> {
+async function loadProfiles(flags: Map<string, string>): Promise<string[]> {
   try {
-    const cfg = await loadFileCfg();
+    const cfg = await loadFileCfg(cfgFlag(flags));
     return cfg.profiles.map((item) => item.name);
   } catch {
     return [];
   }
 }
 
-async function loadRepoHints(profile?: string): Promise<string[]> {
+async function loadRepoHints(flags: Map<string, string>, profile?: string): Promise<string[]> {
   try {
-    const cfg = await loadFileCfg();
+    const cfg = await loadFileCfg(cfgFlag(flags));
     const picked = pickProfile(cfg, profile);
     const idx = await loadIndex(picked.name, parseOrgId(picked.url));
     return hintRepos(idx.repos);

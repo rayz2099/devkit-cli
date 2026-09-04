@@ -13,6 +13,19 @@ test("-p 无 query 是 Console", () => {
   });
 });
 
+test("-c 指定配置文件", () => {
+  expect(parseArgs(["-c", "/tmp/dsn.json", "-p", "buy"])).toEqual({
+    kind: "console",
+    audience: "human",
+    profile: "buy",
+    config: "/tmp/dsn.json",
+  });
+  expect(parseArgs(["-p", "buy", "query", "SELECT 1", "--config", "/tmp/dsn.json"])).toMatchObject({
+    kind: "query",
+    config: "/tmp/dsn.json",
+  });
+});
+
 test("query 需要 -p, 多 token 拼成一条语句", () => {
   expect(parseArgs(["-p", "buy", "query", "SELECT 1"])).toEqual({
     kind: "query",

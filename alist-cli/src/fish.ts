@@ -14,6 +14,7 @@ complete -c alist-cli -e
 complete -c alist-cli -f
 complete -c alist-cli -n '__fish_seen_subcommand_from put sync' -F
 complete -c alist-cli -a '(__alist_cli_complete)'
+complete -c alist-cli -s c -l config -r -d 'config file'
 complete -c alist-cli -s p -l profile -x -a '(__alist_cli_complete)' -d 'profile name'
 complete -c alist-cli -l page -r -d 'page number'
 complete -c alist-cli -l size -r -d 'page size'

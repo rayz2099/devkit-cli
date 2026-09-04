@@ -1,4 +1,4 @@
-import { takeCmd } from "./args";
+import { cfgFlag, takeCmd } from "./args";
 import { loadFileCfg, profileNames } from "./config";
 
 const ROOT_CMDS = ["ls", "put", "mkdir", "sync", "completion", "agent", "human"];
@@ -11,9 +11,13 @@ export async function completeLines(tokens: string[], current: string): Promise<
 }
 
 export async function completeValues(tokens: string[], current: string): Promise<string[]> {
-  const { pos } = safeTake(tokens);
-  if (tokens[tokens.length - 1] === "-p" || tokens[tokens.length - 1] === "--profile") {
-    return await loadProfiles();
+  const last = tokens[tokens.length - 1];
+  if (last === "-c" || last === "--config") {
+    return [];
+  }
+  const { flags, pos } = safeTake(tokens);
+  if (last === "-p" || last === "--profile") {
+    return await loadProfiles(flags);
   }
   if (pos.length === 0) {
     return ROOT_CMDS;
@@ -52,9 +56,9 @@ function safeTake(tokens: string[]): { flags: Map<string, string>; pos: string[]
   }
 }
 
-async function loadProfiles(): Promise<string[]> {
+async function loadProfiles(flags: Map<string, string>): Promise<string[]> {
   try {
-    return profileNames(await loadFileCfg());
+    return profileNames(await loadFileCfg(cfgFlag(flags)));
   } catch {
     return [];
   }

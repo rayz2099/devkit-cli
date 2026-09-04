@@ -27,7 +27,7 @@ export async function runCmd(
   }
 
   const runtime = resolveRuntime(
-    await loadFileCfg(),
+    await loadFileCfg(cmd.config),
     cmd.audience,
     cmd.profile,
     env,

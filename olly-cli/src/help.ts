@@ -1,14 +1,14 @@
 export const HELP_TEXT = `olly-cli
 
 Usage:
-  olly-cli [-f config.json] [--output human|agent|plain] uptrace <command> [options]
-  olly-cli [-f config.json] [--output human|agent|plain] logs <query-or-graylog-url> [options]
-  olly-cli [-f config.json] [--output human|agent|plain] prometheus <command> [options]
-  olly-cli [-f config.json] [--output human|agent|plain] prom <command> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] uptrace <command> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] logs <query-or-graylog-url> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] prometheus <command> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] prom <command> [options]
   olly-cli --help
 
 Global options:
-  -f <path>                 Config file path. Default: ~/.config/olly-cli/config.json
+  -c, --config, -f <path>   Config file path. Default: ~/.config/olly-cli/config.json
   -o, --output <mode>       Output mode: human, agent, plain. Default: human
   -h, --help                Show help
 
@@ -94,7 +94,7 @@ Graylog:
 export const UPTRACE_HELP_TEXT = `olly-cli uptrace
 
 Usage:
-  olly-cli [-f config.json] [--output human|agent|plain] uptrace <command> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] uptrace <command> [options]
   olly-cli uptrace --help
 
 Commands:
@@ -124,8 +124,8 @@ Examples:
 export const PROMETHEUS_HELP_TEXT = `olly-cli prometheus
 
 Usage:
-  olly-cli [-f config.json] [--output human|agent|plain] prometheus <command> [options]
-  olly-cli [-f config.json] [--output human|agent|plain] prom <command> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] prometheus <command> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] prom <command> [options]
   olly-cli prometheus --help
 
 Commands:
@@ -160,9 +160,9 @@ Examples:
 export const GRAYLOG_HELP_TEXT = `olly-cli logs
 
 Usage:
-  olly-cli [-f config.json] [--output human|agent|plain] logs <query-or-graylog-url> [options]
-  olly-cli [-f config.json] [--output human|agent|plain] logs aggregate --field <field> --query <query> [options]
-  olly-cli [-f config.json] [--output human|agent|plain] graylog <query-or-graylog-url> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] logs <query-or-graylog-url> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] logs aggregate --field <field> --query <query> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] graylog <query-or-graylog-url> [options]
   olly-cli logs --help
 
 Options:

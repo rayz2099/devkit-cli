@@ -27,3 +27,14 @@ test("-p 可插在前面", () => {
     folder: "",
   });
 });
+
+test("-c 指定配置文件", () => {
+  expect(parseArgs(["-c", "/tmp/jenkins.json", "job", "ls"])).toMatchObject({
+    kind: "job-ls",
+    config: "/tmp/jenkins.json",
+  });
+  expect(parseArgs(["job", "ls", "--config", "/tmp/jenkins.json"])).toMatchObject({
+    kind: "job-ls",
+    config: "/tmp/jenkins.json",
+  });
+});

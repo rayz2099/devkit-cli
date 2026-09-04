@@ -64,11 +64,12 @@ Usage:
   return `nacos-cli
 
 Usage:
-  nacos-cli [global] config <get|put|delete|list>
-  nacos-cli [global] naming <register|deregister|instances>
+  nacos-cli [-c config.json] [global] config <get|put|delete|list>
+  nacos-cli [-c config.json] [global] naming <register|deregister|instances>
   nacos-cli completion fish
 
 Global:
+  -c, --config <path>    config file path
   --server-addr <addr>   nacos server address
   --username <name>      nacos username
   --password <pass>      nacos password
@@ -104,7 +105,7 @@ function parseFish(argv: string[], global: GlobalFlags): CliCmd {
   const flags = takePairs(argv.slice(1));
   const prefix = flags.get("--prefix") ?? "";
   if (kind === "namespaces") {
-    return { kind: "fish-namespaces", prefix };
+    return { kind: "fish-namespaces", prefix, global };
   }
   if (kind === "config-data-ids") {
     return { kind: "fish-data-ids", prefix, global };
@@ -251,6 +252,11 @@ function takeGlobals(argv: string[]): { global: GlobalFlags; rest: string[] } {
 
     if (token === "--dev") {
       global.dev = true;
+      continue;
+    }
+    if (token === "-c" || token === "--config") {
+      global.config = readValue(argv, index, token);
+      index += 1;
       continue;
     }
     if (token === "-o" || token === "--output") {

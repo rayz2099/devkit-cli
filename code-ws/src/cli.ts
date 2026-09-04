@@ -155,7 +155,7 @@ function parseOpts(args: string[]): {
     } else if (arg === "-b" || arg === "--branch") {
       branch = valueAfter(args, i, arg);
       i += 1;
-    } else if (arg === "--config") {
+    } else if (arg === "-c" || arg === "--config") {
       config = valueAfter(args, i, arg);
       i += 1;
     } else if (arg === "--port") {
@@ -268,7 +268,7 @@ export function parseCliArgs(args: string[]): CliArgs {
     const [repo, ...extra] = tail;
     if (repo === undefined || extra.length > 0) {
       throw new Error(
-        "usage: code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [--config <path>]",
+        "usage: code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]",
       );
     }
     return {
@@ -284,7 +284,7 @@ export function parseCliArgs(args: string[]): CliArgs {
     const [repo, ...extra] = tail;
     if (repo === undefined || extra.length > 0) {
       throw new Error(
-        "usage: code-ws remove project <repo> [-v|--verbose] [--config <path>]",
+        "usage: code-ws remove project <repo> [-v|--verbose] [-c|--config <path>]",
       );
     }
     return {
@@ -298,7 +298,7 @@ export function parseCliArgs(args: string[]): CliArgs {
   if (cmd === "sync" && sub === "master") {
     if (tail.length > 0) {
       throw new Error(
-        "usage: code-ws sync master [-v|--verbose] [--config <path>]",
+        "usage: code-ws sync master [-v|--verbose] [-c|--config <path>]",
       );
     }
     return {
@@ -311,7 +311,7 @@ export function parseCliArgs(args: string[]): CliArgs {
   if (cmd === "destroy") {
     if (sub !== undefined) {
       throw new Error(
-        "usage: code-ws destroy [-v|--verbose] [--config <path>]",
+        "usage: code-ws destroy [-v|--verbose] [-c|--config <path>]",
       );
     }
     return {
@@ -324,7 +324,7 @@ export function parseCliArgs(args: string[]): CliArgs {
   if (cmd === "fork") {
     if (sub === undefined || tail.length > 0) {
       throw new Error(
-        "usage: code-ws fork <branch> [-v|--verbose] [--config <path>]",
+        "usage: code-ws fork <branch> [-v|--verbose] [-c|--config <path>]",
       );
     }
     return {

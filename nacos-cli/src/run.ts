@@ -18,7 +18,7 @@ export async function runCmd(
     return fishScript();
   }
 
-  const fileCfg = await loadFileCfg();
+  const fileCfg = await loadFileCfg(cmdCfg(cmd));
   if (cmd.kind === "fish-namespaces") {
     return completeLines(nsCands(fileCfg), cmd.prefix);
   }
@@ -116,6 +116,31 @@ export async function runCmd(
   }
   const lines = [`count: ${insts.length}`, ...insts.map((item) => `${item.ip}:${item.port}`)];
   return render(runtime.output, lines.join("\n"), undefined);
+}
+
+/** 为什么: complete 走 tokens, 其它命令走 global, 都要能吃到 -c. */
+function cmdCfg(cmd: CliCmd): string | undefined {
+  if (cmd.kind === "complete") {
+    return cfgFromTokens(cmd.tokens);
+  }
+  if ("global" in cmd) {
+    return cmd.global.config;
+  }
+  return undefined;
+}
+
+function cfgFromTokens(tokens: string[]): string | undefined {
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token !== "-c" && token !== "--config") {
+      continue;
+    }
+    const value = tokens[index + 1];
+    if (value !== undefined && value !== "" && !value.startsWith("-")) {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 function completeLines(values: string[], prefix: string): string {

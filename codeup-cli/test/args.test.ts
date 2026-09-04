@@ -16,6 +16,17 @@ test("-p 可插在前面", () => {
   });
 });
 
+test("-c 指定配置文件", () => {
+  expect(parseArgs(["-c", "/tmp/codeup.json", "repos"])).toMatchObject({
+    kind: "repos",
+    config: "/tmp/codeup.json",
+  });
+  expect(parseArgs(["init", "--config", "/tmp/codeup.json"])).toMatchObject({
+    kind: "init",
+    config: "/tmp/codeup.json",
+  });
+});
+
 test("push 默认 origin, 位置参数只当 branch", () => {
   expect(parseArgs(["push"])).toMatchObject({ kind: "push", remote: "origin" });
   expect(parseArgs(["push", "feature/x"])).toMatchObject({

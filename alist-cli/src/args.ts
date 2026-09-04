@@ -8,6 +8,8 @@ const VALUE_FLAGS = new Set([
   "--password",
   "--src",
   "--dst",
+  "-c",
+  "--config",
 ]);
 const BOOL_FLAGS = new Set(["-h", "--help", "--refresh", "--as-task"]);
 
@@ -24,6 +26,10 @@ export function parseArgs(argv: string[]): CliCmd {
   }
 
   const { flags, pos } = takeCmd(argv);
+  return attachCfg(parseCmd(flags, pos), flags);
+}
+
+function parseCmd(flags: Map<string, string>, pos: string[]): CliCmd {
   if (flags.has("-h") || flags.has("--help") || pos[0] === "help") {
     return { kind: "help", topic: pos[0] === "help" ? pos[1] : pos[0] };
   }
@@ -96,7 +102,7 @@ Usage:
   return `alist-cli
 
 Usage:
-  alist-cli [-p profile] [agent|human] <command>
+  alist-cli [-c config.json] [-p profile] [agent|human] <command>
 
 Commands:
   ls [path]
@@ -239,6 +245,19 @@ function readInt(raw: string | undefined, whenOmit: number): number {
     throw new Error(`invalid number: ${raw}`);
   }
   return value;
+}
+
+/** 为什么: -c 指定配置文件, 必须从 argv 抽出再交给 loadFileCfg, 不能写死 XDG. */
+export function cfgFlag(flags: Map<string, string>): string | undefined {
+  return firstNonEmpty(flags.get("-c"), flags.get("--config"));
+}
+
+function attachCfg(cmd: CliCmd, flags: Map<string, string>): CliCmd {
+  const config = cfgFlag(flags);
+  if (config === undefined) {
+    return cmd;
+  }
+  return { ...cmd, config };
 }
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {

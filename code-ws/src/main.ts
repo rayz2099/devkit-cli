@@ -629,16 +629,16 @@ function printHelp(): void {
   console.log(`code-ws
 
 Usage:
-  code-ws init <branch> -t <profile> [-v|--verbose] [--config <path>]
-  code-ws init <branch> <project> [-v|--verbose] [--config <path>]
-  code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [--config <path>]
-  code-ws remove project <repo> [-v|--verbose] [--config <path>]
-  code-ws sync master [-v|--verbose] [--config <path>]
-  code-ws destroy [-v|--verbose] [--config <path>]
-  code-ws fork <branch> [-v|--verbose] [--config <path>]
-  code-ws list [--config <path>]
-  code-ws projects [--config <path>]
-  code-ws config check [--config <path>]
+  code-ws init <branch> -t <profile> [-v|--verbose] [-c|--config <path>]
+  code-ws init <branch> <project> [-v|--verbose] [-c|--config <path>]
+  code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]
+  code-ws remove project <repo> [-v|--verbose] [-c|--config <path>]
+  code-ws sync master [-v|--verbose] [-c|--config <path>]
+  code-ws destroy [-v|--verbose] [-c|--config <path>]
+  code-ws fork <branch> [-v|--verbose] [-c|--config <path>]
+  code-ws list [-c|--config <path>]
+  code-ws projects [-c|--config <path>]
+  code-ws config check [-c|--config <path>]
   code-ws serve [path] [--lan|--local] [--port <n>] [--no-watch]  # default LAN + watch + port 7001
   code-ws completion fish
 `);

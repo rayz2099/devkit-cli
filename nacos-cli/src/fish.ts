@@ -18,6 +18,7 @@ end
 complete -c nacos-cli -e
 complete -c nacos-cli -f
 complete -c nacos-cli -a '(__nacos_cli_complete)'
+complete -c nacos-cli -s c -l config -r -d 'config file'
 complete -c nacos-cli -s o -l output -x -a '(__nacos_cli_complete)' -d 'output format'
 complete -c nacos-cli -l server-addr -r -d 'nacos server address'
 complete -c nacos-cli -l username -r -d 'nacos username'

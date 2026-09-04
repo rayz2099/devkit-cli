@@ -56,7 +56,7 @@ export type ListQuery = {
   refresh: boolean;
 };
 
-export type CliCmd =
+export type CliCmd = (
   | { kind: "help"; topic?: string }
   | { kind: "completion-fish" }
   | { kind: "complete"; tokens: string[]; current: string }
@@ -94,7 +94,8 @@ export type CliCmd =
       dst: string;
       asTask: boolean;
       password: string;
-    };
+    }
+) & { config?: string };
 
 /** 为什么: 进程码要和 jenkins-cli 对齐, 调用方靠数字区分用法错误和 API 错误. */
 export class AlistErr extends Error {

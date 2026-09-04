@@ -18,9 +18,14 @@ func main() {
 	}
 }
 
-type appFactory func() (*cli.App, error)
+type appFactory func(configPath string) (*cli.App, error)
 
 func run(ctx context.Context, args []string, stdout io.Writer, _ io.Writer, factory appFactory) error {
+	configPath, rest, err := cli.SplitConfigFlag(args)
+	if err != nil {
+		return err
+	}
+	args = rest
 	if cli.IsHelpRequest(args) {
 		_, err := io.WriteString(stdout, cli.HelpText(args))
 		return err
@@ -38,7 +43,7 @@ func run(ctx context.Context, args []string, stdout io.Writer, _ io.Writer, fact
 		return err
 	}
 
-	app, err := factory()
+	app, err := factory(configPath)
 	if err != nil {
 		return err
 	}
@@ -46,8 +51,18 @@ func run(ctx context.Context, args []string, stdout io.Writer, _ io.Writer, fact
 }
 
 func newAppFactory(stdin io.Reader, stdout io.Writer, stderr *os.File) appFactory {
-	return func() (*cli.App, error) {
-		cfg, err := config.Loader{}.Load()
+	return func(configPath string) (*cli.App, error) {
+		loader := config.Loader{}
+		if configPath != "" {
+			if _, err := os.Stat(configPath); err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					return nil, fmt.Errorf("config file not found: %s", configPath)
+				}
+				return nil, err
+			}
+			loader.UserConfigPath = configPath
+		}
+		cfg, err := loader.Load()
 		if err != nil {
 			return nil, err
 		}

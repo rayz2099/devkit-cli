@@ -45,7 +45,7 @@ func TestHelpTextContainsRootTranslateCommands(t *testing.T) {
 	t.Parallel()
 
 	text := HelpText([]string{"-h"})
-	if !containsAll(text, "tl en2zh [text]", "tl zh2en [text]", "stdin") {
+	if !containsAll(text, "en2zh [text]", "zh2en [text]", "stdin", "-c") {
 		t.Fatalf("HelpText() = %q, want root translate usage", text)
 	}
 }
@@ -85,7 +85,7 @@ func TestHelpTextContainsFastFlag(t *testing.T) {
 	t.Parallel()
 
 	text := HelpText([]string{"md", "-h"})
-	if !containsAll(text, "tl md en2zh --fast [file]", "--fast") {
+	if !containsAll(text, "md en2zh --fast [file]", "--fast") {
 		t.Fatalf("HelpText() = %q, want fast flag usage", text)
 	}
 }

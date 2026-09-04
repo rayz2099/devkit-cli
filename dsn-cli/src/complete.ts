@@ -1,4 +1,4 @@
-import { takeCmd } from "./args";
+import { cfgFlag, takeCmd } from "./args";
 import { loadFileCfg, pickProfile, profileNames } from "./config";
 import { kafkaComplete } from "./kafka-stmt";
 import { readTopicCache } from "./kafka-cache";
@@ -15,8 +15,11 @@ export async function completeLines(tokens: string[], current: string): Promise<
 
 export async function completeValues(tokens: string[], current: string): Promise<string[]> {
   const last = tokens[tokens.length - 1];
+  if (last === "-c" || last === "--config") {
+    return [];
+  }
   if (last === "-p" || last === "--profile") {
-    return await loadProfiles();
+    return await loadProfiles(safeTake(tokens).flags);
   }
   if (last === "--output") {
     return ["json", "csv", "plain"];
@@ -48,9 +51,9 @@ function safeTake(tokens: string[]): { flags: Map<string, string>; pos: string[]
   }
 }
 
-async function loadProfiles(): Promise<string[]> {
+async function loadProfiles(flags: Map<string, string>): Promise<string[]> {
   try {
-    return profileNames(await loadFileCfg());
+    return profileNames(await loadFileCfg(cfgFlag(flags)));
   } catch {
     return [];
   }
@@ -67,7 +70,7 @@ async function kindStmtComplete(tokens: string[], pos: string[]): Promise<string
     return [];
   }
   try {
-    const profile = pickProfile(await loadFileCfg(), name);
+    const profile = pickProfile(await loadFileCfg(cfgFlag(flags)), name);
     if (profile.kind === "kafka") {
       return kafkaComplete(rest, await readTopicCache(profile.name));
     }

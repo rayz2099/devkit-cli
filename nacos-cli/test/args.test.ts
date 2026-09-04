@@ -20,6 +20,19 @@ describe("parseArgs", () => {
     });
   });
 
+  test("-c 指定配置文件", () => {
+    const cmd = parseArgs(["-c", "/tmp/nacos.json", "config", "get", "app-rpc"]);
+    expect(cmd.kind).toBe("config-get");
+    if (cmd.kind !== "config-get") {
+      throw new Error("unreachable");
+    }
+    expect(cmd.global.config).toBe("/tmp/nacos.json");
+    expect(parseArgs(["config", "list", "--config", "/tmp/nacos.json"])).toMatchObject({
+      kind: "config-list",
+      global: { config: "/tmp/nacos.json" },
+    });
+  });
+
   test("全局 flags 可插在子命令前后", () => {
     const cmd = parseArgs(["-o", "json", "config", "list", "--namespace", "prepare"]);
     expect(cmd.kind).toBe("config-list");

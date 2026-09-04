@@ -190,12 +190,13 @@ export function assertUrl(kind: Kind, url: string, name: string): void {
 }
 
 /** 为什么: 每次执行读盘, fish 补全和真实命令看到同一份 XDG 配置. */
-export async function loadFileCfg(path = cfgPath()): Promise<FileCfg> {
-  const file = Bun.file(path);
+export async function loadFileCfg(path?: string): Promise<FileCfg> {
+  const resolved = path ?? cfgPath();
+  const file = Bun.file(resolved);
   if (!(await file.exists())) {
-    throw new Error(`config file not found: ${path}`);
+    throw new Error(`config file not found: ${resolved}`);
   }
-  return parseFileCfg(await file.text(), path);
+  return parseFileCfg(await file.text(), resolved);
 }
 
 export function pickProfile(fileCfg: FileCfg, name: string): Profile {

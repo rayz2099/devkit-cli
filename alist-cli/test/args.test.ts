@@ -25,6 +25,17 @@ test("-p 可插在前面", () => {
   });
 });
 
+test("-c 指定配置文件", () => {
+  expect(parseArgs(["-c", "/tmp/alist.json", "ls"])).toMatchObject({
+    kind: "ls",
+    config: "/tmp/alist.json",
+  });
+  expect(parseArgs(["ls", "--config", "/tmp/alist.json"])).toMatchObject({
+    kind: "ls",
+    config: "/tmp/alist.json",
+  });
+});
+
 test("put 位置参数和 flags 都能取 src/dst", () => {
   expect(parseArgs(["put", "/tmp/a", "/remote/a"])).toMatchObject({
     kind: "put",

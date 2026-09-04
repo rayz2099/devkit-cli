@@ -83,7 +83,7 @@ export type CancelOut = {
   status: "requested";
 };
 
-export type CliCmd =
+export type CliCmd = (
   | { kind: "help"; topic?: string }
   | { kind: "completion-fish" }
   | { kind: "complete"; tokens: string[]; current: string }
@@ -146,7 +146,8 @@ export type CliCmd =
       kind: "queue-ls";
       audience: Audience;
       profile?: string;
-    };
+    }
+) & { config?: string };
 
 export class JenkinsErr extends Error {
   constructor(

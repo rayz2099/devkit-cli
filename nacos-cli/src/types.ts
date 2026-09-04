@@ -24,6 +24,7 @@ export type GlobalFlags = {
   password?: string;
   namespace?: string;
   output?: OutputFmt;
+  config?: string;
   dev: boolean;
 };
 
@@ -63,7 +64,7 @@ export type SearchMode = "accurate" | "blur";
 export type CliCmd =
   | { kind: "help"; topic?: string }
   | { kind: "completion-fish" }
-  | { kind: "fish-namespaces"; prefix: string }
+  | { kind: "fish-namespaces"; prefix: string; global: GlobalFlags }
   | { kind: "fish-data-ids"; prefix: string; global: GlobalFlags }
   | { kind: "fish-groups"; dataId: string; prefix: string; global: GlobalFlags }
   | {

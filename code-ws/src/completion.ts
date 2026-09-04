@@ -13,7 +13,7 @@ export function renderFishCompletion(): string {
     "  and test $tokens[2] = init",
     "end",
     "complete -c code-ws -s v -l verbose -d '打印 git 命令'",
-    "complete -c code-ws -l config -r -d '配置文件路径'",
+    "complete -c code-ws -s c -l config -r -d '配置文件路径'",
     "complete -c code-ws -s t -l template -x -d 'profile 名称'",
     "complete -c code-ws -n '__fish_use_subcommand' -xa 'init add remove sync destroy fork list projects config serve completion help' -d '功能命令'",
     "complete -c code-ws -n '__code_ws_needs_init_project' -ka '(__code_ws_projects)' -d '项目名'",

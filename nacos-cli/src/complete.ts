@@ -4,6 +4,8 @@ import { groupsByDataId, uniqueDataIds } from "./fish";
 import type { NacosClient } from "./client";
 
 const VALUE_FLAGS = new Set([
+  "-c",
+  "--config",
   "--server-addr",
   "--username",
   "--password",
@@ -79,6 +81,9 @@ export async function completeLine(
   createClient: (runtime: Runtime) => NacosClient,
 ): Promise<string[]> {
   const lastFlag = lastValueFlag(tokens);
+  if (lastFlag === "-c" || lastFlag === "--config") {
+    return [];
+  }
   if (lastFlag === "--namespace") {
     return filterPrefix(nsCands(fileCfg), current);
   }

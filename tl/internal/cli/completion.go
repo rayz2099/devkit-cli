@@ -19,6 +19,7 @@ func CompletionScript(args []string) (string, error) {
 
 	return strings.TrimSpace(`
 complete -c tl -f
+complete -c tl -s c -l config -r -d 'Config file path'
 complete -c tl -l version -d 'Print current version'
 complete -c tl -n '__fish_use_subcommand' -a en2zh -d 'Translate English plain text to Chinese'
 complete -c tl -n '__fish_use_subcommand' -a zh2en -d 'Translate Chinese plain text to English'

@@ -12,12 +12,34 @@ import type { ImageRecord } from "./types";
 function usage(): string {
   return [
     "usage:",
-    "  gh-image-cli add <source> <alias> [version]",
-    "  gh-image-cli add-dockerfile <script> <alias> [version]",
-    "  gh-image-cli build <alias> [version]",
-    "  gh-image-cli list [alias]",
+    "  gh-image-cli [-c config.json] add <source> <alias> [version]",
+    "  gh-image-cli [-c config.json] add-dockerfile <script> <alias> [version]",
+    "  gh-image-cli [-c config.json] build <alias> [version]",
+    "  gh-image-cli [-c config.json] list [alias]",
     "  gh-image-cli completion fish",
   ].join("\n");
+}
+
+/** 为什么: -c 指定配置文件, 必须从 argv 抽出再交给 loadConfig, 不能写死 XDG. */
+function takeGlobals(args: string[]): { config?: string; rest: string[] } {
+  const rest: string[] = [];
+  let config: string | undefined;
+  for (let index = 0; index < args.length; index += 1) {
+    const token = args[index];
+    if (token === "-c" || token === "--config") {
+      const value = args[index + 1];
+      if (value === undefined || value.startsWith("-")) {
+        throw new Error(`${token} requires a value`);
+      }
+      config = value;
+      index += 1;
+      continue;
+    }
+    if (token !== undefined) {
+      rest.push(token);
+    }
+  }
+  return { config, rest };
 }
 
 function target(registry: string, namespace: string, alias: string, version?: string): string {
@@ -64,7 +86,7 @@ function addDockerfile(args: string[]): void {
   console.log(`added: ${alias}:${version} <- ${script}`);
 }
 
-async function build(args: string[]): Promise<number> {
+async function build(args: string[], configPath?: string): Promise<number> {
   requireArgs(args, 1, 2);
   const [alias, requestedVersion] = args as [string, string?];
   const repo = resolveRepo();
@@ -75,7 +97,7 @@ async function build(args: string[]): Promise<number> {
   store.setStatus(alias, version, "init", requestedVersion !== undefined || store.versions(alias).length === 0);
   store.save();
 
-  const cfg = loadConfig();
+  const cfg = loadConfig(configPath);
   const dst = target(cfg.registry, cfg.namespace, alias, version);
   console.log(`alias: ${alias}`);
   console.log(`${image.type === "mirror" ? "source" : "script"}: ${sourceLabel(image)}`);
@@ -106,7 +128,7 @@ async function build(args: string[]): Promise<number> {
   return result.status === "timeout" ? 124 : 1;
 }
 
-function list(args: string[]): void {
+function list(args: string[], configPath?: string): void {
   requireArgs(args, 0, 1);
   const [filter] = args;
   const repo = resolveLocalRepo();
@@ -114,7 +136,7 @@ function list(args: string[]): void {
   if (filter !== undefined) {
     store.require(filter);
   }
-  const cfg = loadConfig();
+  const cfg = loadConfig(configPath);
   const aliases = filter === undefined ? store.aliases() : [filter];
   console.log("ALIAS\tTYPE\tSOURCE/SCRIPT\tTARGET");
   for (const alias of aliases) {
@@ -139,7 +161,8 @@ function complete(args: string[]): void {
 }
 
 export async function main(args: string[]): Promise<number> {
-  const [cmd, ...rest] = args;
+  const { config, rest } = takeGlobals(args);
+  const [cmd, ...cmdArgs] = rest;
   switch (cmd) {
     case undefined:
     case "help":
@@ -148,24 +171,24 @@ export async function main(args: string[]): Promise<number> {
       console.log(usage());
       return 0;
     case "add":
-      add(rest);
+      add(cmdArgs);
       return 0;
     case "add-dockerfile":
-      addDockerfile(rest);
+      addDockerfile(cmdArgs);
       return 0;
     case "build":
-      return build(rest);
+      return build(cmdArgs, config);
     case "list":
-      list(rest);
+      list(cmdArgs, config);
       return 0;
     case "completion":
-      if (rest.length !== 1 || rest[0] !== "fish") {
+      if (cmdArgs.length !== 1 || cmdArgs[0] !== "fish") {
         throw new Error("only fish completion is supported");
       }
       console.log(fishCompletion());
       return 0;
     case "__complete":
-      complete(rest);
+      complete(cmdArgs);
       return 0;
     default:
       throw new Error(`unknown command: ${cmd}\n${usage()}`);

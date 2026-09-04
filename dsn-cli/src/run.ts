@@ -24,7 +24,7 @@ export async function runCmd(argv: string[]): Promise<RunOut> {
     return { type: "stdout", body: await completeLines(cmd.tokens, cmd.current) };
   }
 
-  const fileCfg = await loadFileCfg();
+  const fileCfg = await loadFileCfg(cmd.config);
   if (cmd.kind === "doctor") {
     return await execDoctor(cmd, fileCfg);
   }

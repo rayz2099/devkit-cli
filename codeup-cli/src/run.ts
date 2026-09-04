@@ -29,7 +29,7 @@ export async function runCmd(argv: string[]): Promise<string> {
     return completeLines(cmd.tokens, cmd.current);
   }
 
-  const runtime = resolveRuntime(await loadFileCfg(), cmd.audience, cmd.profile);
+  const runtime = resolveRuntime(await loadFileCfg(cmd.config), cmd.audience, cmd.profile);
   const client = new CodeupClient(runtime);
   return dispatch(cmd, runtime, client);
 }

@@ -62,7 +62,7 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<void> {
   }
 
   if (args.command[0] !== "uptrace") {
-    throw new Error("usage: olly-cli [-f config.json] [--output human|agent|plain] {uptrace|logs|prometheus} <command>. Run olly-cli --help for details.");
+    throw new Error("usage: olly-cli [-c config.json] [--output human|agent|plain] {uptrace|logs|prometheus} <command>. Run olly-cli --help for details.");
   }
 
   const appConfig = await loadConfig(args.configPath);
@@ -253,7 +253,7 @@ function extractPrometheusArgs(argv: string[]): string[] | undefined {
     if (!token) {
       continue;
     }
-    if (token === "-f") {
+    if (isCfgFlag(token) || token === "--output" || token === "-o") {
       index += 1;
       continue;
     }
@@ -275,8 +275,8 @@ function parsePrometheusArgs(argv: string[], rootArgv: string[]): PrometheusPars
 
   for (let index = 0; index < rootArgv.length; index += 1) {
     const token = rootArgv[index];
-    if (token === "-f") {
-      configPath = requireValue(rootArgv, index, "-f");
+    if (isCfgFlag(token)) {
+      configPath = requireValue(rootArgv, index, token);
       index += 1;
       continue;
     }
@@ -299,8 +299,8 @@ function parsePrometheusArgs(argv: string[], rootArgv: string[]): PrometheusPars
       index += 1;
       continue;
     }
-    if (token === "-f") {
-      configPath = requireValue(argv, index, "-f");
+    if (isCfgFlag(token)) {
+      configPath = requireValue(argv, index, token);
       index += 1;
       continue;
     }
@@ -344,8 +344,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     if (!token) {
       continue;
     }
-    if (token === "-f") {
-      configPath = requireValue(argv, index, "-f");
+    if (isCfgFlag(token)) {
+      configPath = requireValue(argv, index, token);
       index += 1;
       continue;
     }
@@ -562,6 +562,11 @@ function booleanFlagLike(args: PrometheusParsedArgs, key: string): boolean | und
 
 function successEnvelope<T>(data: T): PrometheusEnvelope<T> {
   return { status: "success", data };
+}
+
+/** 为什么: -c/--config 是统一入口, -f 只为兼容旧脚本. */
+function isCfgFlag(token: string | undefined): token is "-c" | "--config" | "-f" {
+  return token === "-c" || token === "--config" || token === "-f";
 }
 
 function requireValue(argv: string[], index: number, flag: string): string {

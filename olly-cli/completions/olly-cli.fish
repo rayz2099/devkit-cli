@@ -1,5 +1,6 @@
 complete -c olly-cli -f
-complete -c olly-cli -s f -d 'Config file path' -r
+complete -c olly-cli -s c -l config -d 'Config file path' -r
+complete -c olly-cli -s f -d 'Config file path (alias of -c)' -r
 complete -c olly-cli -s o -l output -d 'Output mode' -xa 'human agent plain'
 complete -c olly-cli -s h -l help -d 'Show help'
 

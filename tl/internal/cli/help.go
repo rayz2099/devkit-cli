@@ -31,11 +31,12 @@ func HelpText(args []string) string {
 	if len(args) > 0 && args[0] == "md" {
 		return strings.TrimSpace(`
 Usage:
-  tl md en2zh [file]
-  tl md zh2en [file]
-  tl md en2zh --fast [file]
+  tl [-c config.json] md en2zh [file]
+  tl [-c config.json] md zh2en [file]
+  tl [-c config.json] md en2zh --fast [file]
 
 Flags:
+  -c, --config <path>   config file (default ~/.config/tl/config.json)
   --fast      pack text units by document size into fewer LLM requests
 
 Behavior:
@@ -57,14 +58,17 @@ Config:
 
 	return strings.TrimSpace(`
 Usage:
-  tl en2zh [text]
-  tl zh2en [text]
-  tl md en2zh [file]
-  tl md zh2en [file]
-  tl md en2zh --fast [file]
+  tl [-c config.json] en2zh [text]
+  tl [-c config.json] zh2en [text]
+  tl [-c config.json] md en2zh [file]
+  tl [-c config.json] md zh2en [file]
+  tl [-c config.json] md en2zh --fast [file]
   tl --version
   tl completion fish
   tl help
+
+Flags:
+  -c, --config <path>   config file (default ~/.config/tl/config.json)
 
 Commands:
   en2zh      Translate plain text from English to Chinese

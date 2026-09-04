@@ -13,6 +13,7 @@ end
 complete -c jenkins-cli -e
 complete -c jenkins-cli -f
 complete -c jenkins-cli -a '(__jenkins_cli_complete)'
+complete -c jenkins-cli -s c -l config -r -d 'config file'
 complete -c jenkins-cli -s p -l profile -x -a '(__jenkins_cli_complete)' -d 'profile name'
 complete -c jenkins-cli -l limit -r -d 'run list limit'
 complete -c jenkins-cli -l tail -r -d 'log tail lines'

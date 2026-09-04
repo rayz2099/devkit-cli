@@ -28,6 +28,7 @@ describe("help", () => {
     expect(HELP_TEXT).toContain("uptrace groups");
     expect(HELP_TEXT).toContain("prometheus query");
     expect(HELP_TEXT).toContain("fish");
+    expect(HELP_TEXT).toContain("-c, --config, -f <path>");
   });
 
   test("selects root command specific help", () => {

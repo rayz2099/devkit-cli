@@ -19,7 +19,7 @@ func TestRunWithHelpSkipsConfigValidation(t *testing.T) {
 		[]string{"-h"},
 		&stdout,
 		&stderr,
-		func() (*cli.App, error) {
+		func(string) (*cli.App, error) {
 			t.Fatal("app factory should not be called for help")
 			return nil, nil
 		},
@@ -44,7 +44,7 @@ func TestRunWithMdHelpPrintsCommandUsage(t *testing.T) {
 		[]string{"md", "-h"},
 		&stdout,
 		&bytes.Buffer{},
-		func() (*cli.App, error) {
+		func(string) (*cli.App, error) {
 			t.Fatal("app factory should not be called for md help")
 			return nil, nil
 		},
@@ -52,7 +52,7 @@ func TestRunWithMdHelpPrintsCommandUsage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("run() error = %v", err)
 	}
-	if got := stdout.String(); got == "" || !containsAll(got, "tl md en2zh [file]", "stdin") {
+	if got := stdout.String(); got == "" || !containsAll(got, "md en2zh [file]", "stdin") {
 		t.Fatalf("stdout = %q, want md help text", got)
 	}
 }
@@ -66,7 +66,7 @@ func TestRunWithRootHelpPrintsRootTranslateUsage(t *testing.T) {
 		[]string{"help"},
 		&stdout,
 		&bytes.Buffer{},
-		func() (*cli.App, error) {
+		func(string) (*cli.App, error) {
 			t.Fatal("app factory should not be called for root help")
 			return nil, nil
 		},
@@ -74,7 +74,7 @@ func TestRunWithRootHelpPrintsRootTranslateUsage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("run() error = %v", err)
 	}
-	if got := stdout.String(); got == "" || !containsAll(got, "tl en2zh [text]", "tl zh2en [text]") {
+	if got := stdout.String(); got == "" || !containsAll(got, "en2zh [text]", "zh2en [text]") {
 		t.Fatalf("stdout = %q, want root translate help text", got)
 	}
 }
@@ -88,7 +88,7 @@ func TestRunWithCompletionFishSkipsFactoryAndPrintsScript(t *testing.T) {
 		[]string{"completion", "fish"},
 		&stdout,
 		&bytes.Buffer{},
-		func() (*cli.App, error) {
+		func(string) (*cli.App, error) {
 			t.Fatal("app factory should not be called for completion fish")
 			return nil, nil
 		},
@@ -110,7 +110,7 @@ func TestRunWithVersionSkipsFactoryAndPrintsVersion(t *testing.T) {
 		[]string{"--version"},
 		&stdout,
 		&bytes.Buffer{},
-		func() (*cli.App, error) {
+		func(string) (*cli.App, error) {
 			t.Fatal("app factory should not be called for version")
 			return nil, nil
 		},

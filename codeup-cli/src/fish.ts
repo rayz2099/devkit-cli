@@ -13,6 +13,7 @@ end
 complete -c codeup-cli -e
 complete -c codeup-cli -f
 complete -c codeup-cli -a '(__codeup_cli_complete)'
+complete -c codeup-cli -s c -l config -r -d 'config file'
 complete -c codeup-cli -s p -l profile -x -a '(__codeup_cli_complete)' -d 'profile name'
 complete -c codeup-cli -l repo -r -d 'group/project or numeric id'
 complete -c codeup-cli -l search -r -d 'name or title filter'

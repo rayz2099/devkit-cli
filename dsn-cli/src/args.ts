@@ -1,6 +1,15 @@
 import type { Audience, CliCmd, OutputFmt } from "./types";
 
-const VALUE_FLAGS = new Set(["-p", "--profile", "--output", "--limit", "--timeout", "--connect-timeout"]);
+const VALUE_FLAGS = new Set([
+  "-p",
+  "--profile",
+  "--output",
+  "--limit",
+  "--timeout",
+  "--connect-timeout",
+  "-c",
+  "--config",
+]);
 const BOOL_FLAGS = new Set(["-h", "--help", "--pretty"]);
 
 /** 为什么: 自己解析 argv, Audience 前缀和 -p 才能前后插, 不绑框架. */
@@ -16,6 +25,10 @@ export function parseArgs(argv: string[]): CliCmd {
   }
 
   const { flags, pos } = takeCmd(argv);
+  return attachCfg(parseCmd(flags, pos), flags);
+}
+
+function parseCmd(flags: Map<string, string>, pos: string[]): CliCmd {
   if (flags.has("-h") || flags.has("--help") || pos[0] === "help") {
     return { kind: "help", topic: pos[0] === "help" ? pos[1] : pos[0] };
   }
@@ -134,12 +147,12 @@ Probes Profiles with concurrency 4. Deadline is --connect-timeout + --timeout (d
   return `dsn-cli
 
 Usage:
-  dsn-cli -p <profile>
-  dsn-cli -p <profile> query '<stmt>' [--output json|csv|plain] [--pretty] [--limit N] [--timeout S]
-  dsn-cli -p <profile> query peek <topic> [n]
-  dsn-cli agent -p <profile> query '<stmt>' [--limit N] [--timeout S]
-  dsn-cli doctor [-p <profile>] [--timeout S] [--connect-timeout S]
-  dsn-cli agent doctor [-p <profile>] [--timeout S]
+  dsn-cli [-c config.json] -p <profile>
+  dsn-cli [-c config.json] -p <profile> query '<stmt>' [--output json|csv|plain] [--pretty] [--limit N] [--timeout S]
+  dsn-cli [-c config.json] -p <profile> query peek <topic> [n]
+  dsn-cli [-c config.json] agent -p <profile> query '<stmt>' [--limit N] [--timeout S]
+  dsn-cli [-c config.json] doctor [-p <profile>] [--timeout S] [--connect-timeout S]
+  dsn-cli [-c config.json] agent doctor [-p <profile>] [--timeout S]
   dsn-cli completion fish
 
 TTY -p opens the vendor client (mysql / psql / redis-cli / mongosh).
@@ -213,6 +226,19 @@ function readLimit(raw: string | undefined): number | undefined {
     throw new Error(`invalid --limit: ${raw}`);
   }
   return value;
+}
+
+/** 为什么: -c 指定配置文件, 必须从 argv 抽出再交给 loadFileCfg, 不能写死 XDG. */
+export function cfgFlag(flags: Map<string, string>): string | undefined {
+  return firstNonEmpty(flags.get("-c"), flags.get("--config"));
+}
+
+function attachCfg(cmd: CliCmd, flags: Map<string, string>): CliCmd {
+  const config = cfgFlag(flags);
+  if (config === undefined) {
+    return cmd;
+  }
+  return { ...cmd, config };
 }
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {

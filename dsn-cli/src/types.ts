@@ -41,7 +41,7 @@ export type QueryOut = {
   rows: Array<Record<string, unknown>>;
 };
 
-export type CliCmd =
+export type CliCmd = (
   | { kind: "help"; topic?: string }
   | { kind: "completion-fish" }
   | { kind: "complete"; tokens: string[]; current: string }
@@ -69,7 +69,8 @@ export type CliCmd =
       pretty: boolean;
       connectSec: number;
       execSec: number;
-    };
+    }
+) & { config?: string };
 
 export type RunOut =
   | { type: "stdout"; body: string; code?: number }

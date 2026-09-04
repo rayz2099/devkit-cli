@@ -12,13 +12,16 @@ const defaults: AppConfig = {
 /**
  * 用户级配置只覆盖稳定的基础设施参数, 项目状态统一归 images.yaml 所有.
  */
-export function loadConfig(): AppConfig {
-  const path = join(homedir(), ".config", "gh-image-cli", "config.json");
-  if (!existsSync(path)) {
+export function loadConfig(path?: string): AppConfig {
+  const resolved = path ?? join(homedir(), ".config", "gh-image-cli", "config.json");
+  if (!existsSync(resolved)) {
+    if (path !== undefined) {
+      throw new Error(`config file not found: ${resolved}`);
+    }
     return defaults;
   }
 
-  const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<AppConfig>;
+  const raw = JSON.parse(readFileSync(resolved, "utf8")) as Partial<AppConfig>;
   const cfg = {
     ...defaults,
     ...raw,

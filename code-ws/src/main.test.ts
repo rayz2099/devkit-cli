@@ -170,6 +170,13 @@ describe("parseCliArgs", () => {
     });
   });
 
+  test("-c 是 --config 的短参数", () => {
+    expect(parseCliArgs(["projects", "-c", "/tmp/config.json"])).toEqual({
+      cmd: "projects",
+      config: "/tmp/config.json",
+    });
+  });
+
   test("解析 config check", () => {
     const args = parseCliArgs([
       "config",

@@ -58,14 +58,16 @@ export function cfgPath(home = process.env.HOME): string {
 }
 
 /** 为什么: 每次执行读盘, fish 补全和真实命令看到同一份 XDG 配置. */
-export async function loadFileCfg(
-  path = cfgPath(),
-): Promise<FileConfig> {
-  const file = Bun.file(path);
+export async function loadFileCfg(path?: string): Promise<FileConfig> {
+  const resolved = path ?? cfgPath();
+  const file = Bun.file(resolved);
   if (!(await file.exists())) {
+    if (path !== undefined) {
+      throw new Error(`config file not found: ${resolved}`);
+    }
     return emptyFileCfg();
   }
-  return parseFileCfg(await file.text(), path);
+  return parseFileCfg(await file.text(), resolved);
 }
 
 /** 为什么: 优先级必须是 flags > env > file > default, 否则和旧脚本/CI 注入对不上. */

@@ -1,6 +1,6 @@
 import type { Audience, CliCmd } from "./types";
 
-const VALUE_FLAGS = new Set(["-p", "--profile", "--limit", "--tail"]);
+const VALUE_FLAGS = new Set(["-p", "--profile", "--limit", "--tail", "-c", "--config"]);
 const BOOL_FLAGS = new Set(["-h", "--help"]);
 
 /** 为什么: 自己解析 argv, Audience 前缀和 -p 才能前后插, 不绑框架. */
@@ -16,6 +16,10 @@ export function parseArgs(argv: string[]): CliCmd {
   }
 
   const { flags, pos } = takeCmd(argv);
+  return attachCfg(parseCmd(flags, pos), flags);
+}
+
+function parseCmd(flags: Map<string, string>, pos: string[]): CliCmd {
   if (flags.has("-h") || flags.has("--help") || pos[0] === "help") {
     return { kind: "help", topic: pos[0] === "help" ? pos[1] : pos[0] };
   }
@@ -88,7 +92,7 @@ Usage:
   return `jenkins-cli
 
 Usage:
-  jenkins-cli [-p profile] [agent|human] <command>
+  jenkins-cli [-c config.json] [-p profile] [agent|human] <command>
 
 Commands:
   job ls|view
@@ -314,6 +318,19 @@ function readInt(raw: string | undefined, fallback: number): number {
     throw new Error(`invalid number: ${raw}`);
   }
   return value;
+}
+
+/** 为什么: -c 指定配置文件, 必须从 argv 抽出再交给 loadFileCfg, 不能写死 XDG. */
+export function cfgFlag(flags: Map<string, string>): string | undefined {
+  return firstNonEmpty(flags.get("-c"), flags.get("--config"));
+}
+
+function attachCfg(cmd: CliCmd, flags: Map<string, string>): CliCmd {
+  const config = cfgFlag(flags);
+  if (config === undefined) {
+    return cmd;
+  }
+  return { ...cmd, config };
 }
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
