@@ -1,5 +1,9 @@
 export type Audience = "human" | "agent";
 
+/** 为什么: 必须和 OpenAPI mergeType 枚举逐字对齐, 漏一个就会让 CLI 编造类型. */
+export const MERGE_TYPES = ["squash", "ff-only", "no-fast-forward", "rebase"] as const;
+export type MergeType = (typeof MERGE_TYPES)[number];
+
 export type Profile = {
   name: string;
   url: string;
@@ -113,6 +117,15 @@ export type CliCmd = (
       title: string;
       body?: string;
       bodyFile?: string;
+    }
+  | {
+      kind: "cr-merge";
+      audience: Audience;
+      profile?: string;
+      repo?: string;
+      localId: string;
+      type: MergeType;
+      message?: string;
     }
   | {
       kind: "webhook-list";

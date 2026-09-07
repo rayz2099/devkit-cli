@@ -128,6 +128,23 @@ export async function dispatch(
       { repo, ...cr },
     );
   }
+  if (cmd.kind === "cr-merge") {
+    const repo = await resolveRepo(
+      runtime.orgId,
+      runtime.profile.name,
+      cmd.repo,
+      undefined,
+    );
+    const cr = await client.mergeCr(repo, cmd.localId, {
+      type: cmd.type,
+      message: cmd.message,
+    });
+    return pickBody(
+      runtime.audience,
+      `merged CR #${cr.localId} in ${repo} (${cmd.type}): ${cr.title}\n${cr.crUrl === "" ? "" : `${cr.crUrl}\n`}`,
+      { repo, mergeType: cmd.type, ...cr },
+    );
+  }
   if (cmd.kind === "webhook-list") {
     const repo = await resolveRepo(
       runtime.orgId,

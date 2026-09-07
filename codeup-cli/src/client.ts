@@ -2,6 +2,7 @@ import { encodeRepoId } from "./org";
 import {
   CodeupErr,
   type ChangeRequest,
+  type MergeType,
   type Repo,
   type Runtime,
   type Webhook,
@@ -132,6 +133,21 @@ export class CodeupClient {
       }),
     );
     return this.toCr(raw);
+  }
+
+  /** 为什么: 回读 getCr 是为了沿用 list/get 的字段词表, merge 响应用的是另一套 status 字段. */
+  async mergeCr(
+    repo: string,
+    localId: string,
+    opts: { type: MergeType; message?: string },
+  ): Promise<ChangeRequest> {
+    await this.request<unknown>(
+      "POST",
+      this.repoPath(repo, `/changeRequests/${localId}/merge`),
+      undefined,
+      crMergeBody(opts),
+    );
+    return this.getCr(repo, localId);
   }
 
   async listHooks(
@@ -333,6 +349,18 @@ export function crCreateBody(opts: {
   };
   if (opts.description !== undefined) {
     body.description = opts.description;
+  }
+  return body;
+}
+
+/** 为什么: mergeType 必须原样进 body, 不能在客户端改写成别的策略. */
+export function crMergeBody(opts: {
+  type: MergeType;
+  message?: string;
+}): Record<string, unknown> {
+  const body: Record<string, unknown> = { mergeType: opts.type };
+  if (opts.message !== undefined) {
+    body.mergeMessage = opts.message;
   }
   return body;
 }

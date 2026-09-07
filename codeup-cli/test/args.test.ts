@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseArgs } from "../src/args";
+import { helpText, parseArgs } from "../src/args";
 
 test("默认 human, agent 是前缀", () => {
   const human = parseArgs(["repos"]);
@@ -46,6 +46,25 @@ test("cr create 缺 source/title 失败", () => {
   expect(() => parseArgs(["cr", "create", "--source", "x"])).toThrow("missing --title");
 });
 
+test("cr merge 要 localId, 默认 squash", () => {
+  expect(() => parseArgs(["cr", "merge"])).toThrow("missing <localId>");
+  expect(parseArgs(["cr", "merge", "12"])).toMatchObject({
+    kind: "cr-merge",
+    audience: "human",
+    localId: "12",
+    type: "squash",
+  });
+  expect(parseArgs(["agent", "cr", "merge", "12", "--repo", "g/p", "--type", "rebase", "--message", "ok"])).toMatchObject({
+    kind: "cr-merge",
+    audience: "agent",
+    localId: "12",
+    repo: "g/p",
+    type: "rebase",
+    message: "ok",
+  });
+  expect(() => parseArgs(["cr", "merge", "12", "--type", "ours"])).toThrow("unknown --type");
+});
+
 test("未知命令失败", () => {
   expect(() => parseArgs(["merge"])).toThrow("unknown command");
 });
@@ -53,6 +72,12 @@ test("未知命令失败", () => {
 test("init 是根命令", () => {
   expect(parseArgs(["init"])).toMatchObject({ kind: "init", audience: "human" });
   expect(parseArgs(["agent", "init"])).toMatchObject({ kind: "init", audience: "agent" });
+});
+
+test("help 含 cr merge", () => {
+  expect(helpText()).toContain("cr list|get|create|merge");
+  expect(helpText("cr")).toContain("--type squash|ff-only|no-fast-forward|rebase");
+  expect(helpText("agent")).toContain("cr list|get|create|merge");
 });
 
 test("cr list 默认 opened", () => {

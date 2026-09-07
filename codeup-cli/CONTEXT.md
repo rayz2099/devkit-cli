@@ -36,6 +36,14 @@ _Avoid_: sync, update, refresh as the command name
 The Yunxiao review request. This is the only write model.
 _Avoid_: pull request, merge request, PR as the domain noun
 
+**Merge**:
+A Codeup write that lands an opened Change Request onto its target branch. Not a working-tree git merge. Omitted Merge Type is squash.
+_Avoid_: git merge in cwd
+
+**Merge Type**:
+How Merge records history on the target branch: squash, ff-only, no-fast-forward, rebase. Squash is the omitted default; the rest require an explicit flag.
+_Avoid_: merge strategy, GitHub merge method, implicit ff-only
+
 **Push**:
 A local `git push` of the current branch to the Codeup remote. Not a Codeup API write.
 _Avoid_: upload, publish, open CR

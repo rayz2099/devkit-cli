@@ -41,6 +41,7 @@ codeup-cli push [--remote origin] [branch]
 codeup-cli cr list [group/project|name]
 codeup-cli cr get <localId> [--repo group/project]
 codeup-cli cr create --source <branch> --title <title> [--target <branch>]
+codeup-cli cr merge <localId> [--repo group/project] [--type squash|ff-only|no-fast-forward|rebase] [--message <text>]
 codeup-cli webhook list [--repo group/project] [--show-secrets]
 ```
 
@@ -49,7 +50,7 @@ codeup-cli webhook list [--repo group/project] [--show-secrets]
 - Short repo names resolve through the local index. Run `init` first.
 - Webhook is read-only. `secretToken` is masked unless `--show-secrets`.
 - Webhook delivery history is a Codeup web-console API. The OpenAPI token cannot read it, and this CLI does not store browser cookies.
-- Merge is not exposed.
+- `cr merge` defaults to squash. Other types need `--type`.
 
 ## License
 

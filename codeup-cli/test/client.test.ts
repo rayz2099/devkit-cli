@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { crCreateBody, toProjectId } from "../src/client";
+import { crCreateBody, crMergeBody, toProjectId } from "../src/client";
 
 test("create body 用数字 project id, 不带 createFrom", () => {
   const body = crCreateBody({
@@ -21,4 +21,13 @@ test("create body 用数字 project id, 不带 createFrom", () => {
 test("toProjectId 拒绝非数字", () => {
   expect(toProjectId("12")).toBe(12);
   expect(() => toProjectId("12a")).toThrow("invalid repository project id");
+});
+
+test("merge body 原样带 mergeType, 不带 removeSourceBranch", () => {
+  expect(crMergeBody({ type: "squash" })).toEqual({ mergeType: "squash" });
+  expect(crMergeBody({ type: "ff-only", message: "ok" })).toEqual({
+    mergeType: "ff-only",
+    mergeMessage: "ok",
+  });
+  expect("removeSourceBranch" in crMergeBody({ type: "rebase" })).toBe(false);
 });

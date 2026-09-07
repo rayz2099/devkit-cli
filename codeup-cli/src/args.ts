@@ -1,4 +1,4 @@
-import type { Audience, CliCmd } from "./types";
+import { MERGE_TYPES, type Audience, type CliCmd, type MergeType } from "./types";
 
 const VALUE_FLAGS = new Set([
   "-p",
@@ -13,6 +13,8 @@ const VALUE_FLAGS = new Set([
   "--title",
   "--body",
   "--body-file",
+  "--message",
+  "--type",
   "--remote",
   "-c",
   "--config",
@@ -77,6 +79,7 @@ Usage:
   codeup-cli cr list [--repo group/project] [--state opened|merged|closed|all]
   codeup-cli cr get <localId> [--repo group/project]
   codeup-cli cr create --source <branch> --title <title> [--target <branch>]
+  codeup-cli cr merge <localId> [--repo group/project] [--type squash|ff-only|no-fast-forward|rebase] [--message <text>]
 `;
   }
   if (topic === "webhook") {
@@ -93,7 +96,7 @@ Usage:
   codeup-cli agent init
   codeup-cli agent repos
   codeup-cli agent push
-  codeup-cli agent cr list|get|create
+  codeup-cli agent cr list|get|create|merge
   codeup-cli agent webhook list
 `;
   }
@@ -106,7 +109,7 @@ Commands:
   init
   repos [--search S]
   push [--remote origin] [branch]
-  cr list|get|create
+  cr list|get|create|merge
   webhook list
   completion fish
 `;
@@ -187,6 +190,18 @@ function parseCr(
       title: need(flags.get("--title"), "cr create: missing --title"),
       body: flags.get("--body"),
       bodyFile: flags.get("--body-file"),
+    };
+  }
+  if (sub === "merge") {
+    const localId = need(argv[1], "cr merge: missing <localId>");
+    return {
+      kind: "cr-merge",
+      audience,
+      profile,
+      repo: flags.get("--repo"),
+      localId,
+      type: parseMergeType(flags.get("--type")),
+      message: flags.get("--message"),
     };
   }
   throw new Error(`unknown command: cr ${sub}`);
@@ -289,4 +304,17 @@ function need(value: string | undefined, message: string): string {
     throw new Error(message);
   }
   return value;
+}
+
+/** 为什么: 省略才是 squash; 未知值必须立刻失败, 不能静默落到默认. */
+export function parseMergeType(raw: string | undefined): MergeType {
+  if (raw === undefined || raw.trim() === "") {
+    return "squash";
+  }
+  for (const item of MERGE_TYPES) {
+    if (item === raw) {
+      return item;
+    }
+  }
+  throw new Error(`cr merge: unknown --type ${raw}`);
 }

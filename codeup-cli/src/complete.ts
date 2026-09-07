@@ -2,9 +2,10 @@ import { cfgFlag, takeCmd } from "./args";
 import { hintRepos, loadIndex } from "./cache";
 import { loadFileCfg, pickProfile } from "./config";
 import { parseOrgId } from "./org";
+import { MERGE_TYPES } from "./types";
 
 const ROOT_CMDS = ["init", "repos", "push", "cr", "webhook", "completion", "agent", "human"];
-const CR_SUB = ["list", "get", "create"];
+const CR_SUB = ["list", "get", "create", "merge"];
 const WEBHOOK_SUB = ["list"];
 
 /** 为什么: 补全只喂 Index 里的本地值, 不能为了提示再打 OpenAPI. */
@@ -26,6 +27,9 @@ export async function completeValues(tokens: string[], current: string): Promise
   }
   if (tokens[tokens.length - 1] === "--repo") {
     return await loadRepoHints(flags, profile);
+  }
+  if (last === "--type") {
+    return [...MERGE_TYPES];
   }
   if (pos.length === 0) {
     return ROOT_CMDS;
