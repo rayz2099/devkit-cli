@@ -46,6 +46,15 @@ describe("parseArgs", () => {
     expect(cmd.pageSize).toBe(10);
   });
 
+  test("namespace 支持短参数", () => {
+    const cmd = parseArgs(["config", "get", "-ns", "runtime", "app-rpc"]);
+    expect(cmd).toMatchObject({
+      kind: "config-get",
+      dataId: "app-rpc",
+      global: { namespace: "runtime" },
+    });
+  });
+
   test("naming instances 默认 healthy-only=true", () => {
     const cmd = parseArgs(["naming", "instances", "--service", "svc1"]);
     expect(cmd).toMatchObject({

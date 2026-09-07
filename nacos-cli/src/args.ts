@@ -73,7 +73,7 @@ Global:
   --server-addr <addr>   nacos server address
   --username <name>      nacos username
   --password <pass>      nacos password
-  --namespace <id>       nacos namespace
+  -ns, --namespace <id>  nacos namespace
   -o, --output text|json output format
   --dev                  write HTTP debug log
 `;
@@ -283,7 +283,7 @@ function takeGlobals(argv: string[]): { global: GlobalFlags; rest: string[] } {
       index += 1;
       continue;
     }
-    if (token === "--namespace") {
+    if (token === "-ns" || token === "--namespace") {
       global.namespace = readValue(argv, index, token);
       index += 1;
       continue;

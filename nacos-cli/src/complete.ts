@@ -9,6 +9,7 @@ const VALUE_FLAGS = new Set([
   "--server-addr",
   "--username",
   "--password",
+  "-ns",
   "--namespace",
   "-o",
   "--output",
@@ -84,7 +85,7 @@ export async function completeLine(
   if (lastFlag === "-c" || lastFlag === "--config") {
     return [];
   }
-  if (lastFlag === "--namespace") {
+  if (lastFlag === "-ns" || lastFlag === "--namespace") {
     return filterPrefix(nsCands(fileCfg), current);
   }
   if (lastFlag === "-o" || lastFlag === "--output") {
@@ -107,6 +108,9 @@ export async function completeLine(
 
   if (needDataIds || needGroups) {
     const { global } = takeLooseGlobals(tokens);
+    if (needDataIds && global.namespace === undefined) {
+      return namespaceArg(current);
+    }
     const runtime = resolveRuntime(global, fileCfg);
     const items = await createClient(runtime).listItemsCached();
     if (needDataIds) {
@@ -134,6 +138,11 @@ export async function completeLine(
   return [];
 }
 
+/** 为什么: 首层候选直接生成可执行参数，既显式展示 namespace，也不破坏既有位置参数. */
+function namespaceArg(current: string): string[] {
+  return "-ns".startsWith(current) ? ["-ns"] : [];
+}
+
 function takeLooseGlobals(tokens: string[]): { global: GlobalFlags } {
   const global: GlobalFlags = { dev: tokens.includes("--dev") };
   const read = (name: string): string | undefined => {
@@ -143,7 +152,7 @@ function takeLooseGlobals(tokens: string[]): { global: GlobalFlags } {
   const serverAddr = read("--server-addr");
   const username = read("--username");
   const password = read("--password");
-  const namespace = read("--namespace");
+  const namespace = read("-ns") ?? read("--namespace");
   const output = read("--output") ?? read("-o");
   if (serverAddr !== undefined) {
     global.serverAddr = serverAddr;

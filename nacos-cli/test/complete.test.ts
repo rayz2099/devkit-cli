@@ -38,19 +38,68 @@ function mockClient(): NacosClient {
 }
 
 describe("complete config get", () => {
-  test("config get app 补 dataId", async () => {
+  test("未选 namespace 时先补配置里的空间", async () => {
+    withHome({
+      namespaces: [
+        "prepare_hwc",
+        "online_hwc",
+        "job_hwc",
+        "loadtest",
+        "runtime",
+        "it_hwc",
+        "public",
+      ],
+    });
+    const out = await runCmd(
+      parseArgs(["__complete", "config", "get", "--to-complete", ""]),
+      mockClient,
+    );
+    expect(out).toBe("-ns\n:4\n");
+  });
+
+  test("选定 namespace 后补该空间的 dataId", async () => {
+    withHome({ namespaces: ["prepare_hwc", "online_hwc"] });
+    let namespace = "";
+    const out = await runCmd(
+      parseArgs([
+        "__complete",
+        "config",
+        "get",
+        "-ns",
+        "online_hwc",
+        "--to-complete",
+        "app",
+      ]),
+      (runtime) => {
+        namespace = runtime.namespace;
+        return mockClient();
+      },
+    );
+    expect(namespace).toBe("online_hwc");
+    expect(out).toBe("app-rpc\napp-infra\n:4\n");
+  });
+
+  test("选定 namespace 后按前缀补 dataId", async () => {
     withHome({ namespaces: ["prepare"] });
     const out = await runCmd(
-      parseArgs(["__complete", "config", "get", "--to-complete", "app"]),
+      parseArgs([
+        "__complete",
+        "config",
+        "get",
+        "-ns",
+        "prepare",
+        "--to-complete",
+        "app",
+      ]),
       mockClient,
     );
     expect(out).toBe("app-rpc\napp-infra\n:4\n");
   });
 
-  test("cobra 风格 __complete config get app", async () => {
+  test("cobra 风格 __complete 识别 namespace", async () => {
     withHome({});
     const out = await runCmd(
-      parseArgs(["__complete", "config", "get", "app"]),
+      parseArgs(["__complete", "config", "get", "-ns", "public", "app"]),
       mockClient,
     );
     expect(out).toBe("app-rpc\napp-infra\n:4\n");
@@ -72,5 +121,14 @@ describe("complete config get", () => {
       mockClient,
     );
     expect(out).toBe("prepare\n:4\n");
+  });
+
+  test("-ns 补配置里的空间", async () => {
+    withHome({ namespaces: ["prepare", "runtime"] });
+    const out = await runCmd(
+      parseArgs(["__complete", "config", "get", "-ns", "--to-complete", "run"]),
+      mockClient,
+    );
+    expect(out).toBe("runtime\n:4\n");
   });
 });

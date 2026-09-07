@@ -23,6 +23,7 @@ complete -c nacos-cli -s o -l output -x -a '(__nacos_cli_complete)' -d 'output f
 complete -c nacos-cli -l server-addr -r -d 'nacos server address'
 complete -c nacos-cli -l username -r -d 'nacos username'
 complete -c nacos-cli -l password -r -d 'nacos password'
+complete -c nacos-cli -o ns -x -a '(__nacos_cli_complete)' -d 'nacos namespace'
 complete -c nacos-cli -l namespace -x -a '(__nacos_cli_complete)' -d 'nacos namespace'
 complete -c nacos-cli -l data-id -x -a '(__nacos_cli_complete)' -d 'config data id'
 complete -c nacos-cli -l group -x -a '(__nacos_cli_complete)' -d 'config group'
