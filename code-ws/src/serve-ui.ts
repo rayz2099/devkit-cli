@@ -429,10 +429,15 @@ export function renderServeHtml(rootName: string): string {
       border-radius: var(--radius);
       padding: 16px;
       overflow: auto;
+      cursor: zoom-in;
     }
-    .md img { max-width: 100%; background: var(--bgSubtle); border-radius: var(--radius); }
+    .md img, .img-wrap img {
+      max-width: 100%;
+      background: var(--bgSubtle);
+      border-radius: var(--radius);
+      cursor: zoom-in;
+    }
     .img-wrap { padding: 20px; }
-    .img-wrap img { max-width: 100%; background: var(--bgSubtle); border-radius: var(--radius); }
     .empty, .err {
       padding: 48px 24px;
       text-align: center;
@@ -567,6 +572,33 @@ export function renderServeHtml(rootName: string): string {
       font-size: 13px;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(31, 35, 40, 0.72);
+      cursor: zoom-out;
+      overflow: auto;
+      overscroll-behavior: contain;
+    }
+    .lightbox.open { display: block; }
+    .lightbox-stage {
+      min-width: 100%;
+      min-height: 100%;
+      display: flex;
+      padding: 24px;
+    }
+    .lightbox-stage img, .lightbox-stage svg {
+      display: block;
+      flex: 0 0 auto;
+      margin: auto;
+      background: var(--bgCanvas);
+      border-radius: var(--radius);
+      box-shadow: var(--shadowFloat);
+      cursor: default;
+    }
+    .lightbox-stage svg { padding: 20px; }
     @media (max-width: 900px) {
       .body { grid-template-columns: 1fr; }
       .sidebar { display: none; }
@@ -618,6 +650,9 @@ export function renderServeHtml(rootName: string): string {
     </div>
   </div>
   <div class="toast" id="toast">Copied</div>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true" aria-label="放大预览">
+    <div class="lightbox-stage" id="lightbox-stage"></div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>

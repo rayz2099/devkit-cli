@@ -70,6 +70,9 @@ describe("handleServeRequest", () => {
     const body = await html.text();
     expect(body).toContain("Go to file");
     expect(body).toContain("mermaid");
+    expect(body).toContain('id="lightbox"');
+    expect(body).toContain("openLightbox");
+    expect(body).toContain("cursor: zoom-in");
   });
 });
 
@@ -116,5 +119,7 @@ describe("serve UI client", () => {
   test("生成的浏览器脚本语法有效", () => {
     const script = renderServeClientScript(JSON.stringify("demo"));
     expect(() => new Function(script)).not.toThrow();
+    expect(script).toContain("function openLightbox");
+    expect(script).toContain("function closeLightbox");
   });
 });

@@ -30,6 +30,7 @@ export function renderServeClientScript(rootJson: string): string {
       watchRetry: 0,
       watchSeen: false,
       watchQueue: Promise.resolve(),
+      lightboxOpen: false,
     };
 
     const RECENT_KEY = "code-ws.serve.recent.v1";
@@ -79,6 +80,65 @@ export function renderServeClientScript(rootJson: string): string {
       el.classList.add("show");
       clearTimeout(state.toastTimer);
       state.toastTimer = setTimeout(() => el.classList.remove("show"), 1400);
+    }
+
+    // 图按视口完整放下; mermaid 太宽, 缩到视口字仍看不清, 所以保 1:1 让人滚着看.
+    function lightboxZoomSize(natW, natH, allowDownscale) {
+      const maxW = Math.max(120, window.innerWidth * 0.92);
+      const maxH = Math.max(120, window.innerHeight * 0.88);
+      const fit = Math.min(maxW / natW, maxH / natH);
+      const scale = allowDownscale ? fit : Math.max(fit, 1);
+      return { w: natW * scale, h: natH * scale };
+    }
+
+    function openLightbox(el) {
+      // 克隆而不是跳走, 是为了保住 mermaid 的主题 CSS (靠 svg id).
+      const stage = $("lightbox-stage");
+      stage.replaceChildren();
+      if (el.tagName === "IMG") {
+        const preview = document.createElement("img");
+        preview.src = el.currentSrc || el.src;
+        preview.alt = el.alt || "";
+        const applySize = () => {
+          const box = lightboxZoomSize(preview.naturalWidth, preview.naturalHeight, true);
+          preview.style.width = box.w + "px";
+          preview.style.height = box.h + "px";
+        };
+        if (preview.complete && preview.naturalWidth) applySize();
+        else preview.addEventListener("load", applySize);
+        stage.appendChild(preview);
+      } else {
+        const svg = el.querySelector("svg");
+        if (!svg) return;
+        const vb = svg.viewBox.baseVal;
+        if (!(vb.width > 0 && vb.height > 0)) return;
+        const preview = svg.cloneNode(true);
+        preview.removeAttribute("width");
+        preview.removeAttribute("height");
+        preview.style.cssText = "";
+        const box = lightboxZoomSize(vb.width, vb.height, false);
+        preview.setAttribute("width", String(box.w));
+        preview.setAttribute("height", String(box.h));
+        stage.appendChild(preview);
+      }
+      state.lightboxOpen = true;
+      $("lightbox").classList.add("open");
+      $("lightbox").setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      requestAnimationFrame(() => {
+        const lb = $("lightbox");
+        lb.scrollLeft = Math.max(0, (lb.scrollWidth - lb.clientWidth) / 2);
+        lb.scrollTop = Math.max(0, (lb.scrollHeight - lb.clientHeight) / 2);
+      });
+    }
+
+    function closeLightbox() {
+      if (!state.lightboxOpen) return;
+      state.lightboxOpen = false;
+      $("lightbox").classList.remove("open");
+      $("lightbox").setAttribute("aria-hidden", "true");
+      $("lightbox-stage").replaceChildren();
+      document.body.style.overflow = "";
     }
 
     function paintWatchStatus(status) {
@@ -785,16 +845,24 @@ export function renderServeClientScript(rootJson: string): string {
       const isPalette = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
       if (isPalette) {
         e.preventDefault();
+        if (state.lightboxOpen) closeLightbox();
         if (state.paletteOpen) closePalette();
         else openPalette();
         return;
       }
-      if (!state.paletteOpen) return;
       if (e.key === "Escape") {
-        e.preventDefault();
-        closePalette();
-        return;
+        if (state.lightboxOpen) {
+          e.preventDefault();
+          closeLightbox();
+          return;
+        }
+        if (state.paletteOpen) {
+          e.preventDefault();
+          closePalette();
+          return;
+        }
       }
+      if (!state.paletteOpen) return;
       if (e.key === "ArrowDown") {
         e.preventDefault();
         state.paletteIndex = Math.min(
@@ -825,6 +893,24 @@ export function renderServeClientScript(rootJson: string): string {
     });
 
     document.addEventListener("click", async (e) => {
+      if (state.lightboxOpen) {
+        if (e.target.closest("#lightbox-stage > *")) return;
+        e.preventDefault();
+        closeLightbox();
+        return;
+      }
+      const zoomImg = e.target.closest("img");
+      if (zoomImg && (zoomImg.closest(".md") || zoomImg.closest(".img-wrap"))) {
+        e.preventDefault();
+        openLightbox(zoomImg);
+        return;
+      }
+      const zoomMermaid = e.target.closest(".mermaid");
+      if (zoomMermaid && zoomMermaid.closest(".md")) {
+        e.preventDefault();
+        openLightbox(zoomMermaid);
+        return;
+      }
       const toggle = e.target.closest("[data-tree-toggle]");
       if (toggle) {
         e.preventDefault();
