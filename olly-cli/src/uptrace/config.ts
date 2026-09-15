@@ -1,6 +1,8 @@
 import { normalizePrometheusConfig } from "../prometheus/config";
 import { normalizeGraylogConfig } from "../graylog/config";
+import { normalizeGrafanaConfig } from "../grafana/config";
 import type { GraylogConfig, RawGraylogConfig } from "../graylog/types";
+import type { GrafanaConfig, RawGrafanaConfig } from "../grafana/types";
 import type { PrometheusConfig, RawPrometheusConfig } from "../prometheus/types";
 import type { UptraceConfig } from "./types";
 import { homedir } from "node:os";
@@ -9,6 +11,7 @@ export interface AppConfig {
   uptrace?: UptraceConfig | undefined;
   prometheus: PrometheusConfig;
   graylog?: GraylogConfig | undefined;
+  grafana?: GrafanaConfig | undefined;
 }
 
 interface RawConfig {
@@ -23,6 +26,7 @@ interface RawConfig {
   };
   prometheus?: RawPrometheusConfig;
   graylog?: RawGraylogConfig;
+  grafana?: RawGrafanaConfig;
 }
 
 /** 为什么：CLI 配置必须显式校验，鉴权缺失时应直接失败。 */
@@ -56,6 +60,7 @@ export function normalizeRawConfig(raw: RawConfig): AppConfig {
     uptrace: raw.uptrace ? normalizeUptraceConfig(raw.uptrace) : undefined,
     prometheus: normalizePrometheusConfig(raw.prometheus),
     graylog: raw.graylog ? normalizeGraylogConfig(raw.graylog) : undefined,
+    grafana: raw.grafana ? normalizeGrafanaConfig(raw.grafana) : undefined,
   };
 }
 
@@ -71,6 +76,13 @@ export function requireGraylogConfig(config: AppConfig): GraylogConfig {
     throw new Error("config missing graylog section");
   }
   return config.graylog;
+}
+
+export function requireGrafanaConfig(config: AppConfig): GrafanaConfig {
+  if (!config.grafana) {
+    throw new Error("config missing grafana section");
+  }
+  return config.grafana;
 }
 
 function normalizeUptraceConfig(raw: NonNullable<RawConfig["uptrace"]>): UptraceConfig {

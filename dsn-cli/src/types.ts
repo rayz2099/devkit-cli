@@ -18,6 +18,7 @@ export type Profile = {
   kind: Kind;
   url: string;
   access: Access;
+  description?: string;
 };
 
 export type FileCfg = {
@@ -42,7 +43,7 @@ export type QueryOut = {
 };
 
 export type CliCmd = (
-  | { kind: "help"; topic?: string }
+  | { kind: "help"; topic?: string; profile?: string }
   | { kind: "completion-fish" }
   | { kind: "complete"; tokens: string[]; current: string }
   | {
@@ -69,6 +70,13 @@ export type CliCmd = (
       pretty: boolean;
       connectSec: number;
       execSec: number;
+    }
+  | {
+      kind: "ds";
+      audience: Audience;
+      profile?: string;
+      output: OutputFmt;
+      pretty: boolean;
     }
 ) & { config?: string };
 

@@ -12,5 +12,10 @@
   "graylog": {
     "base_url": "http://127.0.0.1:9000",
     "token": "replace-me"
+  },
+  "grafana": {
+    "base_url": "http://127.0.0.1:3000",
+    "username": "admin",
+    "password": "replace-me"
   }
 }

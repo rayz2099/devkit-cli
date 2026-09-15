@@ -14,7 +14,7 @@ just build code-ws
 | 项目 | 功能 |
 | --- | --- |
 | `code-ws` | VS Code workspace 初始化 CLI, 基于配置创建 worktree, 生成 `.code-workspace` 和 `.agents`. |
-| `olly-cli` | Prometheus / Uptrace / Graylog 查询 CLI. |
+| `olly-cli` | Prometheus / Uptrace / Graylog / Grafana 查询 CLI. |
 | `tl` | Go 实现的命令行翻译工具. |
 | `har-cli` | HAR 文件分析 CLI. |
 | `alist-cli` | Alist 客户端: ls / put / mkdir / 目录 sync. |

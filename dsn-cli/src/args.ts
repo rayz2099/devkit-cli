@@ -30,7 +30,7 @@ export function parseArgs(argv: string[]): CliCmd {
 
 function parseCmd(flags: Map<string, string>, pos: string[]): CliCmd {
   if (flags.has("-h") || flags.has("--help") || pos[0] === "help") {
-    return { kind: "help", topic: pos[0] === "help" ? pos[1] : pos[0] };
+    return parseHelp(flags, pos);
   }
 
   let audience: Audience = "human";
@@ -54,6 +54,9 @@ function parseCmd(flags: Map<string, string>, pos: string[]): CliCmd {
   }
   if (head === "doctor") {
     return parseDoctor(rest.slice(1), flags, audience, profile);
+  }
+  if (head === "ds") {
+    return parseDs(rest.slice(1), flags, audience, profile);
   }
   if (head === "completion") {
     throw new Error("usage: dsn-cli completion fish");
@@ -90,6 +93,20 @@ function parseQuery(
   };
 }
 
+/** 为什么: -h ds 要带上 -p, 才能只看一个 Profile 的用途. */
+function parseHelp(flags: Map<string, string>, pos: string[]): CliCmd {
+  const topic = pos[0] === "help" ? pos[1] : helpTopicOf(pos);
+  const profile = firstNonEmpty(flags.get("-p"), flags.get("--profile"));
+  return { kind: "help", topic, profile };
+}
+
+const HELP_TOPICS = ["query", "doctor", "ds"];
+
+function helpTopicOf(pos: string[]): string | undefined {
+  const found = pos.find((item) => HELP_TOPICS.includes(item));
+  return found ?? pos[0];
+}
+
 function parseDoctor(
   rest: string[],
   flags: Map<string, string>,
@@ -113,6 +130,31 @@ function parseDoctor(
     pretty,
     connectSec: readSec(flags.get("--connect-timeout"), 3),
     execSec: readSec(flags.get("--timeout"), 5),
+  };
+}
+
+/** 为什么: 目录命令不能误吃 query 语句, 多出来的 argv 必须直接失败. */
+function parseDs(
+  rest: string[],
+  flags: Map<string, string>,
+  audience: Audience,
+  profile: string | undefined,
+): CliCmd {
+  if (rest.length > 0) {
+    throw new Error("ds: unexpected argument");
+  }
+  if (profile !== undefined && profile.trim() === "") {
+    throw new Error("-p is required");
+  }
+  const output = readOutput(flags.get("--output"));
+  const pretty = flags.has("--pretty");
+  assertPretty(output, pretty);
+  return {
+    kind: "ds",
+    audience,
+    profile,
+    output,
+    pretty,
   };
 }
 
@@ -144,6 +186,18 @@ Usage:
 Probes Profiles with concurrency 4. Deadline is --connect-timeout + --timeout (defaults 3s + 5s).
 `;
   }
+  if (topic === "ds") {
+    return `dsn-cli ds
+
+Usage:
+  dsn-cli ds [-p <profile>] [--output json|csv|plain] [--pretty]
+  dsn-cli agent ds [-p <profile>]
+  dsn-cli -h ds
+  dsn-cli -p <profile> -h ds
+
+Lists Profiles without connecting. Columns: name, kind, access, description. Url is never printed.
+`;
+  }
   return `dsn-cli
 
 Usage:
@@ -153,6 +207,9 @@ Usage:
   dsn-cli [-c config.json] agent -p <profile> query '<stmt>' [--limit N] [--timeout S]
   dsn-cli [-c config.json] doctor [-p <profile>] [--timeout S] [--connect-timeout S]
   dsn-cli [-c config.json] agent doctor [-p <profile>] [--timeout S]
+  dsn-cli [-c config.json] ds [-p <profile>] [--output json|csv|plain] [--pretty]
+  dsn-cli [-c config.json] agent ds [-p <profile>]
+  dsn-cli [-c config.json] -h ds
   dsn-cli completion fish
 
 TTY -p opens the vendor client (mysql / psql / redis-cli / mongosh).

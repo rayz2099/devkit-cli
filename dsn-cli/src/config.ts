@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { KINDS, type Access, type FileCfg, type Kind, type Profile, type Runtime } from "./types";
+import { KINDS, type Access, type FileCfg, type Kind, type Profile, type QueryOut, type Runtime } from "./types";
 import type { Audience } from "./types";
 
 export const DEFAULT_CFG_REL = ".config/dsn-cli/config.json";
@@ -117,6 +117,7 @@ function parseProfile(item: unknown, path: string, index: number): Profile {
     kind,
     url,
     access: readAccess(raw.access, path, name),
+    description: readDesc(raw.description, path, name),
   };
 }
 
@@ -128,6 +129,18 @@ function readKind(value: unknown, path: string, name: string): Kind {
     throw new Error(`invalid config file ${path}: unknown kind ${value} for profile ${name}`);
   }
   return value as Kind;
+}
+
+/** 为什么: agent 要靠 caption 选 -p, 非字符串必须失败而不能悄悄丢掉. */
+function readDesc(value: unknown, path: string, name: string): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`invalid config file ${path}: description must be a string for profile ${name}`);
+  }
+  const text = value.trim();
+  return text === "" ? undefined : text;
 }
 
 function readAccess(value: unknown, path: string, name: string): Access {
@@ -224,6 +237,29 @@ export function resolveRuntime(
 
 export function profileNames(fileCfg: FileCfg): string[] {
   return fileCfg.profiles.map((item) => item.name);
+}
+
+/** 为什么: fish 补全要把用途写在名字右边, agent 才能不靠猜 url. */
+export function profileCompletions(fileCfg: FileCfg): string[] {
+  return fileCfg.profiles.map((item) => {
+    if (item.description === undefined) {
+      return item.name;
+    }
+    return `${item.name}\t${item.description}`;
+  });
+}
+
+/** 为什么: 目录只暴露用途, 禁止把带密码的 url 打进 stdout. */
+export function dsOut(profiles: Profile[]): QueryOut {
+  return {
+    columns: ["name", "kind", "access", "description"],
+    rows: profiles.map((item) => ({
+      name: item.name,
+      kind: item.kind,
+      access: item.access,
+      description: item.description ?? "",
+    })),
+  };
 }
 
 function readStr(value: unknown): string {

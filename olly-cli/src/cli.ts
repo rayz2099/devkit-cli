@@ -18,7 +18,10 @@ import {
 } from "./prometheus/query";
 import { formatPrometheusResult } from "./prometheus/format";
 import { normalizePrometheusConfig } from "./prometheus/config";
-import { loadConfig, loadConfigIfExists, requireGraylogConfig, requireUptraceConfig } from "./uptrace/config";
+import { createGrafanaClient } from "./grafana/api";
+import { analyzeDashboard } from "./grafana/analyze";
+import { formatGrafanaResult } from "./grafana/format";
+import { loadConfig, loadConfigIfExists, requireGrafanaConfig, requireGraylogConfig, requireUptraceConfig } from "./uptrace/config";
 import { buildContext, formatContextAgent, formatContextHuman } from "./uptrace/context";
 import { formatGroups, formatJson } from "./uptrace/format";
 import { parseTraceInput } from "./uptrace/trace-id";
@@ -61,8 +64,13 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<void> {
     return;
   }
 
+  if (args.command[0] === "grafana") {
+    await runGrafana(args);
+    return;
+  }
+
   if (args.command[0] !== "uptrace") {
-    throw new Error("usage: olly-cli [-c config.json] [--output human|agent|plain] {uptrace|logs|prometheus} <command>. Run olly-cli --help for details.");
+    throw new Error("usage: olly-cli [-c config.json] [--output human|agent|plain] {uptrace|logs|prometheus|grafana} <command>. Run olly-cli --help for details.");
   }
 
   const appConfig = await loadConfig(args.configPath);
@@ -118,6 +126,36 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<void> {
   }
 
   throw new Error(`unknown uptrace command: ${subcommand ?? "<missing>"}`);
+}
+
+async function runGrafana(args: ParsedArgs): Promise<void> {
+  const appConfig = await loadConfig(args.configPath);
+  const config = requireGrafanaConfig(appConfig);
+  const client = createGrafanaClient(config);
+  const webBaseUrl = config.webBaseUrl ?? config.baseUrl;
+  const result = await analyzeDashboard(client, {
+    source: grafanaSource(args),
+    webBaseUrl,
+    from: stringFlag(args, "from"),
+    to: stringFlag(args, "to"),
+    orgId: numberFlag(args, "orgId"),
+  });
+  process.stdout.write(formatGrafanaResult(result, args.output));
+}
+
+function grafanaSource(args: ParsedArgs): string {
+  const second = args.command[1];
+  if (second === "analyze") {
+    const value = args.positionals[0];
+    if (!value) {
+      throw new Error("grafana analyze requires dashboard url or uid");
+    }
+    return value;
+  }
+  if (!second) {
+    throw new Error("grafana requires dashboard url or uid");
+  }
+  return second;
 }
 
 async function runGraylog(args: ParsedArgs): Promise<void> {

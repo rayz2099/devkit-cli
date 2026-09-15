@@ -5,8 +5,16 @@ Named connections for humans and LLM agents. Humans may exec a vendor Console; a
 ## Language
 
 **Profile**:
-A named connection: `name`, `kind`, `url`, `access`. `-p` is required; there is no default Profile.
+A named connection: `name`, `kind`, `url`, `access`, optional `description`. `-p` is required; there is no default Profile.
 _Avoid_: context, datasource, jdbc profile, defaultProfile
+
+**Description**:
+Optional caption on a Profile so an agent can pick `-p` without reading Url. Surfaced by `ds` / `-h ds`. Never a substitute for Kind or Access.
+_Avoid_: comment as the config key, putting purpose only in the name
+
+**Ds**:
+A catalog of Profiles: `name`, `kind`, `access`, `description`. Does not connect. Url is never printed. `-p` limits to one Profile.
+_Avoid_: doctor as the catalog, listing jdbc urls
 
 **Kind**:
 The backend type on a Profile: `mysql`, `doris`, `postgres`, `redis`, `mongodb`, `elasticsearch`, `kafka`. Later `s3` joins this same list.

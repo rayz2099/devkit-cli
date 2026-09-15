@@ -6,5 +6,5 @@ test("根命令和 agent 前缀包含 doctor", async () => {
   expect(root).toContain("doctor");
   expect(root).toContain("query");
   const afterAgent = await completeValues(["agent"], "");
-  expect(afterAgent).toEqual(["query", "doctor"]);
+  expect(afterAgent).toEqual(["query", "doctor", "ds"]);
 });

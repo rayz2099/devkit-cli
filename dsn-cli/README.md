@@ -38,7 +38,8 @@ Console 额外依赖 PATH 上的官方客户端：
     {
       "name": "buy",
       "kind": "mysql",
-      "url": "mysql://readonly@127.0.0.1:3306/buy"
+      "url": "mysql://readonly@127.0.0.1:3306/buy",
+      "description": "交易库只读"
     }
   ]
 }
@@ -50,6 +51,7 @@ Console 额外依赖 PATH 上的官方客户端：
 | `kind` | 是 | `mysql` / `doris` / `postgres` / `redis` / `mongodb` / `elasticsearch` / `kafka` |
 | `url` | 是 | 标准连接 URL，scheme 必须和 kind 对齐 |
 | `access` | 否 | `read`（默认，走 Gate）或 `write`（原样转发，不跑 Gate） |
+| `description` | 否 | 给 agent 看的用途说明；`ds` / `-h ds` 列出，不打印 url |
 
 kind 和 URL scheme 对不上会直接拒绝配置。密码里的特殊字符按 URL 做 percent-encode。
 
@@ -237,6 +239,9 @@ dsn-cli -p <profile> query peek <topic> [n]
 dsn-cli agent -p <profile> query '<stmt>' [--limit N] [--timeout S] [--connect-timeout S]
 dsn-cli doctor [-p <profile>] [--timeout S] [--connect-timeout S]
 dsn-cli agent doctor [-p <profile>]
+dsn-cli ds [-p <profile>] [--output json|csv|plain] [--pretty]
+dsn-cli agent ds [-p <profile>]
+dsn-cli -h ds
 dsn-cli completion fish
 ```
 
@@ -248,6 +253,19 @@ dsn-cli completion fish
 - `--limit` 只对 agent 有效：默认 1000 行，`0` 表示不截。人的结果不截。
 - Gate、`--output`、`--limit` 都不作用于 Console。
 - `doctor` 最多 4 路并发探测，单个 profile 挂死不会拖住其余项。
+- `ds` / `-h ds` 列出 profile 的 `name kind access description`，不连库，不打印 url。
+
+## ds
+
+```bash
+dsn-cli ds
+dsn-cli ds -p buy
+dsn-cli -h ds
+dsn-cli -p buy -h ds
+dsn-cli agent ds
+```
+
+不连库。人默认 table，列是 `name kind access description`。`-p` 只列一个。agent 是 `{ rows, truncated }`。url 永远不打印。
 
 ## doctor
 

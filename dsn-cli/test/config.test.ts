@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseFileCfg } from "../src/config";
+import { dsOut, parseFileCfg } from "../src/config";
 
 const sample = `{
   "profiles": [
@@ -75,4 +75,39 @@ test("kafka url 必须是 kafka:// 或 kafkas://", () => {
     "/tmp/k.json",
   );
   expect(skipped.profiles).toHaveLength(0);
+});
+
+test("description 可选, 空字符串当没有", () => {
+  const cfg = parseFileCfg(
+    `{ "profiles": [
+      { "name": "buy", "kind": "mysql", "url": "mysql://readonly@127.0.0.1:3306/buy", "description": "交易库只读" },
+      { "name": "dw", "kind": "doris", "url": "mysql://readonly@127.0.0.1:9030/dw", "description": "  " }
+    ] }`,
+    "/tmp/desc.json",
+  );
+  expect(cfg.profiles[0]?.description).toBe("交易库只读");
+  expect(cfg.profiles[1]?.description).toBeUndefined();
+});
+
+test("description 非字符串则跳过该 profile", () => {
+  const cfg = parseFileCfg(
+    `{ "profiles": [
+      { "name": "buy", "kind": "mysql", "url": "mysql://readonly@127.0.0.1:3306/buy", "description": 1 },
+      { "name": "kf-biz", "kind": "kafka", "url": "kafka://127.0.0.1:9092" }
+    ] }`,
+    "/tmp/desc.json",
+  );
+  expect(cfg.profiles).toHaveLength(1);
+  expect(cfg.profiles[0]?.name).toBe("kf-biz");
+});
+
+test("dsOut 不包含 url", () => {
+  const cfg = parseFileCfg(
+    `{ "profiles": [{ "name": "buy", "kind": "mysql", "url": "mysql://secret@127.0.0.1:3306/buy", "description": "交易库只读" }] }`,
+    "/tmp/desc.json",
+  );
+  expect(dsOut(cfg.profiles)).toEqual({
+    columns: ["name", "kind", "access", "description"],
+    rows: [{ name: "buy", kind: "mysql", access: "read", description: "交易库只读" }],
+  });
 });

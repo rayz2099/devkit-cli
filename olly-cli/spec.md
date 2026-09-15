@@ -65,6 +65,11 @@ olly-cli -f config.json > ~/.config/olly-cli/config.json
     "base_url": "127.0.0.1:9000",
     "username": "admin",
     "password": "admin"
+  },
+  "grafana": {
+    "base_url": "http://10.0.48.10:3000",
+    "username": "admin",
+    "password": "admin"
   }
 }
 ```
@@ -81,6 +86,9 @@ olly-cli -f config.json > ~/.config/olly-cli/config.json
 - `prometheus.base_url`: Prometheus HTTP API 地址，默认 `http://127.0.0.1:9090`。
 - `prometheus.default_step`: `query range` 默认 step。
 - `prometheus.default_timeout`: Prometheus 查询超时参数。
+- `grafana.base_url`: Grafana HTTP API 地址，走内网，不走公网 SSO。
+- `grafana.web_base_url`: 生成给人点的看板链接；不配时，粘贴公网 URL 用其 origin，否则用 `base_url`。
+- `grafana.username` / `grafana.password`: Grafana basic auth。
 
 ## Commands
 
@@ -93,7 +101,26 @@ olly-cli [-f config.json] [--output human|agent|plain] logs aggregate --field <f
 olly-cli [-f config.json] [--output human|agent|plain] graylog <query-or-graylog-url>
 olly-cli [-f config.json] [--output human|agent|plain] prometheus {query|ready|healthy|build-info|runtime-info}
 olly-cli [-f config.json] [--output human|agent|plain] prom {query|ready|healthy|build-info|runtime-info}
+olly-cli [-f config.json] [--output human|agent|plain] grafana <dashboard-url-or-uid>
+olly-cli [-f config.json] [--output human|agent|plain] grafana analyze <dashboard-url-or-uid>
 ```
+
+### `grafana`
+
+读取 Grafana dashboard 并执行 Prometheus panel 查询，给人和 Agent 看当前值。公网 URL 只用来抽 uid / orgId / from / to，请求打 `grafana.base_url`。
+
+```bash
+olly-cli --output agent grafana 'https://grafana.dtactivity.cn/d/c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a/biz?orgId=1'
+olly-cli grafana analyze c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a --from now-1h --to now
+```
+
+支持参数：
+
+- `--from`: 时间窗起点；URL `from` 和看板默认时间可覆盖。
+- `--to`: 时间窗终点。
+- `--org-id`: Grafana org id；URL `orgId` 可覆盖。
+
+非 Prometheus panel 直接失败。`agent` 输出 panel 标题、expr、每条 series 的 last/max，不倒原始点位。`human` 输出可打开的看板 URL，并按 max 只展示每个 query 的 top 10 series。
 
 ### `logs`
 

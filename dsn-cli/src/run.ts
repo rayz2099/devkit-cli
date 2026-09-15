@@ -1,6 +1,6 @@
 import { helpText, parseArgs } from "./args";
 import { completeLines } from "./complete";
-import { loadFileCfg, pickProfile, resolveRuntime } from "./config";
+import { dsOut, loadFileCfg, pickProfile, resolveRuntime } from "./config";
 import { isTty, runConsole } from "./console";
 import { checkProfiles, doctorOut, driverProbe } from "./doctor";
 import { runDriver } from "./drivers";
@@ -14,7 +14,7 @@ import type { CliCmd, FileCfg, RunOut } from "./types";
 /** 为什么: 命令分发和渲染绑在一起, 避免 Console 和 Query 各自决定 Audience. */
 export async function runCmd(argv: string[]): Promise<RunOut> {
   const cmd = parseArgs(argv);
-  if (cmd.kind === "help") {
+  if (cmd.kind === "help" && cmd.topic !== "ds") {
     return { type: "stdout", body: renderText(helpText(cmd.topic)) };
   }
   if (cmd.kind === "completion-fish") {
@@ -25,6 +25,12 @@ export async function runCmd(argv: string[]): Promise<RunOut> {
   }
 
   const fileCfg = await loadFileCfg(cmd.config);
+  if (cmd.kind === "help") {
+    return execDs(helpAsDs(cmd), fileCfg);
+  }
+  if (cmd.kind === "ds") {
+    return execDs(cmd, fileCfg);
+  }
   if (cmd.kind === "doctor") {
     return await execDoctor(cmd, fileCfg);
   }
@@ -67,6 +73,26 @@ export async function runCmd(argv: string[]): Promise<RunOut> {
     capped.truncated,
     cmd.pretty,
   );
+  return { type: "stdout", body };
+}
+
+/** 为什么: -h ds 与 ds 同一张目录表, 避免 agent 记两套入口. */
+function helpAsDs(cmd: Extract<CliCmd, { kind: "help" }>): Extract<CliCmd, { kind: "ds" }> {
+  return {
+    kind: "ds",
+    audience: "human",
+    profile: cmd.profile,
+    output: "table",
+    pretty: false,
+    config: cmd.config,
+  };
+}
+
+/** 为什么: 目录不连库, 只把 caption 给 agent 选 -p. */
+function execDs(cmd: Extract<CliCmd, { kind: "ds" }>, fileCfg: FileCfg): RunOut {
+  const wanted = cmd.profile;
+  const profiles = wanted === undefined ? fileCfg.profiles : [pickProfile(fileCfg, wanted)];
+  const body = renderQuery(cmd.audience, cmd.output, dsOut(profiles), false, cmd.pretty);
   return { type: "stdout", body };
 }
 

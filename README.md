@@ -12,7 +12,7 @@
 | Tool | Description |
 | --- | --- |
 | `code-ws` | Create VS Code workspaces from multi-repo profiles and worktrees |
-| `olly-cli` | Query Prometheus / Uptrace / Graylog |
+| `olly-cli` | Query Prometheus / Uptrace / Graylog / Grafana |
 | `har-cli` | Analyze HAR files and extract request URIs |
 | `tl` | Go CLI for EN/ZH text and Markdown (`tl md --fast`) |
 | `jenkins-cli` | Profile-based Jenkins client with human/agent output and Fish completion |
@@ -78,7 +78,7 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 | 工具 | 说明 |
 | --- | --- |
 | `code-ws` | 基于 profile/worktree 初始化 VS Code workspace |
-| `olly-cli` | 查询 Prometheus / Uptrace / Graylog |
+| `olly-cli` | 查询 Prometheus / Uptrace / Graylog / Grafana |
 | `har-cli` | 分析 HAR 并提取请求 URI |
 | `tl` | Go 中英翻译, 支持纯文本和 Markdown (`tl md --fast`) |
 | `jenkins-cli` | 基于 profile 的 Jenkins 客户端, 含 human/agent 输出和 Fish completion |

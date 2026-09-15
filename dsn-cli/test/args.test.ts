@@ -106,3 +106,34 @@ test("--pretty 只配 --output json", () => {
     "--pretty requires --output json",
   );
 });
+
+test("-h ds 保留 -p", () => {
+  expect(parseArgs(["-p", "ds-read", "-h", "ds"])).toEqual({
+    kind: "help",
+    topic: "ds",
+    profile: "ds-read",
+  });
+  expect(parseArgs(["-h", "ds"])).toEqual({
+    kind: "help",
+    topic: "ds",
+    profile: undefined,
+  });
+});
+
+test("ds 不需要 -p, 可只列一个 profile", () => {
+  expect(parseArgs(["ds"])).toEqual({
+    kind: "ds",
+    audience: "human",
+    profile: undefined,
+    output: "table",
+    pretty: false,
+  });
+  expect(parseArgs(["agent", "ds", "-p", "ds-read"])).toEqual({
+    kind: "ds",
+    audience: "agent",
+    profile: "ds-read",
+    output: "table",
+    pretty: false,
+  });
+  expect(() => parseArgs(["ds", "extra"])).toThrow("unexpected argument");
+});

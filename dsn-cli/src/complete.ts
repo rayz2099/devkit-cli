@@ -1,10 +1,10 @@
 import { cfgFlag, takeCmd } from "./args";
-import { loadFileCfg, pickProfile, profileNames } from "./config";
+import { loadFileCfg, pickProfile, profileCompletions } from "./config";
 import { kafkaComplete } from "./kafka-stmt";
 import { readTopicCache } from "./kafka-cache";
 import { pgCatalogComplete } from "./pg-stmt";
 
-const ROOT_CMDS = ["query", "doctor", "completion", "agent", "human"];
+const ROOT_CMDS = ["query", "doctor", "ds", "completion", "agent", "human"];
 
 /** 为什么: kafka topic 补全只读缓存; postgres 只补目录头, 不补表名. */
 export async function completeLines(tokens: string[], current: string): Promise<string> {
@@ -31,7 +31,7 @@ export async function completeValues(tokens: string[], current: string): Promise
   if (pos[0] === "agent" || pos[0] === "human") {
     const rest = pos.slice(1);
     if (rest.length === 0 || (rest.length === 1 && rest[0] === current)) {
-      return ["query", "doctor"];
+      return ["query", "doctor", "ds"];
     }
     if (rest[0] === "completion") {
       return ["fish"];
@@ -53,7 +53,7 @@ function safeTake(tokens: string[]): { flags: Map<string, string>; pos: string[]
 
 async function loadProfiles(flags: Map<string, string>): Promise<string[]> {
   try {
-    return profileNames(await loadFileCfg(cfgFlag(flags)));
+    return profileCompletions(await loadFileCfg(cfgFlag(flags)));
   } catch {
     return [];
   }

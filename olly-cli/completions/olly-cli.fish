@@ -19,11 +19,12 @@ complete -c olly-cli -n '__fish_seen_subcommand_from prometheus prom query; and 
 complete -c olly-cli -n '__fish_seen_subcommand_from prometheus prom query; and not __fish_seen_subcommand_from instant range labels series' -a range -d 'Run /api/v1/query_range'
 complete -c olly-cli -n '__fish_seen_subcommand_from prometheus prom query; and not __fish_seen_subcommand_from instant range labels series' -a labels -d 'Run labels API'
 complete -c olly-cli -n '__fish_seen_subcommand_from prometheus prom query; and not __fish_seen_subcommand_from instant range labels series' -a series -d 'Run series API'
-complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog' -a uptrace -d 'Uptrace commands'
-complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog' -a prometheus -d 'Prometheus HTTP API'
-complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog' -a prom -d 'Alias for prometheus'
-complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog' -a logs -d 'Graylog logs search'
-complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog' -a graylog -d 'Alias for logs'
+complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog grafana' -a uptrace -d 'Uptrace commands'
+complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog grafana' -a prometheus -d 'Prometheus HTTP API'
+complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog grafana' -a prom -d 'Alias for prometheus'
+complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog grafana' -a logs -d 'Graylog logs search'
+complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog grafana' -a graylog -d 'Alias for logs'
+complete -c olly-cli -n 'not __fish_seen_subcommand_from uptrace prometheus prom logs graylog grafana' -a grafana -d 'Read a Grafana dashboard and query panel values'
 complete -c olly-cli -n '__fish_seen_subcommand_from logs graylog; and not __fish_seen_subcommand_from aggregate agg' -a aggregate -d 'Graylog server-side count aggregation'
 complete -c olly-cli -n '__fish_seen_subcommand_from logs graylog; and not __fish_seen_subcommand_from aggregate agg' -a agg -d 'Alias for aggregate'
 
@@ -69,3 +70,8 @@ complete -c olly-cli -n '__fish_seen_subcommand_from logs graylog' -l decorate -
 complete -c olly-cli -n '__fish_seen_subcommand_from logs graylog' -l group-by -d 'Group by message field' -r
 complete -c olly-cli -n '__fish_seen_subcommand_from logs graylog' -l show-fields -d 'Print fields available in this query result'
 complete -c olly-cli -n '__fish_seen_subcommand_from aggregate agg' -l field -d 'Aggregate field' -r
+
+complete -c olly-cli -n '__fish_seen_subcommand_from grafana; and not __fish_seen_subcommand_from analyze' -a analyze -d 'Alias for grafana <dashboard-url-or-uid>'
+complete -c olly-cli -n '__fish_seen_subcommand_from grafana' -l from -d 'Time range start' -r
+complete -c olly-cli -n '__fish_seen_subcommand_from grafana' -l to -d 'Time range end' -r
+complete -c olly-cli -n '__fish_seen_subcommand_from grafana' -l org-id -d 'Grafana org id' -r

@@ -5,6 +5,7 @@ Usage:
   olly-cli [-c config.json] [--output human|agent|plain] logs <query-or-graylog-url> [options]
   olly-cli [-c config.json] [--output human|agent|plain] prometheus <command> [options]
   olly-cli [-c config.json] [--output human|agent|plain] prom <command> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] grafana <dashboard-url-or-uid>
   olly-cli --help
 
 Global options:
@@ -35,6 +36,10 @@ Graylog commands:
   logs                     Query Graylog relative search API
   graylog                  Alias for logs
 
+Grafana commands:
+  grafana                  Read a dashboard and query panel values
+  grafana analyze          Alias for grafana <dashboard-url-or-uid>
+
 Uptrace internal API:
   groups: /internal/v1/tracing/{project_id}/groups
   stats:  /internal/v1/tracing/{project_id}/group-stats
@@ -51,6 +56,7 @@ Common examples:
   olly-cli prometheus query labels __name__
   olly-cli prometheus query series --match='up' | jq -r '.[].job'
   olly-cli prometheus query range --start='2026-04-22T10:00:00+08:00' --end='2026-04-22T11:00:00+08:00' --step=60s 'up'
+  olly-cli --output agent grafana 'https://grafana.example.com/d/c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a/biz?orgId=1'
 
 Local install:
   just install
@@ -76,6 +82,11 @@ Config:
       "base_url": "127.0.0.1:9000",
       "username": "admin",
       "password": "admin"
+    },
+    "grafana": {
+      "base_url": "http://127.0.0.1:3000",
+      "username": "admin",
+      "password": "admin"
     }
   }
 
@@ -89,6 +100,11 @@ Prometheus:
 
 Graylog:
   logs output groups messages by logger_name and preserves trace_id for Uptrace follow-up.
+
+Grafana:
+  grafana reads a dashboard URL or uid and queries Prometheus panels.
+  human output includes a browser URL and top series by max.
+  agent output includes last/max for every series.
 `;
 
 export const UPTRACE_HELP_TEXT = `olly-cli uptrace
@@ -155,6 +171,7 @@ Examples:
   olly-cli prometheus query labels job --match='up'
   olly-cli prometheus query series --match='up'
   olly-cli prometheus query range --start='2026-04-22T10:00:00+08:00' --end='2026-04-22T11:00:00+08:00' --step=60s 'up'
+  olly-cli --output agent grafana 'https://grafana.example.com/d/c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a/biz?orgId=1'
 `;
 
 export const GRAYLOG_HELP_TEXT = `olly-cli logs
@@ -190,6 +207,24 @@ Examples:
   olly-cli logs 'https://log.example.com/search?q=app%3Abilling+AND+level%3A3&rangetype=relative&relative=28800'
 `;
 
+export const GRAFANA_HELP_TEXT = `olly-cli grafana
+
+Usage:
+  olly-cli [-c config.json] [--output human|agent|plain] grafana <dashboard-url-or-uid> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] grafana analyze <dashboard-url-or-uid> [options]
+  olly-cli grafana --help
+
+Options:
+  --from <time>             Time range start. Default: dashboard time
+  --to <time>               Time range end. Default: dashboard time
+  --org-id <id>             Grafana org id. Default: URL orgId
+
+Examples:
+  olly-cli grafana 'https://grafana.example.com/d/c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a/biz?orgId=1'
+  olly-cli grafana analyze c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a --from now-1h --to now
+  olly-cli --output agent grafana 'https://grafana.example.com/d/c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a/biz?orgId=1'
+`;
+
 /** 为什么：help 必须在读取配置前可用，方便首次安装后自检。 */
 export function shouldShowHelp(argv: string[]): boolean {
   if (argv.length === 0 || isHelpToken(argv[0])) {
@@ -208,6 +243,9 @@ export function helpTextFor(argv: string[]): string {
   if (argv[0] === "logs" || argv[0] === "graylog") {
     return GRAYLOG_HELP_TEXT;
   }
+  if (argv[0] === "grafana") {
+    return GRAFANA_HELP_TEXT;
+  }
   return HELP_TEXT;
 }
 
@@ -216,5 +254,5 @@ function isHelpToken(value: string | undefined): boolean {
 }
 
 function isRootCommand(value: string | undefined): boolean {
-  return value === "uptrace" || value === "prometheus" || value === "prom" || value === "logs" || value === "graylog";
+  return value === "uptrace" || value === "prometheus" || value === "prom" || value === "logs" || value === "graylog" || value === "grafana";
 }
