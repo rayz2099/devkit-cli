@@ -101,6 +101,29 @@ test("description 非字符串则跳过该 profile", () => {
   expect(cfg.profiles[0]?.name).toBe("kf-biz");
 });
 
+test("mongodb 非 mongodb:// 仍跳过", () => {
+  const cfg = parseFileCfg(
+    `{ "profiles": [{ "name": "x", "kind": "mongodb", "url": "redis://127.0.0.1:6379/0" }] }`,
+    "/tmp/mongo.json",
+  );
+  expect(cfg.profiles).toHaveLength(0);
+});
+
+test("mongodb 副本集 seed list 是合法 url", () => {
+  const cfg = parseFileCfg(
+    `{ "profiles": [
+      { "name": "rs-biz", "kind": "mongodb",
+        "url": "mongodb://biz:secret@10.0.16.60:27017,10.0.16.61:27017,10.0.16.62:27017?readPreference=secondary" },
+      { "name": "rs-meta", "kind": "mongodb",
+        "url": "mongodb://biz_read:secret@10.0.16.70:27017,10.0.16.71:27017,10.0.16.72:27017?authSource=admin&readPreference=secondary" }
+    ] }`,
+    "/tmp/mongo.json",
+  );
+  expect(cfg.profiles).toHaveLength(2);
+  expect(cfg.profiles[0]?.name).toBe("rs-biz");
+  expect(cfg.profiles[1]?.name).toBe("rs-meta");
+});
+
 test("dsOut 不包含 url", () => {
   const cfg = parseFileCfg(
     `{ "profiles": [{ "name": "buy", "kind": "mysql", "url": "mysql://secret@127.0.0.1:3306/buy", "description": "交易库只读" }] }`,

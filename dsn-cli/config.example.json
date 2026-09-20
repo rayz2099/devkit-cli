@@ -48,7 +48,8 @@
       "kind": "redis",
       "url": "rediss://:s3cret@127.0.0.1:6380/0",
     },
-    // mongodb://user:password@host:27017/db ; Atlas 用 mongodb+srv://
+    // mongodb://user:password@host:27017/db ; 副本集写 seed list, 不要带 directConnection
+    // Atlas 用 mongodb+srv://
     {
       "name": "mongo",
       "kind": "mongodb",
@@ -64,6 +65,11 @@
       "name": "mongo-atlas",
       "kind": "mongodb",
       "url": "mongodb+srv://app:secret@cluster.mongodb.net/app",
+    },
+    {
+      "name": "mongo-rs",
+      "kind": "mongodb",
+      "url": "mongodb://app:secret@127.0.0.1:27017,127.0.0.1:27018,127.0.0.1:27019/app?readPreference=secondary",
     },
     // http:// 或 https:// ; 可带 basic auth. 无 Console.
     {

@@ -5,6 +5,7 @@ import mysql from "mysql2/promise";
 import { Client } from "pg";
 import { parseRestQuery, splitArgs } from "./gate";
 import { queryKafka } from "./kafka";
+import { mongoDbName } from "./mongo-url";
 import { runPgCatalog } from "./pg-catalog";
 import { parsePgCatalog, pgCatalogHead } from "./pg-stmt";
 import { DsnErr, type Kind, type QueryOut, type Timeouts } from "./types";
@@ -193,18 +194,13 @@ async function queryMongo(url: string, stmt: string, timeouts: Timeouts): Promis
   });
   try {
     await client.connect();
-    const dbName = mongoDb(url);
+    const dbName = mongoDbName(url);
     const db = dbName === "" ? client.db() : client.db(dbName);
     const out = await db.command(doc, { timeoutMS: timeouts.execMs });
     return mongoOut(out as Record<string, unknown>);
   } finally {
     await client.close();
   }
-}
-
-function mongoDb(url: string): string {
-  const parsed = new URL(url);
-  return decodeURIComponent(parsed.pathname.replace(/^\//, ""));
 }
 
 function mongoOut(out: Record<string, unknown>): QueryOut {

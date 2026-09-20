@@ -28,6 +28,15 @@ test("redis / mongo 展开官方客户端", () => {
   });
 });
 
+test("mongodb seed list 原样交给 mongosh", () => {
+  const url =
+    "mongodb://u:p@10.0.16.70:27017,10.0.16.71:27017,10.0.16.72:27017/app?authSource=admin&readPreference=secondary";
+  expect(consoleSpec("mongodb", url)).toEqual({
+    bin: "mongosh",
+    args: [url],
+  });
+});
+
 test("kafka / elasticsearch 没有 Console", () => {
   expect(() => consoleSpec("kafka", "kafka://127.0.0.1:9092")).toThrow("no Console");
   expect(() => consoleSpec("elasticsearch", "http://127.0.0.1:9200")).toThrow("no Console");

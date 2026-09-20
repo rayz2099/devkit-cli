@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { mongoUrlOk } from "./mongo-url";
 import { KINDS, type Access, type FileCfg, type Kind, type Profile, type QueryOut, type Runtime } from "./types";
 import type { Audience } from "./types";
 
@@ -155,6 +156,15 @@ function readAccess(value: unknown, path: string, name: string): Access {
 
 /** 为什么: kind 和 URL scheme 必须对上, 否则 Driver 会连错协议还当配置合法. */
 export function assertUrl(kind: Kind, url: string, name: string): void {
+  if (kind === "mongodb") {
+    if (!url.startsWith("mongodb://") && !url.startsWith("mongodb+srv://")) {
+      throw new Error(`profile ${name}: mongodb url must use mongodb://`);
+    }
+    if (!mongoUrlOk(url)) {
+      throw new Error(`invalid url for profile ${name}`);
+    }
+    return;
+  }
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -171,12 +181,6 @@ export function assertUrl(kind: Kind, url: string, name: string): void {
   if (kind === "redis") {
     if (proto !== "redis:" && proto !== "rediss:") {
       throw new Error(`profile ${name}: redis url must use redis:// or rediss://`);
-    }
-    return;
-  }
-  if (kind === "mongodb") {
-    if (proto !== "mongodb:" && proto !== "mongodb+srv:") {
-      throw new Error(`profile ${name}: mongodb url must use mongodb://`);
     }
     return;
   }
