@@ -121,5 +121,8 @@ describe("serve UI client", () => {
     expect(() => new Function(script)).not.toThrow();
     expect(script).toContain("function openLightbox");
     expect(script).toContain("function closeLightbox");
+    expect(script).toContain("function resolveMdHref");
+    expect(script).toContain("renderMarkdown(rd.content, rd.path)");
+    expect(script).toContain("renderMarkdown(data.content, data.path)");
   });
 });

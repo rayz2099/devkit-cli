@@ -1,3 +1,5 @@
+import { CLIENT_RESOLVE_MD_HREF } from "./serve-md";
+
 /**
  * serve UI 浏览器端脚本, 从 serve-ui 拆出以控制单文件行数.
  */
@@ -276,7 +278,10 @@ export function renderServeClientScript(rootJson: string): string {
       root.querySelectorAll("pre code").forEach((block) => hljs.highlightElement(block));
     }
 
-    function renderMarkdown(src) {
+    ${CLIENT_RESOLVE_MD_HREF}
+
+    // 必须传入源文件路径: 目录页内嵌 README 时当前 URL 不是 md 自己.
+    function renderMarkdown(src, srcPath) {
       const renderer = new marked.Renderer();
       const rawCode = renderer.code.bind(renderer);
       renderer.code = function(token) {
@@ -286,7 +291,15 @@ export function renderServeClientScript(rootJson: string): string {
         }
         return rawCode(token);
       };
-      return marked.parse(src, { gfm: true, renderer });
+      return marked.parse(src, {
+        gfm: true,
+        renderer,
+        walkTokens: function(token) {
+          if ((token.type === "link" || token.type === "image") && token.href) {
+            token.href = resolveMdHref(srcPath, token.href, token.type);
+          }
+        },
+      });
     }
 
     function renderCodeView(content, lang) {
@@ -350,7 +363,7 @@ export function renderServeClientScript(rootJson: string): string {
                   + '<div class="meta">README</div>'
                   + '<div class="actions"><a class="btn" href="/' + encodePath(rd.path) + '">Open</a></div></div>';
                 if (rd.language === "markdown") {
-                  slot.innerHTML = head + '<article class="md">' + renderMarkdown(rd.content) + "</article></div>";
+                  slot.innerHTML = head + '<article class="md">' + renderMarkdown(rd.content, rd.path) + "</article></div>";
                   highlightBlocks(slot);
                   const nodes = slot.querySelectorAll(".mermaid");
                   if (nodes.length) await mermaid.run({ nodes });
@@ -398,7 +411,7 @@ export function renderServeClientScript(rootJson: string): string {
           + "</div>";
 
         if (data.language === "markdown") {
-          const html = renderMarkdown(data.content);
+          const html = renderMarkdown(data.content, data.path);
           content.innerHTML = renderCrumbs(data.path)
             + '<div class="file-box"><div class="file-box-head"><div class="title">'
             + '<span class="dir-ico">' + ICO.file + "</span>"
