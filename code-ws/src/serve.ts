@@ -16,8 +16,11 @@ import {
   type WatchEvent,
 } from "./serve-watch";
 
-/** 固定默认端口, 避免每次随机分配导致书签/脚本失效. */
+/** 固定默认端口, 占用时向后顺延, 避免随机分配导致书签失效. */
 export const DEFAULT_SERVE_PORT = 7001;
+
+/** 占用时向后扫的端口数, 避免整段端口都满时把启动卡死. */
+export const SERVE_PORT_SCAN = 100;
 
 export type ServeArgs = {
   cmd: "serve";
@@ -64,6 +67,40 @@ export function buildServeOpts(
     lan: args.lan,
     watch: args.watch,
   };
+}
+
+/**
+ * 只有地址占用才能换端口, 权限/主机错误必须原样抛出.
+ */
+export function isAddrInUseError(err: unknown): boolean {
+  if (typeof err === "object" && err !== null && "code" in err) {
+    const code = String((err as { code?: unknown }).code ?? "");
+    if (code === "EADDRINUSE") {
+      return true;
+    }
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  return /EADDRINUSE|address already in use|Is port \d+ in use/i.test(msg);
+}
+
+/**
+ * 首选端口占用时顺延, 因为演示期经常叠开多个 serve.
+ */
+export function bindServeApp<T>(
+  startPort: number,
+  bind: (port: number) => T,
+): T {
+  const lastPort = Math.min(startPort + SERVE_PORT_SCAN - 1, 65535);
+  for (let port = startPort; port <= lastPort; port += 1) {
+    try {
+      return bind(port);
+    } catch (err) {
+      if (!isAddrInUseError(err)) {
+        throw err;
+      }
+    }
+  }
+  throw new Error(`no free port from ${startPort} to ${lastPort}`);
 }
 
 /**
@@ -320,37 +357,39 @@ export function startServe(args: ServeArgs): void {
     }
   }
 
+  const bindApp = (port: number) =>
+    Bun.serve({
+      hostname: opts.host,
+      port,
+      fetch(req, srv) {
+        const url = new URL(req.url);
+        if (url.pathname === "/api/watch") {
+          if (runtime.watch !== "active") {
+            return text("watch is not active", 503);
+          }
+          const upgraded = srv.upgrade(req);
+          if (upgraded) {
+            return undefined;
+          }
+          return text("websocket upgrade required", 426);
+        }
+        return handleServeRequest(req, runtime);
+      },
+      websocket: {
+        open(ws) {
+          ws.subscribe("serve-watch");
+        },
+        message() {
+          // watch 是单向 invalidation channel, 客户端消息没有业务语义。
+        },
+        close(ws) {
+          ws.unsubscribe("serve-watch");
+        },
+      },
+    });
   const server = (() => {
     try {
-      return Bun.serve({
-        hostname: opts.host,
-        port: opts.port,
-        fetch(req, srv) {
-          const url = new URL(req.url);
-          if (url.pathname === "/api/watch") {
-            if (runtime.watch !== "active") {
-              return text("watch is not active", 503);
-            }
-            const upgraded = srv.upgrade(req);
-            if (upgraded) {
-              return undefined;
-            }
-            return text("websocket upgrade required", 426);
-          }
-          return handleServeRequest(req, runtime);
-        },
-        websocket: {
-          open(ws) {
-            ws.subscribe("serve-watch");
-          },
-          message() {
-            // watch 是单向 invalidation channel, 客户端消息没有业务语义。
-          },
-          close(ws) {
-            ws.unsubscribe("serve-watch");
-          },
-        },
-      });
+      return bindServeApp(opts.port, bindApp);
     } catch (err) {
       // bind 失败时 watcher 必须释放, 否则 CLI 报错后仍会占住进程。
       ctl?.close();
@@ -367,7 +406,11 @@ export function startServe(args: ServeArgs): void {
     throw new Error("failed to bind serve port");
   }
   const urls = collectAccessUrls(opts.host, port, opts.lan);
-  console.log(`  bind:  ${opts.host}:${port}`);
+  if (port !== opts.port) {
+    console.log(`  bind:  ${opts.host}:${port} (${opts.port} in use)`);
+  } else {
+    console.log(`  bind:  ${opts.host}:${port}`);
+  }
   console.log(`  watch: ${runtime.watch}`);
   for (const url of urls) {
     console.log(`  url:   ${url}`);

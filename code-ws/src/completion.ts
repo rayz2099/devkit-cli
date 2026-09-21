@@ -24,7 +24,7 @@ export function renderFishCompletion(): string {
     "complete -c code-ws -n '__fish_seen_subcommand_from completion' -xa 'fish' -d '生成 fish completion'",
     "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l lan -d '监听 0.0.0.0 (默认)'",
     "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l local -d '仅监听 127.0.0.1'",
-    "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l port -r -d '端口, 默认 7001'",
+    "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l port -r -d '端口, 默认 7001, 占用则顺延'",
     "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l no-watch -d '关闭文件变更自动刷新'",
   ].join("\n");
 }

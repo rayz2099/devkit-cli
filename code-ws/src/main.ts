@@ -639,7 +639,7 @@ Usage:
   code-ws list [-c|--config <path>]
   code-ws projects [-c|--config <path>]
   code-ws config check [-c|--config <path>]
-  code-ws serve [path] [--lan|--local] [--port <n>] [--no-watch]  # default LAN + watch + port 7001
+  code-ws serve [path] [--lan|--local] [--port <n>] [--no-watch]  # default LAN + watch + port 7001, next if busy
   code-ws completion fish
 `);
 }

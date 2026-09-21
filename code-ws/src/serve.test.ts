@@ -2,10 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  bindServeApp,
   buildServeOpts,
   buildServeRuntime,
   collectAccessUrls,
   handleServeRequest,
+  isAddrInUseError,
 } from "./serve";
 import { resolveServeRoot } from "./serve-fs";
 import { renderServeClientScript } from "./serve-ui-client";
@@ -96,6 +98,56 @@ describe("buildServeOpts", () => {
     }, process.cwd());
     expect(opts.host).toBe("127.0.0.1");
     expect(opts.watch).toBe(false);
+  });
+});
+
+describe("isAddrInUseError", () => {
+  test("识别 EADDRINUSE", () => {
+    expect(isAddrInUseError({ code: "EADDRINUSE" })).toBe(true);
+    expect(isAddrInUseError(new Error("Failed to start server. Is port 7001 in use?"))).toBe(true);
+    expect(isAddrInUseError(new Error("EACCES"))).toBe(false);
+    expect(isAddrInUseError({ code: "EACCES" })).toBe(false);
+  });
+});
+
+describe("bindServeApp", () => {
+  test("首选端口占用时顺延", () => {
+    const holder = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      fetch() {
+        return new Response("held");
+      },
+    });
+    const taken = holder.port;
+    expect(taken).toBeGreaterThan(0);
+
+    try {
+      const server = bindServeApp(taken, (port) =>
+        Bun.serve({
+          hostname: "127.0.0.1",
+          port,
+          fetch() {
+            return new Response("ok");
+          },
+        }),
+      );
+      try {
+        expect(server.port).toBeGreaterThan(taken);
+      } finally {
+        server.stop(true);
+      }
+    } finally {
+      holder.stop(true);
+    }
+  });
+
+  test("非占用错误不顺延", () => {
+    expect(() =>
+      bindServeApp(1, () => {
+        throw Object.assign(new Error("permission denied"), { code: "EACCES" });
+      }),
+    ).toThrow("permission denied");
   });
 });
 
