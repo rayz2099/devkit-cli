@@ -18,4 +18,5 @@ just build code-ws
 | `tl` | Go 实现的命令行翻译工具. |
 | `har-cli` | HAR 文件分析 CLI. |
 | `alist-cli` | Alist 客户端: ls / put / mkdir / 目录 sync. |
+| `rclone-cli` | WebDAV 同步 (123): 无 rclone.conf, source/target/task. 合同见 `rclone-cli/CONTEXT.md`. |
 | `dsn-cli` | 多数据源查询 CLI: mysql / doris / postgres / redis / mongodb / elasticsearch / kafka. |

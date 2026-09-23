@@ -1,0 +1,71 @@
+{
+  // ~/.config/rclone-cli/config.json  权限 600
+  // JSONC: 注释和尾逗号都合法. 三层 source / target / task.
+  // 不写 defaultTask, 不引用 rclone.conf. 缺 task 名 CLI 不跑.
+
+  "rcloneBin": "rclone", // 默认 rclone. 可改成绝对路径.
+
+  "sources": [
+    {
+      "name": "photograph", // CLI 里引用的源名.
+      "path": "$HOME/workspace/photograph", // $HOME 或 ${HOME} 会展开. 不要写 /Users/名字.
+    },
+  ],
+
+  "targets": [
+    {
+      "name": "123", // CLI 里引用的目标名.
+      "url": "https://webdav.123pan.cn/webdav", // 123 WebDAV 入口.
+      "vendor": "other", // 默认 other. 可省略. rclone vendor, 123 不是 owncloud.
+      "user": "", // WebDAV 用户, 不是 crypt.
+      "pass": "", // WebDAV 口令, 不是 crypt.
+      "root": "photograph", // 网盘目录名, 必须和 source 目录同名.
+      "skipLinks": true, // 默认 true. 可省略. 123 不传软链.
+      "skipHidden": true, // 默认 true. 可省略. 不传 . 开头的文件和目录.
+      "sizeOnly": true, // 默认 true. 可省略. 123 没有可靠哈希.
+      "transfers": 1, // 默认 1. 123 并发会限流.
+      "checkers": 4, // 默认 4. 列表探测并发.
+      "retries": 10, // 默认 10. 高层重试, 配大了 404 会拖很久.
+      "retriesSleep": "15s", // 默认 15s. 两次高层重试间隔.
+      "lowLevelRetries": 20, // 默认 20. rclone 底层 HTTP 重试.
+      "timeout": "1h", // 默认 1h. 单次传输超时.
+      "contimeout": "60s", // 默认 60s. 连接超时.
+      "tpslimit": 2, // 默认 2. 每秒请求数.
+      "pacerMinSleep": "200ms", // 默认 200ms. 可省略. 两次请求最短间隔.
+      "encryptFilenames": false, // 默认 false. 可省略. 内容可加密, 文件名仍明文. true 必须有 crypt.
+      // crypt 是密钥对数组. 加密只用 default: true 的那对, 解密按对重试.
+      // default / algorithm 可省略: 没标 default 时第一对当加密对, algorithm 默认 secretbox.
+      // rclone 连接串仍写成 password / password2, 配置里不要用旧名.
+      // "crypt": [
+      //   {
+      //     "name": "v1",
+      //     "algorithm": "secretbox",
+      //     "key": "",
+      //     "salt": "",
+      //     "default": true,
+      //   },
+      //   {
+      //     "name": "legacy",
+      //     "algorithm": "secretbox",
+      //     "key": "",
+      //     "salt": "",
+      //     "default": false,
+      //   },
+      // ],
+    },
+  ],
+
+  "tasks": [
+    {
+      "name": "photograph-123", // CLI 动词后面的任务名.
+      "source": "photograph", // 必须是已声明的 source.
+      "target": "123", // 必须是已声明的 target.
+      "excludes": [], // 默认 []. 追加在内置排除之后.
+      "transfers": 1, // 默认用 target.transfers.
+      "tpslimit": 2, // 默认用 target.tpslimit.
+      "timeout": "1h", // 默认用 target.timeout.
+      // "skipHidden": true, // 默认用 target.skipHidden.
+      // "encryptFilenames": false, // 默认用 target.encryptFilenames. true 必须有 crypt.
+    },
+  ],
+}

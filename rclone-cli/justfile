@@ -1,0 +1,32 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+bin := "rclone-cli"
+install_dir := env_var_or_default("RCLONE_CLI_INSTALL_DIR", env_var("HOME") + "/.local/bin")
+
+help:
+    @just --list --unsorted
+
+test:
+    bun test
+
+typecheck:
+    bun run typecheck
+
+check:
+    bun run check
+
+clean:
+    bun -e 'import { readdirSync, rmSync } from "node:fs"; const paths = ["dist", ...readdirSync(".").filter((path) => path.endsWith(".bun-build"))]; for (const path of paths) rmSync(path, { recursive: true, force: true });'
+
+build:
+    bun run build
+
+dev *args:
+    bun src/cli.ts {{args}}
+
+# 为什么: fish 补全在 my-script, 这里只装二进制, 不写 ~/.config/fish.
+install: build
+    mkdir -p "{{install_dir}}"
+    cp dist/{{bin}} "{{install_dir}}/{{bin}}"
+    chmod +x "{{install_dir}}/{{bin}}"
+    @echo "installed: {{install_dir}}/{{bin}}"
