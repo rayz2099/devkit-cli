@@ -75,6 +75,9 @@ describe("handleServeRequest", () => {
     expect(body).toContain('id="lightbox"');
     expect(body).toContain("openLightbox");
     expect(body).toContain("cursor: zoom-in");
+    expect(body).toContain('id="sidebar-resizer"');
+    expect(body).toContain("bindSidebarResize");
+    expect(body).toContain("cursor: col-resize");
   });
 });
 
@@ -174,6 +177,7 @@ describe("serve UI client", () => {
     expect(script).toContain("function openLightbox");
     expect(script).toContain("function closeLightbox");
     expect(script).toContain("function resolveMdHref");
+    expect(script).toContain("function bindSidebarResize");
     expect(script).toContain("renderMarkdown(rd.content, rd.path)");
     expect(script).toContain("renderMarkdown(data.content, data.path)");
   });

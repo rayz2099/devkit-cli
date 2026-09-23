@@ -1,4 +1,5 @@
 import { CLIENT_RESOLVE_MD_HREF } from "./serve-md";
+import { CLIENT_SIDEBAR_RESIZE } from "./serve-ui-sidebar";
 
 /**
  * serve UI 浏览器端脚本, 从 serve-ui 拆出以控制单文件行数.
@@ -279,6 +280,8 @@ export function renderServeClientScript(rootJson: string): string {
     }
 
     ${CLIENT_RESOLVE_MD_HREF}
+
+    ${CLIENT_SIDEBAR_RESIZE}
 
     // 必须传入源文件路径: 目录页内嵌 README 时当前 URL 不是 md 自己.
     function renderMarkdown(src, srcPath) {
@@ -954,6 +957,8 @@ export function renderServeClientScript(rootJson: string): string {
       navigate(path);
     });
 
+    loadSidebarW();
+    bindSidebarResize();
     boot();
 `;
 }

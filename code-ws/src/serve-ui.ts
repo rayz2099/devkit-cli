@@ -186,11 +186,49 @@ export function renderServeHtml(rootName: string): string {
       min-height: 0;
     }
     .sidebar {
+      position: relative;
       border-right: 1px solid var(--borderDefault);
       background: var(--bgCanvas);
+      min-width: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-tree {
+      flex: 1;
+      min-height: 0;
       overflow: auto;
       padding: 12px 0 24px;
     }
+    .sidebar-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 8px;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: col-resize;
+      z-index: 5;
+      touch-action: none;
+    }
+    .sidebar-resizer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 3px;
+      width: 2px;
+      background: transparent;
+    }
+    .sidebar-resizer:hover::after,
+    .sidebar-resizer:focus-visible::after,
+    body.sidebar-resizing .sidebar-resizer::after {
+      background: var(--accentEmphasis);
+    }
+    .sidebar-resizer:focus-visible { outline: none; }
+    body.sidebar-resizing { cursor: col-resize; user-select: none; }
     .sidebar-head {
       display: flex;
       align-items: center;
@@ -627,7 +665,10 @@ export function renderServeHtml(rootName: string): string {
       <button type="button" class="btn" id="btn-copy">Copy URL</button>
     </header>
     <div class="body">
-      <aside class="sidebar" id="tree" aria-label="Files"></aside>
+      <aside class="sidebar" aria-label="Files">
+        <div class="sidebar-tree" id="tree"></div>
+        <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize files" aria-valuemin="180" aria-valuemax="600" aria-valuenow="280" tabindex="0"></div>
+      </aside>
       <section class="main">
         <div class="main-inner" id="content"><div class="empty">Loading…</div></div>
       </section>
