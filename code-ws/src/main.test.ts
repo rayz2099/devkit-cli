@@ -93,6 +93,7 @@ describe("parseCliArgs", () => {
       lan: true,
       watch: true,
       port: undefined,
+      cf: false,
     });
   });
 
@@ -111,6 +112,7 @@ describe("parseCliArgs", () => {
       lan: true,
       watch: true,
       port: 8787,
+      cf: false,
     });
   });
 
@@ -126,6 +128,7 @@ describe("parseCliArgs", () => {
       lan: false,
       watch: true,
       port: undefined,
+      cf: false,
     });
   });
 
@@ -141,6 +144,25 @@ describe("parseCliArgs", () => {
       lan: true,
       watch: false,
       port: undefined,
+      cf: false,
+    });
+  });
+
+  test("解析 serve --cf 与 --cloudflare", () => {
+    expect(parseCliArgs([
+      "serve",
+      "--cf",
+    ])).toMatchObject({
+      cmd: "serve",
+      cf: true,
+      lan: true,
+    });
+    expect(parseCliArgs([
+      "serve",
+      "--cloudflare",
+    ])).toMatchObject({
+      cmd: "serve",
+      cf: true,
     });
   });
 

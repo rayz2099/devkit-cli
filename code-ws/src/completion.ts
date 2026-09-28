@@ -26,5 +26,7 @@ export function renderFishCompletion(): string {
     "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l local -d '仅监听 127.0.0.1'",
     "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l port -r -d '端口, 默认 7001, 占用则顺延'",
     "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l no-watch -d '关闭文件变更自动刷新'",
+    "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l cf -d 'Quick Tunnel 临时公网地址'",
+    "complete -c code-ws -n '__fish_seen_subcommand_from serve' -l cloudflare -d '同 --cf'",
   ].join("\n");
 }

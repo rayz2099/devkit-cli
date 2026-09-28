@@ -14,5 +14,7 @@ describe("renderFishCompletion", () => {
     expect(txt).toContain("serve");
     expect(txt).toContain("-l lan");
     expect(txt).toContain("-l local");
+    expect(txt).toContain("-l cf");
+    expect(txt).toContain("-l cloudflare");
   });
 });

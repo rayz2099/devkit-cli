@@ -87,6 +87,7 @@ describe("buildServeOpts", () => {
       cmd: "serve",
       lan: true,
       watch: true,
+      cf: false,
     }, process.cwd());
     expect(opts.host).toBe("0.0.0.0");
     expect(opts.port).toBe(7001);
@@ -98,6 +99,7 @@ describe("buildServeOpts", () => {
       cmd: "serve",
       lan: false,
       watch: false,
+      cf: false,
     }, process.cwd());
     expect(opts.host).toBe("127.0.0.1");
     expect(opts.watch).toBe(false);

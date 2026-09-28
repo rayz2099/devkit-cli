@@ -135,6 +135,7 @@ function parseOpts(args: string[]): {
   lan: boolean;
   watch: boolean;
   port?: number;
+  cf: boolean;
 } {
   const rest: string[] = [];
   let profile: string | undefined;
@@ -146,6 +147,7 @@ function parseOpts(args: string[]): {
   let lan = true;
   let watch = true;
   let port: number | undefined;
+  let cf = false;
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -172,6 +174,8 @@ function parseOpts(args: string[]): {
       lan = false;
     } else if (arg === "--no-watch") {
       watch = false;
+    } else if (arg === "--cf" || arg === "--cloudflare") {
+      cf = true;
     } else if (arg === "-h" || arg === "--help") {
       help = true;
     } else if (arg === "-v" || arg === "--verbose") {
@@ -191,6 +195,7 @@ function parseOpts(args: string[]): {
     lan,
     watch,
     port,
+    cf,
   };
 }
 
@@ -338,7 +343,7 @@ export function parseCliArgs(args: string[]): CliArgs {
   if (cmd === "serve") {
     if (tail.length > 0) {
       throw new Error(
-        "usage: code-ws serve [path] [--lan|--local] [--port <n>] [--no-watch]",
+        "usage: code-ws serve [path] [--lan|--local] [--port <n>] [--no-watch] [--cf|--cloudflare]",
       );
     }
     return {
@@ -347,6 +352,7 @@ export function parseCliArgs(args: string[]): CliArgs {
       lan: parsed.lan,
       watch: parsed.watch,
       port: parsed.port,
+      cf: parsed.cf,
     };
   }
 

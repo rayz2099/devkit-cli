@@ -15,6 +15,7 @@ import {
   type WatchCtl,
   type WatchEvent,
 } from "./serve-watch";
+import { startQuickTunnel } from "./serve-cf";
 
 /** 固定默认端口, 占用时向后顺延, 避免随机分配导致书签失效. */
 export const DEFAULT_SERVE_PORT = 7001;
@@ -28,6 +29,8 @@ export type ServeArgs = {
   lan: boolean;
   watch: boolean;
   port?: number;
+  /** Quick Tunnel。随机地址只在这次进程里有效。 */
+  cf: boolean;
 };
 
 export type ServeOpts = {
@@ -319,6 +322,7 @@ export function startServe(args: ServeArgs): void {
 
   let ctl: WatchCtl | undefined;
   let stopServer: (() => void) | undefined;
+  let closeTunnel = (): void => {};
   let publish = (
     _event: WatchEvent | { type: "watch-status"; status: WatchStatus },
   ): void => {};
@@ -342,6 +346,7 @@ export function startServe(args: ServeArgs): void {
           }
           const msg = err instanceof Error ? err.message : String(err);
           console.error(`code-ws: watch failed: ${msg}`);
+          closeTunnel();
           ctl?.close();
           stopServer?.();
           process.exitCode = 1;
@@ -426,6 +431,26 @@ export function startServe(args: ServeArgs): void {
     throw new Error("no access url");
   }
   openBrowser(homeUrl);
+  if (!args.cf) {
+    return;
+  }
+  // 隧道晚于浏览器：本地打开行为保持原样，公网地址到了再打印。
+  console.log(`  cf:    requesting quick tunnel`);
+  const tunnel = startQuickTunnel(port, {
+    onUrl(url) {
+      console.log(`  cf:    ${url}`);
+    },
+    onFatal(msg) {
+      console.error(`code-ws: ${msg}`);
+      closeTunnel();
+      ctl?.close();
+      stopServer?.();
+      process.exit(1);
+    },
+  });
+  closeTunnel = () => {
+    tunnel.close();
+  };
 }
 
 /**
