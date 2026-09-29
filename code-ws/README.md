@@ -6,6 +6,7 @@ Bun + TypeScript 实现的 VS Code workspace 初始化 CLI。
 bun run devkit-cli/code-ws/src/main.ts list
 bun run devkit-cli/code-ws/src/main.ts config check
 bun run devkit-cli/code-ws/src/main.ts init feature/spec101 -t work-01
+bun run devkit-cli/code-ws/src/main.ts init feature/brush -t work --project dt-brush
 bun run devkit-cli/code-ws/src/main.ts init feature/spec101 shared-lib
 bun run devkit-cli/code-ws/src/main.ts add project shared-lib
 bun run devkit-cli/code-ws/src/main.ts add project my-room --branch feature/room-organizing
@@ -20,6 +21,10 @@ bun run devkit-cli/code-ws/src/main.ts completion fish
 `init <branch> -t <profile>` 会从每个 repo 配置的主分支拉取并创建同名分支 worktree, 未声明时默认使用 `master`, 然后生成 `.code-workspace` 和 `project.yml`, 并把 `$HOME/.config/code-ws/templates/agents/<name>/AGENTS.md` symlink 到 workspace 根目录.
 
 `init <branch> <project>` 只用单个项目初始化 workspace, 不读取 profile 的 repo 列表, 但仍按 config 顶层 `initAgentsTemplate` link XDG 里的 `AGENTS.md`. 适合先创建一个只有首个项目的 workspace, 后续再通过 `add project <repo>` 逐个追加.
+
+`init <branch> -t <profile> --project <repo>` 从 profile 取 agents 模板, 仓库集合替换为指定项目（项目来自全局 project catalog, 不限于 profile 的 repos）。`-p` 是 `--project` 的短写；省略 `-t` 时使用 `initAgentsTemplate`。一次只接受一个项目, 追加仓库在新 workspace 内运行 `add project <repo>`。
+
+初始化成功会输出 `workspace directory: <path>`。agent 应把该路径作为后续命令的工作目录, 读取生成的 `project.yml` 和 `AGENTS.md` 后进入开发流程；CLI 子进程不能改变调用者的当前目录。
 
 workspace 内的 `project.yml` 会写入固定 `branch` 和项目 `description`, 供 agent 直接读取项目语义。
 

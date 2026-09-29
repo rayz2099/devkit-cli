@@ -15,6 +15,7 @@ export function renderFishCompletion(): string {
     "complete -c code-ws -s v -l verbose -d '打印 git 命令'",
     "complete -c code-ws -s c -l config -r -d '配置文件路径'",
     "complete -c code-ws -s t -l template -x -d 'profile 名称'",
+    "complete -c code-ws -n '__fish_seen_subcommand_from init' -s p -l project -xa '(__code_ws_projects)' -d '仅初始化指定项目'",
     "complete -c code-ws -n '__fish_use_subcommand' -xa 'init add remove sync destroy fork list projects config serve completion help' -d '功能命令'",
     "complete -c code-ws -n '__code_ws_needs_init_project' -ka '(__code_ws_projects)' -d '项目名'",
     "complete -c code-ws -n '__fish_seen_subcommand_from add remove' -xa 'project' -d '项目操作'",

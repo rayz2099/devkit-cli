@@ -89,7 +89,7 @@ function checkAgentsTemplate(path: string): void {
 }
 
 /**
- * 初始化 project 模式不绑定 agents template, 但仍要提前阻断无效 git 源路径。
+ * 创建目录前验证实际选中的仓库, 避免无效源路径留下半成品工作区。
  */
 function checkRepos(repos: RepoCfg[]): void {
   for (const repo of repos) {
@@ -164,33 +164,32 @@ function reposByWorkspaceProject(
   );
 }
 
+/**
+ * 显式 project 覆盖 profile 的仓库集合, 让 agent 能复用模板而只创建任务所需首仓。
+ */
+export function resolveInitTarget(
+  cfg: CodeWsCfg,
+  args: InitArgs,
+): { agentsTemplate: string; repos: RepoCfg[] } {
+  if ("profile" in args) {
+    const profile = getProfile(cfg, args.profile);
+    const repos = args.project === undefined
+      ? profile.repos
+      : [getRepo(cfg, args.project)];
+    return { agentsTemplate: profile.agentsTemplate, repos };
+  }
+  const repo = getRepo(cfg, args.project);
+  return { agentsTemplate: cfg.initAgentsTemplate, repos: [repo] };
+}
+
 function initWorkspace(args: InitArgs): void {
   const cfg = loadConfig(cfgPath(args));
-  let profile: ProfileCfg | undefined;
-  let agentsTemplate: string;
-  let repos: RepoCfg[];
-  if ("profile" in args) {
-    profile = getProfile(cfg, args.profile);
-    agentsTemplate = profile.agentsTemplate;
-    repos = profile.repos;
-  } else {
-    agentsTemplate = cfg.initAgentsTemplate;
-    repos = [
-      getRepo(
-        cfg,
-        args.project,
-      ),
-    ];
-  }
+  const { agentsTemplate, repos } = resolveInitTarget(cfg, args);
   const wsName = workspaceNameFromBranch(args.branch);
   const wsDir = join(cfg.workspaceRoot, wsName);
 
-  if (profile !== undefined) {
-    checkProfile(profile);
-  } else {
-    checkAgentsTemplate(agentsTemplate);
-    checkRepos(repos);
-  }
+  checkAgentsTemplate(agentsTemplate);
+  checkRepos(repos);
   prepareGitTargets(
     wsDir,
     repos,
@@ -227,6 +226,7 @@ function initWorkspace(args: InitArgs): void {
   );
 
   console.log(`workspace created: ${join(wsDir, wsFile)}`);
+  console.log(`workspace directory: ${wsDir}`);
 }
 
 function addProject(args: AddProjectArgs): void {
@@ -629,7 +629,8 @@ function printHelp(): void {
   console.log(`code-ws
 
 Usage:
-  code-ws init <branch> -t <profile> [-v|--verbose] [-c|--config <path>]
+  code-ws init <branch> -t <profile> [-p|--project <repo>] [-v|--verbose] [-c|--config <path>]
+  code-ws init <branch> -p|--project <repo> [-v|--verbose] [-c|--config <path>]
   code-ws init <branch> <project> [-v|--verbose] [-c|--config <path>]
   code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]
   code-ws remove project <repo> [-v|--verbose] [-c|--config <path>]

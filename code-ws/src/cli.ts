@@ -5,6 +5,7 @@ export type InitProfileArgs = {
   cmd: "init";
   branch: string;
   profile: string;
+  project?: string;
   config?: string;
   verbose: boolean;
 };
@@ -128,6 +129,7 @@ function valueAfter(
 function parseOpts(args: string[]): {
   rest: string[];
   profile?: string;
+  project?: string;
   branch?: string;
   config?: string;
   help: boolean;
@@ -139,6 +141,7 @@ function parseOpts(args: string[]): {
 } {
   const rest: string[] = [];
   let profile: string | undefined;
+  let project: string | undefined;
   let branch: string | undefined;
   let config: string | undefined;
   let help = false;
@@ -153,6 +156,12 @@ function parseOpts(args: string[]): {
     const arg = args[i];
     if (arg === "-t" || arg === "--template") {
       profile = valueAfter(args, i, arg);
+      i += 1;
+    } else if (arg === "-p" || arg === "--project") {
+      if (project !== undefined) {
+        throw new Error("--project may only be specified once; use add project for additional repos");
+      }
+      project = valueAfter(args, i, arg);
       i += 1;
     } else if (arg === "-b" || arg === "--branch") {
       branch = valueAfter(args, i, arg);
@@ -188,6 +197,7 @@ function parseOpts(args: string[]): {
   return {
     rest,
     profile,
+    project,
     branch,
     config,
     help,
@@ -212,32 +222,37 @@ export function parseCliArgs(args: string[]): CliArgs {
     };
   }
 
+  if (parsed.project !== undefined && cmd !== "init") {
+    throw new Error("--project is only supported by init");
+  }
+
   if (cmd === "init") {
+    const usage = "usage: code-ws init <branch> <project> or code-ws init <branch> [-t <profile>] [--project <project>]";
     if (sub === undefined || tail.length > 1) {
-      throw new Error(
-        "usage: code-ws init <branch> <project> or code-ws init <branch> -t <profile>",
-      );
+      throw new Error(usage);
     }
-    const [project] = tail;
-    if (project !== undefined && parsed.profile !== undefined) {
-      throw new Error("usage: code-ws init <branch> <project>");
+    const [repo] = tail;
+    if (repo !== undefined && (parsed.profile !== undefined || parsed.project !== undefined)) {
+      throw new Error(usage);
     }
-    if (project !== undefined) {
+    if (parsed.profile !== undefined) {
       return {
         cmd: "init",
         branch: sub,
-        project,
+        profile: parsed.profile,
+        ...(parsed.project === undefined ? {} : { project: parsed.project }),
         config: parsed.config,
         verbose: parsed.verbose,
       };
     }
-    if (parsed.profile === undefined) {
-      throw new Error("profile is required: -t <profile>");
+    const project = repo ?? parsed.project;
+    if (project === undefined) {
+      throw new Error("project or profile is required: <project> or -t <profile>");
     }
     return {
       cmd: "init",
       branch: sub,
-      profile: parsed.profile,
+      project,
       config: parsed.config,
       verbose: parsed.verbose,
     };

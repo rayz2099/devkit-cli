@@ -59,7 +59,7 @@ describe("parseCliArgs", () => {
     });
   });
 
-  test("拒绝 init 同时指定 project 和 profile", () => {
+  test("拒绝 init 混用位置 project 和 profile", () => {
     expect(() =>
       parseCliArgs([
         "init",
