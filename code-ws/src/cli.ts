@@ -6,6 +6,7 @@ export type InitProfileArgs = {
   branch: string;
   profile: string;
   project?: string;
+  from?: string[];
   config?: string;
   verbose: boolean;
 };
@@ -14,6 +15,7 @@ export type InitProjectArgs = {
   cmd: "init";
   branch: string;
   project: string;
+  from?: string[];
   config?: string;
   verbose: boolean;
 };
@@ -27,6 +29,14 @@ export type ListArgs = {
 
 export type ProjectsArgs = {
   cmd: "projects";
+  profile?: string;
+  workspace?: boolean;
+  config?: string;
+};
+
+export type BranchesArgs = {
+  cmd: "branches";
+  repo: string;
   config?: string;
 };
 
@@ -56,6 +66,7 @@ export type RemoveProjectArgs = {
 
 export type SyncMasterArgs = {
   cmd: "sync-master";
+  from?: string[];
   config?: string;
   verbose: boolean;
 };
@@ -81,6 +92,7 @@ export type CliArgs =
   | InitArgs
   | ListArgs
   | ProjectsArgs
+  | BranchesArgs
   | CfgCheckArgs
   | CompletionFishArgs
   | AddProjectArgs
@@ -131,6 +143,8 @@ function parseOpts(args: string[]): {
   profile?: string;
   project?: string;
   branch?: string;
+  from: string[];
+  workspace: boolean;
   config?: string;
   help: boolean;
   verbose: boolean;
@@ -143,6 +157,8 @@ function parseOpts(args: string[]): {
   let profile: string | undefined;
   let project: string | undefined;
   let branch: string | undefined;
+  const from: string[] = [];
+  let workspace = false;
   let config: string | undefined;
   let help = false;
   let verbose = false;
@@ -166,6 +182,11 @@ function parseOpts(args: string[]): {
     } else if (arg === "-b" || arg === "--branch") {
       branch = valueAfter(args, i, arg);
       i += 1;
+    } else if (arg === "--from") {
+      from.push(valueAfter(args, i, arg));
+      i += 1;
+    } else if (arg === "--workspace") {
+      workspace = true;
     } else if (arg === "-c" || arg === "--config") {
       config = valueAfter(args, i, arg);
       i += 1;
@@ -199,6 +220,8 @@ function parseOpts(args: string[]): {
     profile,
     project,
     branch,
+    from,
+    workspace,
     config,
     help,
     verbose,
@@ -222,6 +245,11 @@ export function parseCliArgs(args: string[]): CliArgs {
     };
   }
 
+  const fromOk = cmd === "init" || (cmd === "sync" && sub === "master");
+  if (parsed.from.length > 0 && !fromOk) {
+    throw new Error("--from is only supported by init and sync master");
+  }
+
   if (parsed.project !== undefined && cmd !== "init") {
     throw new Error("--project is only supported by init");
   }
@@ -241,6 +269,7 @@ export function parseCliArgs(args: string[]): CliArgs {
         branch: sub,
         profile: parsed.profile,
         ...(parsed.project === undefined ? {} : { project: parsed.project }),
+        ...(parsed.from.length === 0 ? {} : { from: parsed.from }),
         config: parsed.config,
         verbose: parsed.verbose,
       };
@@ -253,6 +282,7 @@ export function parseCliArgs(args: string[]): CliArgs {
       cmd: "init",
       branch: sub,
       project,
+      ...(parsed.from.length === 0 ? {} : { from: parsed.from }),
       config: parsed.config,
       verbose: parsed.verbose,
     };
@@ -260,10 +290,26 @@ export function parseCliArgs(args: string[]): CliArgs {
 
   if (cmd === "projects") {
     if (sub !== undefined) {
-      throw new Error("usage: code-ws projects");
+      throw new Error("usage: code-ws projects [-t <profile> | --workspace]");
+    }
+    if (parsed.profile !== undefined && parsed.workspace) {
+      throw new Error("usage: code-ws projects [-t <profile> | --workspace]");
     }
     return {
       cmd: "projects",
+      config: parsed.config,
+      ...(parsed.profile === undefined ? {} : { profile: parsed.profile }),
+      ...(parsed.workspace ? { workspace: true } : {}),
+    };
+  }
+
+  if (cmd === "branches") {
+    if (sub === undefined || tail.length > 0) {
+      throw new Error("usage: code-ws branches <repo>");
+    }
+    return {
+      cmd: "branches",
+      repo: sub,
       config: parsed.config,
     };
   }
@@ -323,6 +369,7 @@ export function parseCliArgs(args: string[]): CliArgs {
     }
     return {
       cmd: "sync-master",
+      ...(parsed.from.length === 0 ? {} : { from: parsed.from }),
       config: parsed.config,
       verbose: parsed.verbose,
     };

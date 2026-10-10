@@ -16,6 +16,8 @@ import {
   buildWorktreeRemovePlan,
   confirmDeletePrompt,
   confirmRemoveProjectPrompt,
+  listRemoteBranchNames,
+  lookupRemoteHead,
   prepareGitTargets,
   runGitPlan,
   runGitPlanKeepGoing,
@@ -32,11 +34,13 @@ import {
   writeWorkspaceFile,
   writeWorkspaceProjectFile,
 } from "./workspace";
+import { applyMergeSpecs, parseFromSpecs } from "./merge";
 import type { CodeWsCfg, ProfileCfg, RepoCfg } from "./types";
 import {
   defaultCfg,
   parseCliArgs,
   type AddProjectArgs,
+  type BranchesArgs,
   type CfgCheckArgs,
   type DestroyWorkspaceArgs,
   type ForkWorkspaceArgs,
@@ -54,6 +58,7 @@ function cfgPath(
   args:
     | ListArgs
     | ProjectsArgs
+    | BranchesArgs
     | CfgCheckArgs
     | InitArgs
     | AddProjectArgs
@@ -106,9 +111,41 @@ function listProfiles(cfg: CodeWsCfg): void {
   }
 }
 
-function listProjects(cfg: CodeWsCfg): void {
+function listProjects(args: ProjectsArgs): void {
+  const cfg = loadConfig(cfgPath(args));
+  if (args.workspace === true) {
+    const wsDir = findWorkspaceDir(process.cwd());
+    const wsProject = parseWorkspaceProject(
+      readFileSync(
+        join(wsDir, "project.yml"),
+        "utf8",
+      ),
+    );
+    for (const name of wsProject.repos) {
+      console.log(name);
+    }
+    return;
+  }
+
+  if (args.profile !== undefined) {
+    const profile = getProfile(cfg, args.profile);
+    for (const repo of profile.repos) {
+      console.log(repo.name);
+    }
+    return;
+  }
+
   for (const project of cfg.projects) {
     console.log(project.name);
+  }
+}
+
+function listBranches(args: BranchesArgs): void {
+  const cfg = loadConfig(cfgPath(args));
+  const repo = getRepo(cfg, args.repo);
+  const names = listRemoteBranchNames(repo.path, cfg.remote);
+  for (const name of names) {
+    console.log(name);
   }
 }
 
@@ -121,18 +158,6 @@ function getRepo(
     throw new Error(`repo not found in project.yml: ${name}`);
   }
   return repo;
-}
-
-function reposByName(
-  cfg: CodeWsCfg,
-  names: string[],
-): RepoCfg[] {
-  return names.map((name) =>
-    getRepo(
-      cfg,
-      name,
-    ),
-  );
 }
 
 function repoWithCheckoutBranch(
@@ -149,18 +174,57 @@ function repoWithCheckoutBranch(
   };
 }
 
+function repoWithMerge(
+  repo: RepoCfg,
+  merge: string | undefined,
+): RepoCfg {
+  if (merge === undefined) {
+    return repo;
+  }
+
+  return {
+    ...repo,
+    merge,
+  };
+}
+
 function reposByWorkspaceProject(
   cfg: CodeWsCfg,
   wsProject: WsProject,
 ): RepoCfg[] {
-  return wsProject.repos.map((name) =>
-    repoWithCheckoutBranch(
-      getRepo(
-        cfg,
-        name,
-      ),
+  return wsProject.repos.map((name) => {
+    const repo = getRepo(cfg, name);
+    const checked = repoWithCheckoutBranch(
+      repo,
       wsProject.checkoutBranches[name],
-    ),
+    );
+    return repoWithMerge(
+      checked,
+      wsProject.merges[name],
+    );
+  });
+}
+
+/**
+ * 合并目标先解析成远端分支名，再写入 project.yml，避免 agent 读到不存在的合入分支。
+ */
+function reposWithMerge(
+  repos: RepoCfg[],
+  from: string[] | undefined,
+  remote: string,
+): RepoCfg[] {
+  const specs = parseFromSpecs(from ?? []);
+  const resolve = (repo: RepoCfg, ref: string): string => {
+    return lookupRemoteHead(
+      repo.path,
+      remote,
+      ref,
+    );
+  };
+  return applyMergeSpecs(
+    repos,
+    specs,
+    resolve,
   );
 }
 
@@ -184,12 +248,18 @@ export function resolveInitTarget(
 
 function initWorkspace(args: InitArgs): void {
   const cfg = loadConfig(cfgPath(args));
-  const { agentsTemplate, repos } = resolveInitTarget(cfg, args);
+  const target = resolveInitTarget(cfg, args);
+  const agentsTemplate = target.agentsTemplate;
+  checkAgentsTemplate(agentsTemplate);
+  checkRepos(target.repos);
+  const repos = reposWithMerge(
+    target.repos,
+    args.from,
+    cfg.remote,
+  );
   const wsName = workspaceNameFromBranch(args.branch);
   const wsDir = join(cfg.workspaceRoot, wsName);
 
-  checkAgentsTemplate(agentsTemplate);
-  checkRepos(repos);
   prepareGitTargets(
     wsDir,
     repos,
@@ -309,10 +379,15 @@ function removeProject(args: RemoveProjectArgs): void {
   }
 
   const worktreePath = join(wsDir, repo.name);
+  const current = repoWithMerge(
+    repo,
+    wsProject.merges[repo.name],
+  );
+  const mergeTarget = current.merge ?? current.branch;
   const answer = prompt(confirmRemoveProjectPrompt(
     repo.name,
     worktreePath,
-    repo.branch,
+    mergeTarget,
   ));
   if (!shouldConfirmRemoveProject(answer)) {
     throw new Error(`project remove aborted: ${repo.name}`);
@@ -331,13 +406,17 @@ function removeProject(args: RemoveProjectArgs): void {
     wsDir,
     repo.name,
   );
-  const nextRepos = wsProject.repos.filter((name) => name !== repo.name);
+  const nextNames = wsProject.repos.filter((name) => name !== repo.name);
+  const nextProject = {
+    ...wsProject,
+    repos: nextNames,
+  };
   writeWorkspaceProjectFile(
     wsDir,
     wsProject.branch,
-    reposByName(
+    reposByWorkspaceProject(
       cfg,
-      nextRepos,
+      nextProject,
     ),
   );
 
@@ -356,10 +435,22 @@ function syncMaster(args: SyncMasterArgs): void {
       "utf8",
     ),
   );
-  const repos = reposByWorkspaceProject(
+  let repos = reposByWorkspaceProject(
     cfg,
     wsProject,
   );
+  if (args.from !== undefined && args.from.length > 0) {
+    repos = reposWithMerge(
+      repos,
+      args.from,
+      cfg.remote,
+    );
+    writeWorkspaceProjectFile(
+      wsDir,
+      wsProject.branch,
+      repos,
+    );
+  }
 
   const failures = runGitPlanKeepGoing(
     buildSyncBaseBranchPlan({
@@ -629,16 +720,17 @@ function printHelp(): void {
   console.log(`code-ws
 
 Usage:
-  code-ws init <branch> -t <profile> [-p|--project <repo>] [-v|--verbose] [-c|--config <path>]
-  code-ws init <branch> -p|--project <repo> [-v|--verbose] [-c|--config <path>]
-  code-ws init <branch> <project> [-v|--verbose] [-c|--config <path>]
+  code-ws init <branch> -t <profile> [-p|--project <repo>] [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
+  code-ws init <branch> -p|--project <repo> [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
+  code-ws init <branch> <project> [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
   code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]
   code-ws remove project <repo> [-v|--verbose] [-c|--config <path>]
-  code-ws sync master [-v|--verbose] [-c|--config <path>]
+  code-ws sync master [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
   code-ws destroy [-v|--verbose] [-c|--config <path>]
   code-ws fork <branch> [-v|--verbose] [-c|--config <path>]
   code-ws list [-c|--config <path>]
-  code-ws projects [-c|--config <path>]
+  code-ws projects [-t <profile> | --workspace] [-c|--config <path>]
+  code-ws branches <repo> [-c|--config <path>]
   code-ws config check [-c|--config <path>]
   code-ws serve [path] [--lan|--local] [--port <n>] [--no-watch] [--cf|--cloudflare]  # default LAN + watch + port 7001, next if busy
   code-ws completion fish
@@ -668,7 +760,12 @@ export function main(args: string[]): void {
   }
 
   if (parsed.cmd === "projects") {
-    listProjects(loadConfig(cfgPath(parsed)));
+    listProjects(parsed);
+    return;
+  }
+
+  if (parsed.cmd === "branches") {
+    listBranches(parsed);
     return;
   }
 

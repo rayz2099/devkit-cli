@@ -268,6 +268,55 @@ describe("parseCliArgs", () => {
     });
   });
 
+  test("解析 init --from", () => {
+    const args = parseCliArgs([
+      "init",
+      "feature/baize/mail",
+      "-t",
+      "game-room",
+      "--from",
+      "my-room=V0.0.1",
+      "--from",
+      "norma-content=V0.0.1",
+    ]);
+
+    expect(args).toMatchObject({
+      cmd: "init",
+      branch: "feature/baize/mail",
+      profile: "game-room",
+      from: [
+        "my-room=V0.0.1",
+        "norma-content=V0.0.1",
+      ],
+    });
+  });
+
+  test("解析 sync master --from", () => {
+    const args = parseCliArgs([
+      "sync",
+      "master",
+      "--from",
+      "my-room=V0.0.1",
+    ]);
+
+    expect(args).toEqual({
+      cmd: "sync-master",
+      from: [
+        "my-room=V0.0.1",
+      ],
+      config: undefined,
+      verbose: false,
+    });
+  });
+
+  test("其他命令拒绝 --from", () => {
+    expect(() => parseCliArgs([
+      "destroy",
+      "--from",
+      "my-room=V0.0.1",
+    ])).toThrow("--from is only supported by init and sync master");
+  });
+
   test("解析 sync master", () => {
     const args = parseCliArgs([
       "sync",
@@ -370,6 +419,7 @@ describe("destroyWorkspace", () => {
           "app-api",
         ],
         checkoutBranches: {},
+        merges: {},
       },
       {
         assertDisposable: (wsDir, repos, remote, baseBranch) => {
@@ -460,6 +510,7 @@ describe("destroyWorkspace", () => {
             "app-api",
           ],
           checkoutBranches: {},
+        merges: {},
         },
         {
           assertDisposable: (_wsDir, repos) => {
@@ -532,6 +583,7 @@ describe("destroyWorkspace", () => {
             "app-api",
           ],
           checkoutBranches: {},
+        merges: {},
         },
         {
           assertDisposable: () => {},
@@ -599,6 +651,7 @@ describe("forkWorkspace", () => {
           "diamond-card",
         ],
         checkoutBranches: {},
+        merges: {},
       },
       {
         dstExists: () => true,

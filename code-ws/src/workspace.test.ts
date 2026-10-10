@@ -36,6 +36,26 @@ describe("parseWorkspaceProject", () => {
       checkoutBranches: {
         "my-room": "feature/room-organizing",
       },
+      merges: {},
+    });
+  });
+
+  test("读取 repo merge", () => {
+    const project = parseWorkspaceProject([
+      "branch: feature/baize/mail",
+      "projects:",
+      "  - repo-name: my-room",
+      "    group: frontend",
+      "    merge: V0.0.1",
+      "  - repo-name: norma",
+      "    group: backend",
+      "    merge: master",
+      "",
+    ].join("\n"));
+
+    expect(project.merges).toEqual({
+      "my-room": "V0.0.1",
+      norma: "master",
     });
   });
 
@@ -172,9 +192,11 @@ describe("createWorkspaceProjectYaml", () => {
       "  - repo-name: shared-lib",
       "    group: backend",
       "    description: 是公共的`share-lib`, 定义了`http endpoint` 和 `dubbo endpoint`.",
+      "    merge: master",
       "  - repo-name: app-gw",
       "    group: backend",
       "    branch: feature/room-organizing",
+      "    merge: master",
       "",
     ].join("\n"));
   });
@@ -201,6 +223,7 @@ describe("createWorkspaceProjectYaml", () => {
       "projects:",
       "  - repo-name: dt-script",
       "    group: backend",
+      "    merge: master",
       "",
     ].join("\n"));
   });

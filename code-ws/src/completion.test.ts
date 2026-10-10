@@ -8,6 +8,10 @@ describe("renderFishCompletion", () => {
     expect(txt).toContain("function __code_ws_projects");
     expect(txt).toContain("function __code_ws_needs_init_project");
     expect(txt).toContain("code-ws projects");
+    expect(txt).toContain("function __code_ws_from");
+    expect(txt).toContain("-l from");
+    expect(txt).toContain("code-ws branches");
+    expect(txt).toContain("code-ws projects --workspace");
     expect(txt).toContain("__code_ws_needs_init_project");
     expect(txt).toContain("__code_ws_projects");
     expect(txt).toContain("fork");

@@ -89,6 +89,8 @@ export function createWorkspaceProjectYaml(
     if (repo.checkoutBranch !== undefined && repo.checkoutBranch.length > 0) {
       lines.push(`    branch: ${repo.checkoutBranch}`);
     }
+    // 每个仓库都写出 merge，agent 不用从缺省主分支推断合入目标。
+    lines.push(`    merge: ${repo.merge ?? repo.branch}`);
   }
 
   return `${lines.join("\n")}\n`;
@@ -156,6 +158,7 @@ export type WsProject = {
   branch: string;
   repos: string[];
   checkoutBranches: Record<string, string>;
+  merges: Record<string, string>;
 };
 
 /**
@@ -165,6 +168,7 @@ export function parseWorkspaceProject(txt: string): WsProject {
   let branch = "";
   const repos: string[] = [];
   const checkoutBranches: Record<string, string> = {};
+  const merges: Record<string, string> = {};
   let currentRepo = "";
 
   for (const rawLine of txt.split(/\r?\n/)) {
@@ -178,6 +182,16 @@ export function parseWorkspaceProject(txt: string): WsProject {
     const repoBranchVal = line.match(/^branch:\s*(.+)$/);
     if (repoBranchVal?.[1] !== undefined && currentRepo.length > 0) {
       checkoutBranches[currentRepo] = repoBranchVal[1];
+      continue;
+    }
+
+    const repoMergeVal = line.match(/^merge:\s*(.+)$/);
+    if (
+      repoMergeVal?.[1] !== undefined &&
+      currentRepo.length > 0 &&
+      (rawLine.startsWith(" ") || rawLine.startsWith("\t"))
+    ) {
+      merges[currentRepo] = repoMergeVal[1];
       continue;
     }
 
@@ -207,6 +221,7 @@ export function parseWorkspaceProject(txt: string): WsProject {
     branch,
     repos,
     checkoutBranches,
+    merges,
   };
 }
 

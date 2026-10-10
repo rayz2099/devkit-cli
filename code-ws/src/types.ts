@@ -4,6 +4,8 @@ export type RepoCfg = {
   group: string;
   branch: string;
   checkoutBranch?: string;
+  /** 该仓库任务分支要合入的远端分支，agent 的 CR 和 diff 读这个字段。 */
+  merge?: string;
   description?: string;
 };
 

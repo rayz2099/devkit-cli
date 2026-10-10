@@ -57,6 +57,19 @@ function repoFetchBranch(
   );
 }
 
+/**
+ * 只读 checkout 仍快进自己的固定分支；其余仓库快进 merge，方便任务分支手动合入。
+ */
+function repoSyncBranch(
+  repo: RepoCfg,
+  defaultBranch: string,
+): string {
+  return repo.checkoutBranch ?? repo.merge ?? repoBaseBranch(
+    repo,
+    defaultBranch,
+  );
+}
+
 function buildAddWorktreeArgs(
   repo: RepoCfg,
   branchExists: (repo: RepoCfg, branch: string) => boolean,
@@ -150,7 +163,7 @@ export function buildSyncBaseBranchPlan(args: SyncBaseBranchPlanArgs): Cmd[] {
   const branchWorktreePath = args.branchWorktreePath ?? checkedOutBranchPath;
 
   return args.repos.map((repo) => {
-    const baseBranch = repoFetchBranch(
+    const baseBranch = repoSyncBranch(
       repo,
       args.baseBranch,
     );
@@ -457,6 +470,83 @@ function gitOutput(
   return ret.stdout;
 }
 
+/**
+ * 补全只展示远端短名，和写进 merge 的字符串是同一个名字。
+ */
+export function remoteBranchNames(
+  text: string,
+  remote: string,
+): string[] {
+  const prefix = `${remote}/`;
+  const names: string[] = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line.startsWith(prefix) || line.includes(" -> ")) {
+      continue;
+    }
+    names.push(line.slice(prefix.length));
+  }
+  return names;
+}
+
+/**
+ * 远端分支名区分大小写，merge 必须和 refs/heads 完全一致。
+ */
+export function matchedRemoteHead(
+  text: string,
+  ref: string,
+): string | undefined {
+  const head = `refs/heads/${ref}`;
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    const tab = line.lastIndexOf("\t");
+    if (tab < 0) {
+      continue;
+    }
+    if (line.slice(tab + 1) === head) {
+      return ref;
+    }
+  }
+  return undefined;
+}
+
+export function lookupRemoteHead(
+  cwd: string,
+  remote: string,
+  ref: string,
+): string {
+  const text = gitOutput(
+    cwd,
+    [
+      "git",
+      "ls-remote",
+      "--heads",
+      remote,
+      `refs/heads/${ref}`,
+    ],
+  );
+  const name = matchedRemoteHead(text, ref);
+  if (name === undefined) {
+    throw new Error(`remote branch not found: ${remote}/${ref}`);
+  }
+  return name;
+}
+
+export function listRemoteBranchNames(
+  cwd: string,
+  remote: string,
+): string[] {
+  const text = gitOutput(
+    cwd,
+    [
+      "git",
+      "branch",
+      "-r",
+    ],
+  );
+  return remoteBranchNames(text, remote);
+}
+
 function isGitWorktree(path: string): boolean {
   const ret = spawnSync(
     "git",
@@ -621,7 +711,7 @@ export function assertDisposableWorktrees(
   const isMerged = deps.isMerged ?? isMergedByTree;
 
   for (const repo of repos) {
-    const repoBranch = repoBaseBranch(
+    const repoBranch = repo.merge ?? repoBaseBranch(
       repo,
       baseBranch,
     );

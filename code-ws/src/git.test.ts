@@ -13,7 +13,9 @@ import {
   hasUnsafeWork,
   hasUncommittedWork,
   isPatchHistoryMerged,
+  matchedRemoteHead,
   parseBranchWorktreePath,
+  remoteBranchNames,
   runGitPlanKeepGoing,
   shouldConfirmRemoveProject,
   shouldDeleteExistingDir,
@@ -306,6 +308,58 @@ describe("buildSyncBaseBranchPlan", () => {
     ]);
   });
 
+  test("repo 声明 merge 时同步合入分支", () => {
+    const plan = buildSyncBaseBranchPlan({
+      baseBranch: "master",
+      remote: "origin",
+      branchWorktreePath: () => undefined,
+      repos: [
+        {
+          name: "my-room",
+          path: "/src/my-room",
+          group: "frontend",
+          branch: "master",
+          merge: "V0.0.1",
+        },
+      ],
+    });
+
+    expect(plan).toEqual([
+      {
+        repo: "my-room",
+        branch: "V0.0.1",
+        step: "sync",
+        cwd: "/src/my-room",
+        args: [
+          "git",
+          "fetch",
+          "origin",
+          "V0.0.1:V0.0.1",
+        ],
+      },
+    ]);
+  });
+
+  test("checkout 与 merge 同时存在时仍同步固定分支", () => {
+    const plan = buildSyncBaseBranchPlan({
+      baseBranch: "master",
+      remote: "origin",
+      branchWorktreePath: () => undefined,
+      repos: [
+        {
+          name: "my-room",
+          path: "/src/my-room",
+          group: "frontend",
+          branch: "master",
+          checkoutBranch: "feature/room-organizing",
+          merge: "V0.0.1",
+        },
+      ],
+    });
+
+    expect(plan[0]?.branch).toBe("feature/room-organizing");
+  });
+
   test("repo 声明 checkout branch 时同步固定分支", () => {
     const plan = buildSyncBaseBranchPlan({
       baseBranch: "master",
@@ -336,6 +390,28 @@ describe("buildSyncBaseBranchPlan", () => {
         ],
       },
     ]);
+  });
+});
+
+describe("remote branch names", () => {
+  test("丢掉 HEAD 指针并保留远端短名", () => {
+    const names = remoteBranchNames([
+      "  origin/HEAD -> origin/room-organizing",
+      "  origin/V0.0.1",
+      "  origin/master",
+      "",
+    ].join("\n"), "origin");
+
+    expect(names).toEqual([
+      "V0.0.1",
+      "master",
+    ]);
+  });
+
+  test("只接受和远端完全一致的分支名", () => {
+    const text = "abc\trefs/heads/V0.0.1\n";
+    expect(matchedRemoteHead(text, "V0.0.1")).toBe("V0.0.1");
+    expect(matchedRemoteHead(text, "v0.0.1")).toBeUndefined();
   });
 });
 
