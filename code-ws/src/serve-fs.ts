@@ -21,6 +21,22 @@ export type TreeEntry = {
   type: "file" | "dir";
 };
 
+/** 浏览器按这个分支选预览器, 避免前端再猜一遍扩展名. */
+export type PreviewKind =
+  | "markdown"
+  | "image"
+  | "code"
+  | "csv"
+  | "tsv"
+  | "xlsx"
+  | "pdf"
+  | "docx"
+  | "video"
+  | "audio"
+  | "html"
+  | "jsonl"
+  | "binary";
+
 /** 文件 blob 元数据; 文本才带 content, 避免把二进制塞进 JSON. */
 export type BlobPayload = {
   path: string;
@@ -33,6 +49,8 @@ export type BlobPayload = {
   entries?: TreeEntry[];
   /** 目录下 GitHub 风格默认 README 相对路径, 有则前端并列渲染. */
   readme?: string;
+  /** 文件预览器。目录没有这个字段。 */
+  preview?: PreviewKind;
 };
 
 const TEXT_MAX_BYTES = 2 * 1024 * 1024;
@@ -87,7 +105,6 @@ const SKIP_INDEX_EXTS = new Set([
   ".webp",
   ".ico",
   ".bmp",
-  ".pdf",
   ".zip",
   ".tar",
   ".gz",
@@ -208,6 +225,10 @@ const IMAGE_EXTS = new Set([
   ".bmp",
 ]);
 
+const VIDEO_EXTS = new Set([".mp4", ".webm", ".mov", ".m4v", ".ogv"]);
+
+const AUDIO_EXTS = new Set([".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac"]);
+
 /**
  * 规范化 serve 根目录, 因为 CLI 允许缺省 cwd 与相对 path.
  */
@@ -304,6 +325,50 @@ export function toPosixRel(root: string, absPath: string): string {
 
 export function isImagePath(relPath: string): boolean {
   return IMAGE_EXTS.has(extname(relPath).toLowerCase());
+}
+
+/**
+ * 扩展名决定预览器。xlsx/pdf 这类二进制也要进预览，不能只看是否乱码。
+ */
+export function previewKindOf(relPath: string, binary: boolean): PreviewKind {
+  const ext = extname(relPath).toLowerCase();
+  if (IMAGE_EXTS.has(ext)) {
+    return "image";
+  }
+  if (ext === ".csv") {
+    return "csv";
+  }
+  if (ext === ".tsv") {
+    return "tsv";
+  }
+  if (ext === ".xlsx" || ext === ".xls") {
+    return "xlsx";
+  }
+  if (ext === ".pdf") {
+    return "pdf";
+  }
+  if (ext === ".docx") {
+    return "docx";
+  }
+  if (VIDEO_EXTS.has(ext)) {
+    return "video";
+  }
+  if (AUDIO_EXTS.has(ext)) {
+    return "audio";
+  }
+  if (ext === ".html" || ext === ".htm") {
+    return "html";
+  }
+  if (ext === ".jsonl" || ext === ".ndjson") {
+    return "jsonl";
+  }
+  if (ext === ".md" || ext === ".markdown") {
+    return "markdown";
+  }
+  if (binary) {
+    return "binary";
+  }
+  return "code";
 }
 
 export function languageOf(relPath: string): string {
@@ -450,38 +515,16 @@ export function readBlob(root: string, relPath: string): BlobPayload {
   }
 
   const size = st.size;
-  if (isImagePath(path)) {
-    return {
-      path,
-      name,
-      type: "file",
-      size,
-      binary: true,
-      language: "image",
-    };
-  }
-
-  if (size > TEXT_MAX_BYTES) {
-    return {
-      path,
-      name,
-      type: "file",
-      size,
-      binary: true,
-      language: languageOf(path),
-    };
-  }
-
-  const buf = readFileSync(abs);
-  if (looksBinary(buf)) {
-    return {
-      path,
-      name,
-      type: "file",
-      size,
-      binary: true,
-      language: languageOf(path),
-    };
+  const image = isImagePath(path);
+  let binary = image || size > TEXT_MAX_BYTES;
+  let content: string | undefined;
+  if (!image && size <= TEXT_MAX_BYTES) {
+    const buf = readFileSync(abs);
+    if (looksBinary(buf)) {
+      binary = true;
+    } else {
+      content = buf.toString("utf8");
+    }
   }
 
   return {
@@ -489,9 +532,10 @@ export function readBlob(root: string, relPath: string): BlobPayload {
     name,
     type: "file",
     size,
-    binary: false,
-    language: languageOf(path),
-    content: buf.toString("utf8"),
+    binary,
+    language: image ? "image" : languageOf(path),
+    content,
+    preview: previewKindOf(path, binary),
   };
 }
 
@@ -637,6 +681,25 @@ export function looksBinary(buf: Buffer): boolean {
 }
 
 /**
+ * 只定位文件, 不读内容。视频要按 Range 切片, 不能先把整文件读进内存。
+ */
+export function openRawFile(root: string, relPath: string): {
+  abs: string;
+  size: number;
+  contentType: string;
+} {
+  const abs = resolveUnderRoot(root, relPath);
+  if (!existsSync(abs) || !statSync(abs).isFile()) {
+    throw new Error("not found");
+  }
+  return {
+    abs,
+    size: statSync(abs).size,
+    contentType: contentTypeOf(relPath),
+  };
+}
+
+/**
  * 读取 raw 字节给图片等静态资源响应.
  */
 export function readRawFile(root: string, relPath: string): {
@@ -644,16 +707,35 @@ export function readRawFile(root: string, relPath: string): {
   buf: Buffer;
   contentType: string;
 } {
+  const opened = openRawFile(root, relPath);
+  return {
+    abs: opened.abs,
+    buf: readFileSync(opened.abs),
+    contentType: opened.contentType,
+  };
+}
+
+/**
+ * 符号扫描只读小文本。超限和二进制直接跳过, 避免一次点击把预览进程读满。
+ */
+export function readIndexText(
+  root: string,
+  relPath: string,
+  maxBytes: number,
+): string | null {
   const abs = resolveUnderRoot(root, relPath);
-  if (!existsSync(abs) || !statSync(abs).isFile()) {
-    throw new Error("not found");
+  if (!existsSync(abs)) {
+    return null;
+  }
+  const st = statSync(abs);
+  if (!st.isFile() || st.size > maxBytes) {
+    return null;
   }
   const buf = readFileSync(abs);
-  return {
-    abs,
-    buf,
-    contentType: contentTypeOf(relPath),
-  };
+  if (looksBinary(buf)) {
+    return null;
+  }
+  return buf.toString("utf8");
 }
 
 function contentTypeOf(relPath: string): string {
@@ -676,6 +758,40 @@ function contentTypeOf(relPath: string): string {
       return "image/bmp";
     case ".pdf":
       return "application/pdf";
+    case ".csv":
+      return "text/csv; charset=utf-8";
+    case ".tsv":
+      return "text/tab-separated-values; charset=utf-8";
+    case ".jsonl":
+    case ".ndjson":
+      return "application/x-ndjson; charset=utf-8";
+    case ".xlsx":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    case ".xls":
+      return "application/vnd.ms-excel";
+    case ".docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case ".mp4":
+    case ".m4v":
+      return "video/mp4";
+    case ".webm":
+      return "video/webm";
+    case ".mov":
+      return "video/quicktime";
+    case ".ogv":
+      return "video/ogg";
+    case ".mp3":
+      return "audio/mpeg";
+    case ".wav":
+      return "audio/wav";
+    case ".ogg":
+      return "audio/ogg";
+    case ".m4a":
+      return "audio/mp4";
+    case ".flac":
+      return "audio/flac";
+    case ".aac":
+      return "audio/aac";
     case ".json":
       return "application/json; charset=utf-8";
     case ".css":

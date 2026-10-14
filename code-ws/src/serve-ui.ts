@@ -418,7 +418,72 @@ export function renderServeHtml(rootName: string): string {
     }
     .code-table tr:hover .ln { background: var(--bgSubtle); }
     .code-table .code { padding-left: 16px; color: var(--fgDefault); }
+    .code-table .ln { cursor: pointer; }
+    .code-table tr.line-hot td { background: var(--bgAccentMuted); }
+    .code-table a.jmp { text-decoration: underline; text-underline-offset: 2px; }
     .code-table .code .hljs { background: transparent; padding: 0; }
+    .btn.active { background: var(--bgAccentMuted); color: var(--accentFg); border-color: var(--accentFg); }
+    .preview-bar, .grid-foot, .sheet-tabs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--borderMuted);
+    }
+    .grid-filter {
+      height: 28px;
+      min-width: 180px;
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      padding: 0 8px;
+      font: inherit;
+    }
+    .grid-count { color: var(--fgMuted); font-size: 12px; margin-left: auto; }
+    .grid-wrap { overflow: auto; max-height: calc(100vh - 180px); }
+    .grid { border-collapse: separate; border-spacing: 0; font: 12px/18px var(--mono); }
+    .grid th, .grid td {
+      border-bottom: 1px solid var(--borderMuted);
+      border-right: 1px solid var(--borderMuted);
+      padding: 4px 8px;
+      white-space: pre;
+      background: var(--bgCanvas);
+      vertical-align: top;
+    }
+    .grid th { position: sticky; top: 0; z-index: 2; background: var(--bgSubtle); cursor: pointer; }
+    .grid .ln { position: sticky; left: 0; z-index: 1; text-align: right; color: var(--fgSubtle); background: var(--bgSubtle); min-width: 44px; }
+    .grid th.ln { z-index: 3; cursor: default; }
+    .pdf-frame, .html-frame { width: 100%; height: calc(100vh - 120px); border: 0; background: #fff; }
+    .docx { padding: 24px 40px; max-width: 920px; }
+    .media-wrap { padding: 16px; }
+    .media-wrap video, .media-wrap audio { width: 100%; max-height: 72vh; }
+    .sym-pop {
+      position: fixed;
+      z-index: 40;
+      width: min(360px, calc(100vw - 16px));
+      max-height: 260px;
+      overflow: auto;
+      background: var(--bgOverlay);
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      box-shadow: var(--shadowFloat);
+    }
+    .sym-title, .sym-more { padding: 8px 10px; font-size: 12px; color: var(--fgMuted); }
+    .sym-title { font-weight: 600; color: var(--fgDefault); border-bottom: 1px solid var(--borderMuted); }
+    .sym-hit {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 2px 8px;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 6px 10px;
+      font: 12px var(--mono);
+    }
+    .sym-hit:hover { background: var(--bgSubtle); }
+    .sym-hit .k { color: var(--accentFg); }
+    .sym-hit .t { grid-column: 2; color: var(--fgMuted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .md {
       padding: 32px 40px;
       max-width: 980px;
@@ -691,6 +756,7 @@ export function renderServeHtml(rootName: string): string {
     </div>
   </div>
   <div class="toast" id="toast">Copied</div>
+  <div class="sym-pop" id="sym-pop" hidden></div>
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true" aria-label="放大预览">
     <div class="lightbox-stage" id="lightbox-stage"></div>
   </div>

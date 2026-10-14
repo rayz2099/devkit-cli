@@ -180,7 +180,44 @@ describe("serve UI client", () => {
     expect(script).toContain("function closeLightbox");
     expect(script).toContain("function resolveMdHref");
     expect(script).toContain("function bindSidebarResize");
+    expect(script).toContain("function mountCode");
+    expect(script).toContain("function renderRichPreview");
+    expect(script).not.toContain("highlightAuto");
     expect(script).toContain("renderMarkdown(rd.content, rd.path)");
     expect(script).toContain("renderMarkdown(data.content, data.path)");
+  });
+});
+
+describe("raw range and symbol", () => {
+  test("Range 返回切片, 非法符号拒绝", async () => {
+    const dir = join(process.cwd(), "code-ws", ".tmp-serve-range");
+    mkdirSync(join(dir, "src"), { recursive: true });
+    writeFileSync(join(dir, "clip.mp4"), "0123456789");
+    writeFileSync(join(dir, "src", "Foo.kt"), "class Foo\n");
+    const root = resolveServeRoot(dir, process.cwd());
+    const runtime = buildServeRuntime(root);
+
+    const ranged = await handleServeRequest(
+      new Request("http://127.0.0.1/raw/clip.mp4", { headers: { range: "bytes=0-3" } }),
+      runtime,
+    );
+    expect(ranged.status).toBe(206);
+    expect(ranged.headers.get("content-type")).toContain("video/mp4");
+    expect(ranged.headers.get("content-range")).toBe("bytes 0-3/10");
+    expect(await ranged.text()).toBe("0123");
+
+    const bad = await handleServeRequest(
+      new Request("http://127.0.0.1/api/symbol?q=F"),
+      runtime,
+    );
+    expect(bad.status).toBe(400);
+
+    const hit = await handleServeRequest(
+      new Request("http://127.0.0.1/api/symbol?q=Foo"),
+      runtime,
+    );
+    expect(hit.status).toBe(200);
+    const body = await hit.json() as { hits: { kind: string; path: string }[] };
+    expect(body.hits.some((item) => item.kind === "def" && item.path === "src/Foo.kt")).toBe(true);
   });
 });

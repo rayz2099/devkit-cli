@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   isDeniedRelPath,
   listFileIndex,
+  openRawFile,
   pickReadmePath,
   readBlob,
   resolveServeRoot,
@@ -81,6 +82,33 @@ describe("listFileIndex priority", () => {
     expect(files).toContain("app/src/Main.kt");
     expect(files.some((f) => f.endsWith(".class"))).toBe(false);
     expect(files.some((f) => f.includes("/target/"))).toBe(false);
+  });
+});
+
+describe("preview kind", () => {
+  test("pdf 可检索, 表格和媒体带预览类型", () => {
+    const dir = join(process.cwd(), "code-ws", ".tmp-serve-preview");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "a.pdf"), "%PDF-1.4\n");
+    writeFileSync(join(dir, "a.csv"), "name,qty\n\"a,b\",2\n");
+    writeFileSync(join(dir, "a.xlsx"), Buffer.from([0x50, 0x4b, 0x03, 0x04, 0]));
+    writeFileSync(join(dir, "a.mp4"), Buffer.from("0123456789"));
+
+    const files = listFileIndex(dir);
+    expect(files).toContain("a.pdf");
+
+    const csv = readBlob(dir, "a.csv");
+    expect(csv.preview).toBe("csv");
+    expect(csv.content).toContain("name,qty");
+
+    const xlsx = readBlob(dir, "a.xlsx");
+    expect(xlsx.preview).toBe("xlsx");
+    expect(xlsx.binary).toBe(true);
+    expect(xlsx.content).toBeUndefined();
+
+    const raw = openRawFile(dir, "a.mp4");
+    expect(raw.contentType).toBe("video/mp4");
+    expect(raw.size).toBe(10);
   });
 });
 

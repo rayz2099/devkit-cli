@@ -3,11 +3,12 @@ import { networkInterfaces, platform } from "node:os";
 import { basename } from "node:path";
 import {
   listFileIndex,
+  openRawFile,
   readBlob,
-  readRawFile,
   resolveServeRoot,
   toPosixRel,
 } from "./serve-fs";
+import { searchSymbol } from "./serve-symbol";
 import { renderServeHtml } from "./serve-ui";
 import {
   isUnsupportedWatchError,
@@ -187,6 +188,68 @@ function wantsHtml(req: Request): boolean {
 }
 
 /**
+ * 带 Range 的原始文件响应。视频拖动依赖 206, 不能每次都回整文件。
+ */
+function rawResponse(
+  req: Request,
+  opened: { abs: string; size: number; contentType: string },
+): Response {
+  const headers = new Headers({
+    "content-type": opened.contentType,
+    "cache-control": "no-store",
+    "accept-ranges": "bytes",
+  });
+  const size = opened.size;
+  const range = req.headers.get("range");
+  if (range === null) {
+    headers.set("content-length", String(size));
+    return new Response(Bun.file(opened.abs), { headers });
+  }
+  const parsed = parseByteRange(range, size);
+  if (parsed === null) {
+    headers.set("content-range", `bytes */${size}`);
+    return new Response("invalid range", { status: 416, headers });
+  }
+  headers.set("content-length", String(parsed.end - parsed.start + 1));
+  headers.set("content-range", `bytes ${parsed.start}-${parsed.end}/${size}`);
+  const slice = Bun.file(opened.abs).slice(parsed.start, parsed.end + 1);
+  return new Response(slice, { status: 206, headers });
+}
+
+function parseByteRange(
+  header: string,
+  size: number,
+): { start: number; end: number } | null {
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (match === null || size <= 0) {
+    return null;
+  }
+  const left = match[1] ?? "";
+  const right = match[2] ?? "";
+  if (left === "" && right === "") {
+    return null;
+  }
+  if (left === "") {
+    const n = Number(right);
+    if (!Number.isInteger(n) || n <= 0) {
+      return null;
+    }
+    const start = Math.max(size - n, 0);
+    return { start, end: size - 1 };
+  }
+  const start = Number(left);
+  if (!Number.isInteger(start) || start < 0 || start >= size) {
+    return null;
+  }
+  const end = right === "" ? size - 1 : Number(right);
+  if (!Number.isInteger(end) || end < start) {
+    return null;
+  }
+  const clipped = Math.min(end, size - 1);
+  return { start, end: clipped };
+}
+
+/**
  * 处理只读演示请求: API / raw / SPA.
  * 索引由 runtime 投影提供, blob/tree 实时读盘, watch 负责投影一致性.
  */
@@ -232,15 +295,17 @@ export function handleServeRequest(
       });
     }
 
+    if (url.pathname === "/api/symbol") {
+      const q = url.searchParams.get("q") ?? "";
+      if (!/^[A-Za-z_][A-Za-z0-9_]{1,79}$/.test(q)) {
+        return text("invalid symbol", 400);
+      }
+      return json(searchSymbol(root, runtime.files, q));
+    }
+
     if (url.pathname === "/raw" || url.pathname.startsWith("/raw/")) {
       const rel = decodeURIComponent(url.pathname.slice("/raw/".length));
-      const raw = readRawFile(root, rel);
-      return new Response(raw.buf, {
-        headers: {
-          "content-type": raw.contentType,
-          "cache-control": "no-store",
-        },
-      });
+      return rawResponse(req, openRawFile(root, rel));
     }
 
     // SPA 深链: 浏览器导航一律回 HTML, 内容由前端再拉 API.
@@ -251,13 +316,7 @@ export function handleServeRequest(
         try {
           const blob = readBlob(root, rel);
           if (blob.type === "file" && blob.binary) {
-            const raw = readRawFile(root, rel);
-            return new Response(raw.buf, {
-              headers: {
-                "content-type": raw.contentType,
-                "cache-control": "no-store",
-              },
-            });
+            return rawResponse(req, openRawFile(root, rel));
           }
           if (blob.type === "file" && blob.content !== undefined) {
             return new Response(blob.content, {

@@ -1,4 +1,6 @@
 import { CLIENT_RESOLVE_MD_HREF } from "./serve-md";
+import { CLIENT_CODE } from "./serve-ui-code";
+import { CLIENT_PREVIEW } from "./serve-ui-preview";
 import { CLIENT_SIDEBAR_RESIZE } from "./serve-ui-sidebar";
 
 /**
@@ -34,6 +36,14 @@ export function renderServeClientScript(rootJson: string): string {
       watchSeen: false,
       watchQueue: Promise.resolve(),
       lightboxOpen: false,
+      lineAnchor: 0,
+      hljsMiss: Object.create(null),
+      scripts: Object.create(null),
+      codeLines: [],
+      codePath: "",
+      symOpen: false,
+      fileSet: null,
+      fileSetSize: -1,
     };
 
     const RECENT_KEY = "code-ws.serve.recent.v1";
@@ -260,24 +270,9 @@ export function renderServeClientScript(rootJson: string): string {
       return html + "</nav>";
     }
 
-    function hasHljs() {
-      return typeof hljs !== "undefined" && hljs && typeof hljs.highlight === "function";
-    }
+    ${CLIENT_CODE}
 
-    function highlightCode(code, lang) {
-      if (!hasHljs()) {
-        return escapeHtml(code);
-      }
-      if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value;
-      }
-      return hljs.highlightAuto(code).value;
-    }
-
-    function highlightBlocks(root) {
-      if (!hasHljs() || !root) return;
-      root.querySelectorAll("pre code").forEach((block) => hljs.highlightElement(block));
-    }
+    ${CLIENT_PREVIEW}
 
     ${CLIENT_RESOLVE_MD_HREF}
 
@@ -303,20 +298,6 @@ export function renderServeClientScript(rootJson: string): string {
           }
         },
       });
-    }
-
-    function renderCodeView(content, lang) {
-      const lines = String(content).replace(/\\n$/, "").split("\\n");
-      const rows = lines.map((line) => {
-        const html = highlightCode(line.length ? line : " ", lang);
-        return '<tr><td class="ln"></td><td class="code"><span class="hljs">' + html + "</span></td></tr>";
-      });
-      // line numbers after map to keep highlight per-line simple
-      const numbered = rows.map((row, i) => row.replace(
-        '<td class="ln"></td>',
-        '<td class="ln">' + (i + 1) + "</td>",
-      )).join("");
-      return '<div class="code-wrap"><table class="code-table"><tbody>' + numbered + "</tbody></table></div>";
     }
 
     async function renderBlob(path, opts) {
@@ -367,11 +348,12 @@ export function renderServeClientScript(rootJson: string): string {
                   + '<div class="actions"><a class="btn" href="/' + encodePath(rd.path) + '">Open</a></div></div>';
                 if (rd.language === "markdown") {
                   slot.innerHTML = head + '<article class="md">' + renderMarkdown(rd.content, rd.path) + "</article></div>";
-                  highlightBlocks(slot);
+                  await highlightBlocks(slot);
                   const nodes = slot.querySelectorAll(".mermaid");
                   if (nodes.length) await mermaid.run({ nodes });
                 } else {
-                  slot.innerHTML = head + renderCodeView(rd.content, rd.language || "plaintext") + "</div>";
+                  slot.innerHTML = head + '<div id="readme-code"></div></div>';
+                  await mountCode($("readme-code"), rd.content, rd.language || "plaintext", rd.path);
                 }
               }
             } catch (readmeErr) {
@@ -385,70 +367,56 @@ export function renderServeClientScript(rootJson: string): string {
           return;
         }
 
-        if (data.language === "image") {
-          content.innerHTML = renderCrumbs(data.path)
-            + '<div class="file-box"><div class="file-box-head"><div class="title">'
-            + '<span class="dir-ico">' + ICO.file + "</span>"
-            + '<span class="name">' + escapeHtml(data.name) + "</span></div>"
-            + '<div class="meta">' + data.size + " bytes</div>"
-            + '<div class="actions"><a class="btn" href="/raw/' + encodePath(data.path) + '">Raw</a></div></div>'
+        const kind = data.preview || "";
+        if (kind === "image" || data.language === "image") {
+          content.innerHTML = fileBoxOpen(data, data.size + " bytes", '<a class="btn" href="/raw/' + encodePath(data.path) + '">Raw</a>')
             + '<div class="img-wrap"><img src="/raw/' + encodePath(data.path)
             + '" alt="' + escapeHtml(data.name) + '" /></div></div>';
           return;
         }
 
-        if (data.binary || data.content === undefined) {
-          content.innerHTML = renderCrumbs(data.path)
-            + '<div class="file-box"><div class="file-box-head"><div class="title">'
-            + '<span class="dir-ico">' + ICO.file + "</span>"
-            + '<span class="name">' + escapeHtml(data.name) + "</span></div>"
-            + '<div class="meta">binary · ' + data.size + " bytes</div>"
-            + '<div class="actions"><a class="btn" href="/raw/' + encodePath(data.path) + '">Download</a></div></div>'
-            + '<div class="empty">Binary file is not inlined.</div></div>';
+        if (isRichKind(kind)) {
+          const meta = escapeHtml(kind) + " · " + data.size + " bytes";
+          content.innerHTML = fileBoxOpen(data, meta, previewActions(data))
+            + '<div id="pv-root"></div></div>';
+          bindCopy(data.path);
+          await renderRichPreview(data);
           return;
         }
 
-        const actions = '<div class="actions">'
-          + '<a class="btn" href="/raw/' + encodePath(data.path) + '">Raw</a>'
-          + '<button type="button" class="btn" id="copy-path">Copy path</button>'
-          + "</div>";
+        if (data.binary || data.content === undefined) {
+          content.innerHTML = fileBoxOpen(
+            data,
+            "binary · " + data.size + " bytes",
+            '<a class="btn" href="/raw/' + encodePath(data.path) + '">Download</a>',
+          ) + '<div class="empty">Binary file is not inlined.</div></div>';
+          return;
+        }
 
-        if (data.language === "markdown") {
+        if (kind === "markdown" || data.language === "markdown") {
           const html = renderMarkdown(data.content, data.path);
-          content.innerHTML = renderCrumbs(data.path)
-            + '<div class="file-box"><div class="file-box-head"><div class="title">'
-            + '<span class="dir-ico">' + ICO.file + "</span>"
-            + '<span class="name">' + escapeHtml(data.name) + "</span></div>"
-            + '<div class="meta">markdown · ' + data.size + " bytes</div>"
-            + actions + "</div>"
-            + '<article class="md" id="md-view">' + html + "</article></div>";
-          highlightBlocks(content);
+          content.innerHTML = fileBoxOpen(
+            data,
+            "markdown · " + data.size + " bytes",
+            previewActions(data),
+          ) + '<article class="md" id="md-view">' + html + "</article></div>";
+          bindCopy(data.path);
+          await highlightBlocks(content);
           const nodes = content.querySelectorAll(".mermaid");
           if (nodes.length) {
             await mermaid.run({ nodes });
           }
-        } else {
-          const lang = data.language || "plaintext";
-          content.innerHTML = renderCrumbs(data.path)
-            + '<div class="file-box"><div class="file-box-head"><div class="title">'
-            + '<span class="dir-ico">' + ICO.file + "</span>"
-            + '<span class="name">' + escapeHtml(data.name) + "</span></div>"
-            + '<div class="meta">' + escapeHtml(lang) + " · " + data.size + " bytes</div>"
-            + actions + "</div>"
-            + renderCodeView(data.content, lang) + "</div>";
+          return;
         }
 
-        const copyPath = $("copy-path");
-        if (copyPath) {
-          copyPath.addEventListener("click", async () => {
-            try {
-              await navigator.clipboard.writeText(data.path);
-              toast("Path copied");
-            } catch {
-              toast(data.path);
-            }
-          });
-        }
+        const lang = data.language || "plaintext";
+        content.innerHTML = fileBoxOpen(
+          data,
+          escapeHtml(lang) + " · " + data.size + " bytes",
+          previewActions(data),
+        ) + '<div id="code-root"></div></div>';
+        bindCopy(data.path);
+        await mountCode($("code-root"), data.content, lang, data.path);
       } catch (err) {
         const msg = err.message || String(err);
         if (opts.deleted && msg === "not found") {
@@ -671,9 +639,9 @@ export function renderServeClientScript(rootJson: string): string {
       if (active) active.scrollIntoView({ block: "nearest" });
     }
 
-    function navigate(path) {
+    function navigate(path, hash) {
       pushRecent(path);
-      const url = "/" + encodePath(path);
+      const url = "/" + encodePath(path) + (hash || "");
       history.pushState({}, "", url);
       renderBlob(path);
     }
@@ -867,6 +835,11 @@ export function renderServeClientScript(rootJson: string): string {
         return;
       }
       if (e.key === "Escape") {
+        if (state.symOpen) {
+          e.preventDefault();
+          closeSymPop();
+          return;
+        }
         if (state.lightboxOpen) {
           e.preventDefault();
           closeLightbox();
@@ -908,6 +881,10 @@ export function renderServeClientScript(rootJson: string): string {
       renderBlob(currentRelPath());
     });
 
+    window.addEventListener("hashchange", () => {
+      applyLineSelection();
+    });
+
     document.addEventListener("click", async (e) => {
       if (state.lightboxOpen) {
         if (e.target.closest("#lightbox-stage > *")) return;
@@ -946,15 +923,27 @@ export function renderServeClientScript(rootJson: string): string {
         setActiveTree(state.currentPath);
         return;
       }
+      if (state.symOpen && !e.target.closest("#sym-pop")) closeSymPop();
       const a = e.target.closest("a");
       if (!a) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === "_blank") return;
       const href = a.getAttribute("href") || "";
-      if (!href.startsWith("/") || href.startsWith("//") || href.startsWith("/raw/") || href.startsWith("/api/")) {
+      if (href.startsWith("#L") || href.startsWith("#l")) {
+        e.preventDefault();
+        history.pushState({}, "", location.pathname + location.search + href);
+        applyLineSelection();
+        return;
+      }
+      let parsed;
+      try { parsed = new URL(href, location.origin); } catch (err) { return; }
+      if (parsed.origin !== location.origin) return;
+      const pathOnly = parsed.pathname;
+      if (!pathOnly.startsWith("/") || pathOnly.startsWith("//") || pathOnly.startsWith("/raw/") || pathOnly.startsWith("/api/")) {
         return;
       }
       e.preventDefault();
-      const path = decodeURIComponent(href.replace(/^\\/+/, ""));
-      navigate(path);
+      const path = decodeURIComponent(pathOnly.replace(/^\\/+/, ""));
+      navigate(path, parsed.hash);
     });
 
     loadSidebarW();
