@@ -1,0 +1,14 @@
+{
+  // ~/.config/td-cli/config.json
+  // 填写 username、password。url 按实际地址改。
+  "defaultProfile": "local",
+  "profiles": [
+    {
+      "name": "local",
+      "url": "http://114.67.80.181:8993",
+      "username": "",
+      "password": ""
+    }
+  ]
+}
+

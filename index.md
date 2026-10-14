@@ -20,3 +20,4 @@ just build code-ws
 | `alist-cli` | Alist 客户端: ls / put / mkdir / 目录 sync. |
 | `rclone-cli` | WebDAV 同步 (123): 无 rclone.conf, source/target/task. 合同见 `rclone-cli/CONTEXT.md`. |
 | `dsn-cli` | 多数据源查询 CLI: mysql / doris / postgres / redis / mongodb / elasticsearch / kafka. |
+| `td-cli` | ThinkingData / TE 4.4 只读 CLI: 会话登录, 元数据查询, 事件/属性等统计. |

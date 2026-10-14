@@ -19,6 +19,7 @@
 | `codeup-cli` | Profile-based Codeup client: repos, git push, change requests, webhook list |
 | `alist-cli` | Profile-based Alist client: ls, put, mkdir, directory sync |
 | `dsn-cli` | Profile-based query CLI for mysql/doris/postgres/redis/mongodb/elasticsearch/kafka |
+| `td-cli` | Read-only ThinkingData / TE 4.4 client: session login, metadata, event and property stats |
 
 ### Requirements
 
@@ -46,6 +47,7 @@ Configs live in XDG paths:
 - `~/.config/codeup-cli/config.json`
 - `~/.config/alist-cli/config.json` (env: `ALIST_ADDRESS` / `ALIST_USERNAME` / `ALIST_PASSWORD`)
 - `~/.config/dsn-cli/config.json`
+- `~/.config/td-cli/config.json`
 
 Copy examples first if needed:
 
@@ -58,6 +60,7 @@ cp jenkins-cli/config.example.json ~/.config/jenkins-cli/config.json
 cp codeup-cli/config.example.json ~/.config/codeup-cli/config.json
 cp alist-cli/config.example.json ~/.config/alist-cli/config.json
 cp dsn-cli/config.example.json ~/.config/dsn-cli/config.json
+cp td-cli/config.example.json ~/.config/td-cli/config.json
 ```
 
 `just install` bootstraps missing XDG configs from `*.example.*` and never overwrites existing files.
@@ -85,6 +88,7 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 | `codeup-cli` | 基于 profile 的 Codeup 客户端: 仓库, git push, Change Request, webhook 只读 |
 | `alist-cli` | 基于 profile 的 Alist 客户端: ls, put, mkdir, 目录同步 |
 | `dsn-cli` | 基于 profile 查询 mysql/doris/postgres/redis/mongodb/elasticsearch/kafka |
+| `td-cli` | ThinkingData / TE 4.4 只读客户端: 会话登录, 元数据, 事件和属性统计 |
 
 ### 依赖
 
@@ -112,6 +116,7 @@ just build code-ws
 - `~/.config/codeup-cli/config.json`
 - `~/.config/alist-cli/config.json` (env: `ALIST_ADDRESS` / `ALIST_USERNAME` / `ALIST_PASSWORD`)
 - `~/.config/dsn-cli/config.json`
+- `~/.config/td-cli/config.json`
 
 `just install` 仅在配置缺失时从 `*.example.*` 引导, 不覆盖已有文件.
 
