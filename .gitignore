@@ -4,6 +4,7 @@ coverage/
 *.bun-build
 bun.lockb
 .DS_Store
+*.swp
 .env
 .env.*
 **/config.json
