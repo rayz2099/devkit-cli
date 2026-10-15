@@ -1,0 +1,31 @@
+olly-cli logs
+
+Usage:
+  olly-cli [-c config.json] [--output human|agent|plain] logs <query-or-graylog-url> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] logs aggregate --field <field> --query <query> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] graylog <query-or-graylog-url> [options]
+  olly-cli logs --help
+
+Options:
+  --query <query>           Graylog query, e.g. app:billing AND level:3
+  --relative <seconds>      Relative time range seconds. Default: 28800
+  --from <time>             Absolute start time
+  --to <time>               Absolute end time
+  --keyword <range>         Keyword range, e.g. last 5 minutes
+  --limit <n>               Result limit. Default: 50
+  --offset <n>              Result offset
+  --sort <field:dir>        Sort expression. Default: timestamp:desc
+  --fields <fields>         Comma-separated returned fields
+  --filter <filter>         Graylog filter, e.g. streams:<id>
+  --decorate                Ask Graylog to decorate messages
+  --group-by <field>        Group returned messages by any message field
+  --show-fields             Print fields available in this query result
+  --field <field>           Aggregate field for logs aggregate
+
+Examples:
+  olly-cli logs 'app:billing AND level:3' --relative 28800 --limit 20
+  olly-cli logs --query 'app:billing AND level:3' --show-fields
+  olly-cli logs aggregate --query 'app:billing AND level:3' --relative 28800 --field USER_IP --limit 10
+  olly-cli --output agent logs 'app:billing AND level:3' --group-by logger_name
+  olly-cli logs 'app:billing AND level:3' --from '2026-06-01T10:00:00+08:00' --to '2026-06-01T11:00:00+08:00'
+  olly-cli logs 'https://log.example.com/search?q=app%3Abilling+AND+level%3A3&rangetype=relative&relative=28800'

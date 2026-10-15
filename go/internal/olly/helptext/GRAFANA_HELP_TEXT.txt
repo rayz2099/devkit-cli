@@ -1,0 +1,16 @@
+olly-cli grafana
+
+Usage:
+  olly-cli [-c config.json] [--output human|agent|plain] grafana <dashboard-url-or-uid> [options]
+  olly-cli [-c config.json] [--output human|agent|plain] grafana analyze <dashboard-url-or-uid> [options]
+  olly-cli grafana --help
+
+Options:
+  --from <time>             Time range start. Default: dashboard time
+  --to <time>               Time range end. Default: dashboard time
+  --org-id <id>             Grafana org id. Default: URL orgId
+
+Examples:
+  olly-cli grafana 'https://grafana.example.com/d/c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a/biz?orgId=1'
+  olly-cli grafana analyze c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a --from now-1h --to now
+  olly-cli --output agent grafana 'https://grafana.example.com/d/c529cbb2-fc4d-45fc-b1fb-c68bc9aafb2a/biz?orgId=1'

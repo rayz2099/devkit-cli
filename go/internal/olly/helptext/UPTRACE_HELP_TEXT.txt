@@ -1,0 +1,28 @@
+olly-cli uptrace
+
+Usage:
+  olly-cli [-c config.json] [--output human|agent|plain] uptrace <command> [options]
+  olly-cli uptrace --help
+
+Commands:
+  groups            Query span groups with UQL
+  group-stats       Query selected group metric columns
+  spans             Query span list
+  trace             Query a trace and print call tree
+  context           Query a trace and print LLM context
+  diagnose          Query service groups as the first diagnose step
+
+Common options:
+  --service <name>          Service name
+  --env <env>               Deployment environment
+  --query <uql>             Raw Uptrace UQL
+  --limit <n>               Result limit
+  --time-gte <time>         Compact start time, e.g. 20260429T060000
+  --time-dur <seconds>      Time duration seconds
+  --trace-id <id>           Trace id
+
+Examples:
+  olly-cli uptrace groups --service app-gw --env loadtest --time-gte 20260429T060000 --time-dur 10800
+  olly-cli uptrace spans --query 'where service_name = "ld-dt-gateway"' --sort-by _duration --sort-desc --limit 15
+  olly-cli uptrace trace https://uptrace.example.com/traces/2/e4f1e0bcd6a1ac296661a3e6ea5507c9
+  olly-cli --output agent uptrace context e4f1e0bcd6a1ac296661a3e6ea5507c9 --service app-gw --env loadtest
