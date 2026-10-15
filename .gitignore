@@ -20,3 +20,6 @@ designs/
 # serve 测试临时目录
 **/.tmp-serve-*/
 .cursor
+
+# Go 模块构建产物
+go/bin/

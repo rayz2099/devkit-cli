@@ -7,13 +7,13 @@ help:
     @just --list
 
 list:
-    bun run src/main.ts list
+    mise exec -- go -C go run ./cmd/devkit-cli list
 
 clean *mods:
-    bun run src/main.ts clean {{mods}}
+    mise exec -- go -C go run ./cmd/devkit-cli clean {{mods}}
 
 build *mods:
-    bun run src/main.ts build {{mods}}
+    mise exec -- go -C go run ./cmd/devkit-cli build {{mods}}
 
 install *mods:
-    bun run src/main.ts install {{mods}}
+    mise exec -- go -C go run ./cmd/devkit-cli install {{mods}}
