@@ -1,6 +1,6 @@
 module git.internal.linran.top/linran/devkit-cli
 
-go 1.26.0
+go 1.27.1
 
 require (
 	github.com/elastic/go-elasticsearch/v8 v8.18.1
