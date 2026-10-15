@@ -1,0 +1,2688 @@
+<!doctype html>
+<html lang="zh-CN" data-color-mode="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>__CW_ROOT_NAME__ · code-ws serve</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css" />
+  <style>
+    :root {
+      --bgCanvas: #ffffff;
+      --bgSubtle: #f6f8fa;
+      --bgInset: #f6f8fa;
+      --bgOverlay: #ffffff;
+      --bgNeutralMuted: rgba(175, 184, 193, 0.2);
+      --bgAccentMuted: rgba(9, 105, 218, 0.1);
+      --bgSuccessMuted: rgba(26, 127, 55, 0.1);
+      --borderDefault: #d0d7de;
+      --borderMuted: #d8dee4;
+      --fgDefault: #1f2328;
+      --fgMuted: #656d76;
+      --fgSubtle: #8c959f;
+      --fgOnEmphasis: #ffffff;
+      --accentFg: #0969da;
+      --accentEmphasis: #0969da;
+      --successFg: #1a7f37;
+      --dangerFg: #cf222e;
+      --btnBg: #f6f8fa;
+      --btnBorder: #d0d7de;
+      --btnHoverBg: #f3f4f6;
+      --btnPrimaryBg: #1f883d;
+      --btnPrimaryHover: #1a7f37;
+      --shadowFloat: 0 8px 24px rgba(140, 149, 159, 0.2);
+      --radius: 6px;
+      --radiusLg: 12px;
+      --headerH: 48px;
+      --sidebarW: 280px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --focus: 0 0 0 2px var(--bgCanvas), 0 0 0 4px var(--accentFg);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font: 14px/1.5 var(--font);
+      color: var(--fgDefault);
+      background: var(--bgCanvas);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accentFg); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button { font: inherit; color: inherit; }
+    kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      font: 11px var(--mono);
+      line-height: 1.4;
+      color: var(--fgDefault);
+      background: var(--bgSubtle);
+      border: 1px solid var(--borderDefault);
+      border-bottom-color: #bfc6cd;
+      border-radius: 6px;
+      box-shadow: inset 0 -1px 0 #bfc6cd;
+    }
+    .app { min-height: 100%; display: flex; flex-direction: column; }
+    .topbar {
+      height: var(--headerH);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--borderDefault);
+      background: var(--bgCanvas);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--fgDefault);
+      font-weight: 600;
+      text-decoration: none;
+      flex: 0 0 auto;
+    }
+    .brand:hover { color: var(--fgMuted); text-decoration: none; }
+    .brand-mark {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #1f2328;
+      color: #ffffff;
+      font: 700 11px/1 var(--mono);
+      letter-spacing: -0.02em;
+    }
+    .repo-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      font-size: 14px;
+    }
+    .repo-chip .sep { color: var(--fgMuted); }
+    .repo-chip strong {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 2em;
+      border: 1px solid var(--borderDefault);
+      color: var(--fgMuted);
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--bgNeutralMuted);
+    }
+    .badge.green {
+      color: var(--successFg);
+      border-color: rgba(46, 160, 67, 0.4);
+      background: var(--bgSuccessMuted);
+    }
+    .watch-state[hidden] { display: none; }
+    .watch-state.warn {
+      color: #9a6700;
+      border-color: rgba(191, 135, 0, 0.4);
+      background: rgba(212, 167, 44, 0.12);
+    }
+    .top-spacer { flex: 1; }
+    .search-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: min(320px, 36vw);
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      background: var(--bgInset);
+      color: var(--fgMuted);
+      cursor: pointer;
+      text-align: left;
+    }
+    .search-trigger:hover { border-color: var(--fgSubtle); }
+    .search-trigger:focus-visible { outline: none; box-shadow: var(--focus); }
+    .search-trigger .grow { flex: 1; }
+    .search-trigger .keys { display: flex; gap: 3px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--btnBorder);
+      background: var(--btnBg);
+      color: var(--fgDefault);
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--btnHoverBg); border-color: var(--fgSubtle); text-decoration: none; }
+    .btn:focus-visible { outline: none; box-shadow: var(--focus); }
+    .body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: var(--sidebarW) minmax(0, 1fr);
+      min-height: 0;
+    }
+    .sidebar {
+      position: relative;
+      border-right: 1px solid var(--borderDefault);
+      background: var(--bgCanvas);
+      min-width: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-tree {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 12px 0 24px;
+    }
+    .sidebar-resizer {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 8px;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: col-resize;
+      z-index: 5;
+      touch-action: none;
+    }
+    .sidebar-resizer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 3px;
+      width: 2px;
+      background: transparent;
+    }
+    .sidebar-resizer:hover::after,
+    .sidebar-resizer:focus-visible::after,
+    body.sidebar-resizing .sidebar-resizer::after {
+      background: var(--accentEmphasis);
+    }
+    .sidebar-resizer:focus-visible { outline: none; }
+    body.sidebar-resizing { cursor: col-resize; user-select: none; }
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 16px 10px;
+      color: var(--fgMuted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .tree-item {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      width: 100%;
+      padding: 1px 10px 1px 0;
+      border: 0;
+      background: transparent;
+      color: var(--fgDefault);
+      font: 13px/1.4 var(--mono);
+      text-align: left;
+      border-left: 2px solid transparent;
+      box-sizing: border-box;
+    }
+    .tree-item:hover { background: var(--bgNeutralMuted); }
+    .tree-item.active {
+      background: var(--bgAccentMuted);
+      border-left-color: var(--accentEmphasis);
+    }
+    .tree-toggle {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--fgMuted);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+    .tree-toggle:hover { background: var(--bgNeutralMuted); color: var(--fgDefault); }
+    .tree-toggle svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+      transition: transform .12s ease;
+    }
+    .tree-toggle.open svg { transform: rotate(90deg); }
+    .tree-toggle.spacer {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .tree-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+      padding: 4px 6px 4px 0;
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .tree-link:hover { text-decoration: none; }
+    .tree-item .ico {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      color: var(--fgMuted);
+      display: grid;
+      place-items: center;
+    }
+    .tree-item.active .ico { color: var(--accentFg); }
+    .tree-item .ico svg { width: 16px; height: 16px; fill: currentColor; }
+    .tree-item .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .main { min-width: 0; overflow: auto; background: var(--bgCanvas); }
+    .main-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px 24px 48px;
+    }
+    .pathbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-family: var(--mono);
+    }
+    .pathbar a { color: var(--accentFg); font-weight: 600; }
+    .pathbar .slash { color: var(--fgMuted); margin: 0 2px; }
+    .pathbar .current { color: var(--fgDefault); font-weight: 600; }
+    .file-box {
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      background: var(--bgCanvas);
+      overflow: hidden;
+    }
+    .file-box-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 48px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--borderDefault);
+      background: var(--bgSubtle);
+    }
+    .file-box-head .title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-weight: 600;
+    }
+    .file-box-head .title .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-box-head .meta {
+      color: var(--fgMuted);
+      font-size: 12px;
+      font-family: var(--mono);
+    }
+    .file-box-head .actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+    .dir-table { width: 100%; border-collapse: collapse; }
+    .dir-table tr { border-top: 1px solid var(--borderMuted); }
+    .dir-table tr:first-child { border-top: 0; }
+    .dir-table tr:hover { background: var(--bgNeutralMuted); }
+    .dir-table td { padding: 8px 16px; vertical-align: middle; }
+    .dir-table .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 14px;
+    }
+    .dir-table .name-cell a { color: var(--fgDefault); font-weight: 500; }
+    .dir-table .name-cell a:hover { color: var(--accentFg); text-decoration: none; }
+    .dir-table .type-cell {
+      text-align: right;
+      color: var(--fgMuted);
+      font-size: 12px;
+      width: 90px;
+    }
+    .dir-ico {
+      width: 16px;
+      height: 16px;
+      color: var(--fgMuted);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+    .dir-ico svg { width: 16px; height: 16px; fill: currentColor; }
+    .dir-ico.folder { color: #0969da; }
+    .code-wrap { overflow: auto; background: var(--bgCanvas); }
+    .code-table {
+      width: 100%;
+      border-collapse: collapse;
+      font: 12px/20px var(--mono);
+      tab-size: 2;
+    }
+    .code-table td { padding: 0 12px 0 0; vertical-align: top; white-space: pre; }
+    .code-table .ln {
+      width: 1%;
+      min-width: 48px;
+      padding: 0 12px;
+      text-align: right;
+      color: var(--fgSubtle);
+      user-select: none;
+      background: var(--bgCanvas);
+      border-right: 1px solid var(--borderMuted);
+    }
+    .code-table tr:hover .ln { background: var(--bgSubtle); }
+    .code-table .code { padding-left: 16px; color: var(--fgDefault); }
+    .code-table .ln { cursor: pointer; }
+    .code-table tr.line-hot td { background: var(--bgAccentMuted); }
+    .code-table a.jmp { text-decoration: underline; text-underline-offset: 2px; }
+    .code-table .code .hljs { background: transparent; padding: 0; }
+    .btn.active { background: var(--bgAccentMuted); color: var(--accentFg); border-color: var(--accentFg); }
+    .preview-bar, .grid-foot, .sheet-tabs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--borderMuted);
+    }
+    .grid-filter {
+      height: 28px;
+      min-width: 180px;
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      padding: 0 8px;
+      font: inherit;
+    }
+    .grid-count { color: var(--fgMuted); font-size: 12px; margin-left: auto; }
+    .grid-wrap { overflow: auto; max-height: calc(100vh - 180px); }
+    .grid { border-collapse: separate; border-spacing: 0; font: 12px/18px var(--mono); }
+    .grid th, .grid td {
+      border-bottom: 1px solid var(--borderMuted);
+      border-right: 1px solid var(--borderMuted);
+      padding: 4px 8px;
+      white-space: pre;
+      background: var(--bgCanvas);
+      vertical-align: top;
+    }
+    .grid th { position: sticky; top: 0; z-index: 2; background: var(--bgSubtle); cursor: pointer; }
+    .grid .ln { position: sticky; left: 0; z-index: 1; text-align: right; color: var(--fgSubtle); background: var(--bgSubtle); min-width: 44px; }
+    .grid th.ln { z-index: 3; cursor: default; }
+    .pdf-frame, .html-frame { width: 100%; height: calc(100vh - 120px); border: 0; background: #fff; }
+    .docx { padding: 24px 40px; max-width: 920px; }
+    .media-wrap { padding: 16px; }
+    .media-wrap video, .media-wrap audio { width: 100%; max-height: 72vh; }
+    .sym-pop {
+      position: fixed;
+      z-index: 40;
+      width: min(360px, calc(100vw - 16px));
+      max-height: 260px;
+      overflow: auto;
+      background: var(--bgOverlay);
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      box-shadow: var(--shadowFloat);
+    }
+    .sym-title, .sym-more { padding: 8px 10px; font-size: 12px; color: var(--fgMuted); }
+    .sym-title { font-weight: 600; color: var(--fgDefault); border-bottom: 1px solid var(--borderMuted); }
+    .sym-hit {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 2px 8px;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      padding: 6px 10px;
+      font: 12px var(--mono);
+    }
+    .sym-hit:hover { background: var(--bgSubtle); }
+    .sym-hit .k { color: var(--accentFg); }
+    .sym-hit .t { grid-column: 2; color: var(--fgMuted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .md {
+      padding: 32px 40px;
+      max-width: 980px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .md > :first-child { margin-top: 0; }
+    .md h1, .md h2, .md h3, .md h4 {
+      margin: 1.4em 0 0.6em;
+      font-weight: 600;
+      line-height: 1.25;
+      border-bottom: 1px solid var(--borderMuted);
+      padding-bottom: 0.3em;
+    }
+    .md h1 { font-size: 2em; }
+    .md h2 { font-size: 1.5em; }
+    .md h3 { font-size: 1.25em; border-bottom: 0; }
+    .md p, .md ul, .md ol, .md blockquote, .md pre, .md table { margin: 0 0 1em; }
+    .md a { color: var(--accentFg); }
+    .md code {
+      font-family: var(--mono);
+      font-size: 0.875em;
+      background: rgba(110, 118, 129, 0.2);
+      padding: 0.2em 0.4em;
+      border-radius: 6px;
+    }
+    .md pre {
+      background: var(--bgSubtle);
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow: auto;
+    }
+    .md pre code { background: transparent; padding: 0; font-size: 13px; }
+    .md blockquote {
+      border-left: 0.25em solid var(--borderDefault);
+      color: var(--fgMuted);
+      padding: 0 1em;
+    }
+    .md table { border-collapse: collapse; width: 100%; }
+    .md th, .md td { border: 1px solid var(--borderDefault); padding: 6px 13px; }
+    .md th { background: var(--bgSubtle); font-weight: 600; }
+    .md .mermaid {
+      background: var(--bgSubtle);
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow: auto;
+      cursor: zoom-in;
+    }
+    .md img, .img-wrap img {
+      max-width: 100%;
+      background: var(--bgSubtle);
+      border-radius: var(--radius);
+      cursor: zoom-in;
+    }
+    .img-wrap { padding: 20px; }
+    .empty, .err {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--fgMuted);
+    }
+    .err { color: var(--dangerFg); font-family: var(--mono); text-align: left; }
+    .palette-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(31, 35, 40, 0.45);
+      z-index: 50;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 12vh 16px 16px;
+    }
+    .palette-backdrop.open { display: flex; }
+    .palette {
+      width: min(640px, 100%);
+      background: var(--bgOverlay);
+      border: 1px solid var(--borderDefault);
+      border-radius: var(--radiusLg);
+      box-shadow: var(--shadowFloat);
+      overflow: hidden;
+    }
+    .palette-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--borderDefault);
+    }
+    .palette-input-wrap svg { width: 16px; height: 16px; fill: var(--fgMuted); flex: 0 0 auto; }
+    .palette input {
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--fgDefault);
+      font: 16px var(--font);
+    }
+    .palette-results { max-height: min(50vh, 420px); overflow: auto; padding: 6px; }
+    .palette-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      border: 0;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--fgDefault);
+      padding: 10px 12px;
+      cursor: pointer;
+      text-align: left;
+      font: 13px var(--mono);
+    }
+    .palette-item:hover, .palette-item.active { background: var(--bgAccentMuted); }
+
+    .palette-section {
+      padding: 8px 12px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--fgMuted);
+    }
+    .palette-item .meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .palette-item .name {
+      font: 13px var(--font);
+      color: var(--fgDefault);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .palette-item .sub {
+      font: 11px var(--mono);
+      color: var(--fgMuted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .palette-item .ext {
+      flex: 0 0 auto;
+      font: 10px var(--mono);
+      color: var(--fgSubtle);
+      background: var(--bgSubtle);
+      border: 1px solid var(--borderMuted);
+      border-radius: 999px;
+      padding: 1px 6px;
+      text-transform: lowercase;
+    }
+    .palette-item .label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .palette-empty {
+      padding: 20px 12px;
+      text-align: center;
+      color: var(--fgMuted);
+      font-size: 13px;
+    }
+    .palette-foot {
+      display: flex;
+      gap: 12px;
+      padding: 8px 14px;
+      border-top: 1px solid var(--borderDefault);
+      color: var(--fgMuted);
+      font-size: 12px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bgOverlay);
+      border: 1px solid var(--borderDefault);
+      color: var(--fgDefault);
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadowFloat);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .16s ease, transform .16s ease;
+      z-index: 60;
+      font-size: 13px;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(31, 35, 40, 0.72);
+      cursor: zoom-out;
+      overflow: auto;
+      overscroll-behavior: contain;
+    }
+    .lightbox.open { display: block; }
+    .lightbox-stage {
+      min-width: 100%;
+      min-height: 100%;
+      display: flex;
+      padding: 24px;
+    }
+    .lightbox-stage img, .lightbox-stage svg {
+      display: block;
+      flex: 0 0 auto;
+      margin: auto;
+      background: var(--bgCanvas);
+      border-radius: var(--radius);
+      box-shadow: var(--shadowFloat);
+      cursor: default;
+    }
+    .lightbox-stage svg { padding: 20px; }
+    @media (max-width: 900px) {
+      .body { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .search-trigger { width: 180px; }
+      .md { padding: 20px 16px; }
+      .main-inner { padding: 12px 12px 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="/" id="brand"><span class="brand-mark">cw</span><span>code-ws</span></a>
+      <div class="repo-chip">
+        <span class="sep">/</span>
+        <strong id="root-name">__CW_ROOT_NAME__</strong>
+        <span class="badge green">read-only</span>
+        <span class="badge watch-state" id="watch-state" hidden></span>
+      </div>
+      <div class="top-spacer"></div>
+      <button type="button" class="search-trigger" id="btn-open" aria-label="Go to file">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
+        <span class="grow">Go to file</span>
+        <span class="keys"><kbd>⌘</kbd><kbd>K</kbd></span>
+      </button>
+      <button type="button" class="btn" id="btn-copy">Copy URL</button>
+    </header>
+    <div class="body">
+      <aside class="sidebar" aria-label="Files">
+        <div class="sidebar-tree" id="tree"></div>
+        <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Resize files" aria-valuemin="180" aria-valuemax="600" aria-valuenow="280" tabindex="0"></div>
+      </aside>
+      <section class="main">
+        <div class="main-inner" id="content"><div class="empty">Loading…</div></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="palette-backdrop" id="palette" aria-hidden="true">
+    <div class="palette" role="dialog" aria-modal="true" aria-label="Go to file">
+      <div class="palette-input-wrap">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
+        <input id="palette-input" placeholder="Search files · .md .kt · recent" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="palette-results" id="palette-results"></div>
+      <div class="palette-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> open</span>
+        <span><kbd>esc</kbd> close</span>
+        <span>.md / type:kt filter</span>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast">Copied</div>
+  <div class="sym-pop" id="sym-pop" hidden></div>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true" aria-label="放大预览">
+    <div class="lightbox-stage" id="lightbox-stage"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
+  <script>
+
+    const ICO = {
+      folder: '<svg viewBox="0 0 16 16"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"/></svg>',
+      file: '<svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>',
+      chevron: '<svg viewBox="0 0 16 16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>',
+    };
+
+    const state = {
+      rootName: "__CW_ROOT_NAME__",
+      rootEntries: [],
+      // dirPath -> entries; 懒加载, 避免 monorepo 一次打爆侧栏.
+      treeKids: Object.create(null),
+      // 展开集合用 object, 免 Set 序列化问题.
+      expanded: Object.create(null),
+      files: [],
+      currentPath: "",
+      paletteOpen: false,
+      paletteItems: [],
+      paletteIndex: 0,
+      paletteMode: "files",
+      toastTimer: 0,
+      currentType: "",
+      watchStatus: "disabled",
+      watchSocket: null,
+      watchTimer: 0,
+      watchRetry: 0,
+      watchSeen: false,
+      watchQueue: Promise.resolve(),
+      lightboxOpen: false,
+      lineAnchor: 0,
+      hljsMiss: Object.create(null),
+      scripts: Object.create(null),
+      codeLines: [],
+      codePath: "",
+      symOpen: false,
+      fileSet: null,
+      fileSetSize: -1,
+    };
+
+    const RECENT_KEY = "code-ws.serve.recent.v1";
+    const RECENT_LIMIT = 20;
+
+    function loadRecent() {
+      try {
+        const raw = localStorage.getItem(RECENT_KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function pushRecent(path) {
+      if (!path) return;
+      const next = [path, ...loadRecent().filter((p) => p !== path)].slice(0, RECENT_LIMIT);
+      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch {}
+    }
+
+    mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "strict" });
+
+    function $(id) { return document.getElementById(id); }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function encodePath(p) {
+      if (!p) return "";
+      return p.split("/").map(encodeURIComponent).join("/");
+    }
+
+    function currentRelPath() {
+      const raw = location.pathname.replace(/^\/+/, "");
+      try { return decodeURIComponent(raw); } catch { return raw; }
+    }
+
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(() => el.classList.remove("show"), 1400);
+    }
+
+    // 图按视口完整放下; mermaid 太宽, 缩到视口字仍看不清, 所以保 1:1 让人滚着看.
+    function lightboxZoomSize(natW, natH, allowDownscale) {
+      const maxW = Math.max(120, window.innerWidth * 0.92);
+      const maxH = Math.max(120, window.innerHeight * 0.88);
+      const fit = Math.min(maxW / natW, maxH / natH);
+      const scale = allowDownscale ? fit : Math.max(fit, 1);
+      return { w: natW * scale, h: natH * scale };
+    }
+
+    function openLightbox(el) {
+      // 克隆而不是跳走, 是为了保住 mermaid 的主题 CSS (靠 svg id).
+      const stage = $("lightbox-stage");
+      stage.replaceChildren();
+      if (el.tagName === "IMG") {
+        const preview = document.createElement("img");
+        preview.src = el.currentSrc || el.src;
+        preview.alt = el.alt || "";
+        const applySize = () => {
+          const box = lightboxZoomSize(preview.naturalWidth, preview.naturalHeight, true);
+          preview.style.width = box.w + "px";
+          preview.style.height = box.h + "px";
+        };
+        if (preview.complete && preview.naturalWidth) applySize();
+        else preview.addEventListener("load", applySize);
+        stage.appendChild(preview);
+      } else {
+        const svg = el.querySelector("svg");
+        if (!svg) return;
+        const vb = svg.viewBox.baseVal;
+        if (!(vb.width > 0 && vb.height > 0)) return;
+        const preview = svg.cloneNode(true);
+        preview.removeAttribute("width");
+        preview.removeAttribute("height");
+        preview.style.cssText = "";
+        const box = lightboxZoomSize(vb.width, vb.height, false);
+        preview.setAttribute("width", String(box.w));
+        preview.setAttribute("height", String(box.h));
+        stage.appendChild(preview);
+      }
+      state.lightboxOpen = true;
+      $("lightbox").classList.add("open");
+      $("lightbox").setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      requestAnimationFrame(() => {
+        const lb = $("lightbox");
+        lb.scrollLeft = Math.max(0, (lb.scrollWidth - lb.clientWidth) / 2);
+        lb.scrollTop = Math.max(0, (lb.scrollHeight - lb.clientHeight) / 2);
+      });
+    }
+
+    function closeLightbox() {
+      if (!state.lightboxOpen) return;
+      state.lightboxOpen = false;
+      $("lightbox").classList.remove("open");
+      $("lightbox").setAttribute("aria-hidden", "true");
+      $("lightbox-stage").replaceChildren();
+      document.body.style.overflow = "";
+    }
+
+    function paintWatchStatus(status) {
+      const el = $("watch-state");
+      el.classList.remove("green", "warn");
+      if (status === "disabled") {
+        el.hidden = true;
+        return;
+      }
+      el.hidden = false;
+      if (status === "active") {
+        el.textContent = "watch active";
+        el.classList.add("green");
+        return;
+      }
+      if (status === "unavailable") {
+        el.textContent = "watch unavailable";
+        el.classList.add("warn");
+        return;
+      }
+      el.textContent = status === "disconnected" ? "watch disconnected" : "watch connecting";
+      el.classList.add("warn");
+    }
+
+    async function api(url) {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      return res.json();
+    }
+
+    async function ensureTree(dirPath) {
+      const key = dirPath || "";
+      if (state.treeKids[key]) return state.treeKids[key];
+      const data = await api("/api/tree?path=" + encodeURIComponent(key));
+      state.treeKids[key] = data.entries || [];
+      return state.treeKids[key];
+    }
+
+    function renderTreeNodes(entries, depth) {
+      return (entries || []).map((e) => {
+        const active = e.path === state.currentPath ? " active" : "";
+        const pad = 8 + depth * 12;
+        if (e.type === "dir") {
+          const open = !!state.expanded[e.path];
+          const kids = open ? (state.treeKids[e.path] || []) : [];
+          const row = '<div class="tree-item' + active + '" data-path="' + escapeHtml(e.path)
+            + '" style="padding-left:' + pad + 'px">'
+            + '<button type="button" class="tree-toggle' + (open ? " open" : "")
+            + '" data-tree-toggle="' + escapeHtml(e.path)
+            + '" aria-label="Toggle folder">' + ICO.chevron + "</button>"
+            + '<a class="tree-link" href="/' + encodePath(e.path) + '">'
+            + '<span class="ico">' + ICO.folder + '</span><span class="name">'
+            + escapeHtml(e.name) + "</span></a></div>"
+            + (open ? renderTreeNodes(kids, depth + 1) : "");
+          return row;
+        }
+        return '<div class="tree-item' + active + '" data-path="' + escapeHtml(e.path)
+          + '" style="padding-left:' + pad + 'px">'
+          + '<span class="tree-toggle spacer" aria-hidden="true"></span>'
+          + '<a class="tree-link" href="/' + encodePath(e.path) + '">'
+          + '<span class="ico">' + ICO.file + '</span><span class="name">'
+          + escapeHtml(e.name) + "</span></a></div>";
+      }).join("");
+    }
+
+    function paintTree() {
+      const list = state.treeKids[""] || state.rootEntries || [];
+      $("tree").innerHTML =
+        '<div class="sidebar-head"><span>Files</span><span class="badge">' + list.length + "</span></div>"
+        + renderTreeNodes(list, 0);
+    }
+
+    // 深链/跳转时沿祖先展开并滚到当前项, 侧栏与主区路径对齐.
+    async function revealTree(path) {
+      await ensureTree("");
+      if (path) {
+        const parts = path.split("/");
+        let acc = [];
+        for (let i = 0; i < parts.length - 1; i += 1) {
+          acc.push(parts[i]);
+          const dir = acc.join("/");
+          state.expanded[dir] = true;
+          await ensureTree(dir);
+        }
+      }
+      paintTree();
+      requestAnimationFrame(() => {
+        const active = document.querySelector(".tree-item.active");
+        if (active) active.scrollIntoView({ block: "nearest" });
+      });
+    }
+
+    function setActiveTree(path) {
+      for (const el of document.querySelectorAll(".tree-item")) {
+        el.classList.toggle("active", el.dataset.path === path);
+      }
+    }
+
+    function renderCrumbs(path) {
+      const parts = path ? path.split("/") : [];
+      let acc = [];
+      let html = '<nav class="pathbar"><a href="/">root</a>';
+      parts.forEach((part, i) => {
+        acc.push(part);
+        const full = acc.join("/");
+        html += '<span class="slash">/</span>';
+        if (i === parts.length - 1) {
+          html += '<span class="current">' + escapeHtml(part) + "</span>";
+        } else {
+          html += '<a href="/' + encodePath(full) + '">' + escapeHtml(part) + "</a>";
+        }
+      });
+      return html + "</nav>";
+    }
+
+    
+    function hasHljs() {
+      return typeof hljs !== "undefined" && hljs && typeof hljs.highlight === "function";
+    }
+
+    function hljsName(lang) {
+      if (lang === "tsx") return "typescript";
+      if (lang === "jsx") return "javascript";
+      if (!lang || lang === "plaintext") return "";
+      return lang;
+    }
+
+    // \u8BED\u8A00\u5305\u5931\u8D25\u5C31\u7EAF\u6587\u672C\u3002\u9010\u884C\u81EA\u52A8\u8BC6\u522B\u4F1A\u628A\u8DE8\u884C token \u5207\u788E\u540E\u67D3\u9519\u3002
+    async function ensureHljsLang(name) {
+      if (!name || !hasHljs()) return false;
+      if (hljs.getLanguage(name)) return true;
+      if (state.hljsMiss[name]) return false;
+      const url = "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/" + name + ".min.js";
+      try {
+        await loadScript(url);
+      } catch (err) {
+        state.hljsMiss[name] = true;
+        return false;
+      }
+      if (hljs.getLanguage(name)) return true;
+      state.hljsMiss[name] = true;
+      return false;
+    }
+
+    function splitHlLines(html) {
+      const lines = String(html).split("\n");
+      const open = [];
+      return lines.map((line) => {
+        const start = open.join("");
+        const re = /<\/span>|<span\b[^>]*>/g;
+        let m;
+        while ((m = re.exec(line))) {
+          if (m[0] === "</span>") open.pop();
+          else open.push(m[0]);
+        }
+        return start + line + "</span>".repeat(open.length);
+      });
+    }
+
+    async function highlightBlocks(root) {
+      if (!hasHljs() || !root) return;
+      const blocks = root.querySelectorAll("pre code");
+      for (const block of blocks) {
+        const cls = block.className || "";
+        const found = cls.match(/language-([\w#+.-]+)/);
+        const name = hljsName(found ? found[1] : "");
+        if (!name) continue;
+        const ok = await ensureHljsLang(name);
+        if (!ok) continue;
+        const src = block.textContent || "";
+        block.classList.add("hljs");
+        block.innerHTML = hljs.highlight(src, { language: name }).value;
+      }
+    }
+
+    function langFamily(lang) {
+      if (lang === "typescript" || lang === "tsx" || lang === "javascript" || lang === "jsx") return "js";
+      if (lang === "kotlin" || lang === "java") return "jvm";
+      if (lang === "go") return "go";
+      if (lang === "python") return "py";
+      if (lang === "c" || lang === "cpp") return "c";
+      return "";
+    }
+
+    function specsOnLine(line, lang) {
+      const family = langFamily(lang);
+      if (family === "js") return jsSpecs(line);
+      if (family === "jvm") return jvmSpecs(line);
+      if (family === "go") return goSpecs(line);
+      if (family === "py") return pySpecs(line);
+      if (family === "c") return cSpecs(line);
+      return [];
+    }
+
+    function jsSpecs(line) {
+      const out = [];
+      const re = /['"](\.[^'"]+)['"]/g;
+      let m;
+      while ((m = re.exec(line))) {
+        const spec = m[1];
+        const start = m.index + 1;
+        const pre = line.slice(Math.max(0, m.index - 30), m.index);
+        if (!/(?:from|import|require\(|import\()\s*$/.test(pre)) continue;
+        out.push({ start: start, end: start + spec.length, spec: spec });
+      }
+      return out;
+    }
+
+    function jvmSpecs(line) {
+      const m = line.match(/\bimport\s+(?:static\s+)?([A-Za-z_][\w.]*)/);
+      if (!m) return [];
+      const spec = m[1];
+      const start = m.index + m[0].length - spec.length;
+      return [{ start: start, end: start + spec.length, spec: spec }];
+    }
+
+    function goSpecs(line) {
+      if (!/^\s*import\b/.test(line) && !/^\s*(?:[A-Za-z0-9_.]+\s+)?"[^"]+"\s*$/.test(line)) return [];
+      const out = [];
+      const re = /"([^"]+)"/g;
+      let m;
+      while ((m = re.exec(line))) {
+        const spec = m[1];
+        if (!spec || spec.indexOf(" ") >= 0) continue;
+        const start = m.index + 1;
+        out.push({ start: start, end: start + spec.length, spec: spec });
+      }
+      return out;
+    }
+
+    function pySpecs(line) {
+      let m = line.match(/^\s*from\s+([A-Za-z_][\w.]*)\s+import\b/);
+      if (!m) m = line.match(/^\s*import\s+([A-Za-z_][\w.]*)/);
+      if (!m) return [];
+      const spec = m[1];
+      const start = line.indexOf(spec);
+      return [{ start: start, end: start + spec.length, spec: spec }];
+    }
+
+    function cSpecs(line) {
+      const m = line.match(/^\s*#\s*include\s+[<"]([^>"]+)[>"]/);
+      if (!m) return [];
+      const spec = m[1];
+      const start = line.indexOf(spec);
+      return [{ start: start, end: start + spec.length, spec: spec }];
+    }
+
+    function fileSet() {
+      if (!state.fileSet || state.fileSetSize !== state.files.length) {
+        state.fileSet = new Set(state.files);
+        state.fileSetSize = state.files.length;
+      }
+      return state.fileSet;
+    }
+
+    function joinPosix(dir, spec) {
+      const raw = (dir ? dir + "/" + spec : spec).split("/");
+      const parts = [];
+      for (const p of raw) {
+        if (!p || p === ".") continue;
+        if (p === "..") parts.pop();
+        else parts.push(p);
+      }
+      return parts.join("/");
+    }
+
+    function uniqueSuffix(suffix) {
+      let hit = "";
+      for (const f of state.files) {
+        if (f !== suffix && !f.endsWith("/" + suffix)) continue;
+        if (hit) return "";
+        hit = f;
+      }
+      return hit;
+    }
+
+    function resolveRel(fromFile, spec) {
+      if (!spec.startsWith(".")) return "";
+      const joined = joinPosix(parentOf(fromFile), spec);
+      const set = fileSet();
+      if (set.has(joined)) return joined;
+      const exts = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".css"];
+      const hits = [];
+      for (const ext of exts) {
+        const file = joined + ext;
+        const index = joined + "/index" + ext;
+        if (set.has(file)) hits.push(file);
+        if (set.has(index)) hits.push(index);
+      }
+      return hits.length === 1 ? hits[0] : "";
+    }
+
+    function resolveDotted(spec, exts) {
+      const parts = spec.split(".");
+      for (let i = parts.length; i >= 1; i -= 1) {
+        const suffix = parts.slice(0, i).join("/");
+        for (const ext of exts) {
+          const hit = uniqueSuffix(suffix + ext);
+          if (hit) return hit;
+        }
+        for (const ext of exts) {
+          const hit = uniqueSuffix(suffix + "/__init__" + ext);
+          if (hit) return hit;
+        }
+      }
+      return "";
+    }
+
+    function resolveGo(spec) {
+      const direct = uniqueSuffix(spec + ".go");
+      if (direct) return direct;
+      const hits = [];
+      const needle = "/" + spec + "/";
+      for (const f of state.files) {
+        if (!f.endsWith(".go")) continue;
+        if (f.startsWith(spec + "/") || f.indexOf(needle) >= 0) hits.push(f);
+        if (hits.length > 1) return "";
+      }
+      return hits.length === 1 ? hits[0] : "";
+    }
+
+    function resolveSpec(fromFile, spec, lang) {
+      const family = langFamily(lang);
+      if (family === "js") return resolveRel(fromFile, spec);
+      if (family === "jvm") return resolveDotted(spec, [".kt", ".kts", ".java"]);
+      if (family === "py") return resolveDotted(spec, [".py"]);
+      if (family === "go") return resolveGo(spec);
+      if (family === "c") return uniqueSuffix(spec);
+      return "";
+    }
+
+    function findLineLinks(line, path, lang) {
+      const specs = specsOnLine(line, lang);
+      const links = [];
+      for (const spec of specs) {
+        const target = resolveSpec(path, spec.spec, lang);
+        if (!target) continue;
+        links.push({ start: spec.start, end: spec.end, href: "/" + encodePath(target) });
+      }
+      return links;
+    }
+
+    function linkPlain(line, links) {
+      const sorted = links.slice().sort((a, b) => a.start - b.start);
+      let out = "";
+      let i = 0;
+      for (const link of sorted) {
+        if (link.start < i || link.end > line.length) continue;
+        out += escapeHtml(line.slice(i, link.start));
+        out += '<a class="jmp" href="' + escapeHtml(link.href) + '">' + escapeHtml(line.slice(link.start, link.end)) + "</a>";
+        i = link.end;
+      }
+      out += escapeHtml(line.slice(i));
+      return out || " ";
+    }
+
+    async function renderCodeHtml(content, lang, path) {
+      const src = String(content).replace(/\n$/, "");
+      const rawLines = src.split("\n");
+      state.codeLines = rawLines;
+      state.codePath = path || "";
+      const name = hljsName(lang);
+      let htmlLines = rawLines.map((line) => escapeHtml(line));
+      if (await ensureHljsLang(name)) {
+        const highlighted = hljs.highlight(src, { language: name }).value;
+        htmlLines = splitHlLines(highlighted);
+      }
+      const rows = rawLines.map((line, i) => {
+        const links = findLineLinks(line, path, lang);
+        let cell = links.length ? linkPlain(line, links) : (htmlLines[i] || "");
+        if (!cell) cell = " ";
+        const n = String(i + 1);
+        return '<tr data-line="' + n + '"><td class="ln" data-line="' + n + '">' + n + '</td><td class="code">' + cell + "</td></tr>";
+      }).join("");
+      return '<div class="code-wrap"><table class="code-table"><tbody>' + rows + "</tbody></table></div>";
+    }
+
+    async function mountCode(host, content, lang, path) {
+      if (!host) return;
+      host.innerHTML = await renderCodeHtml(content, lang, path);
+      bindCodeInteractions(host);
+      applyLineSelection();
+    }
+
+    function parseLineHash() {
+      const m = location.hash.match(/^#L(\d+)(?:-L(\d+))?$/i);
+      if (!m) return null;
+      const a = Number(m[1]);
+      const b = m[2] ? Number(m[2]) : a;
+      if (!a || !b) return null;
+      return { start: Math.min(a, b), end: Math.max(a, b) };
+    }
+
+    function applyLineSelection() {
+      const range = parseLineHash();
+      document.querySelectorAll(".code-table tr").forEach((tr) => {
+        const n = Number(tr.dataset.line);
+        const hot = !!(range && n >= range.start && n <= range.end);
+        tr.classList.toggle("line-hot", hot);
+      });
+      if (!range) return;
+      const row = document.querySelector('.code-table tr[data-line="' + range.start + '"]');
+      if (row) row.scrollIntoView({ block: "center" });
+    }
+
+    function setLineHash(hash) {
+      history.replaceState({}, "", location.pathname + location.search + hash);
+      applyLineSelection();
+    }
+
+    function caretPos(e) {
+      if (document.caretPositionFromPoint) {
+        const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+        if (!pos) return null;
+        return { node: pos.offsetNode, offset: pos.offset };
+      }
+      if (document.caretRangeFromPoint) {
+        const r = document.caretRangeFromPoint(e.clientX, e.clientY);
+        if (!r) return null;
+        return { node: r.startContainer, offset: r.startOffset };
+      }
+      return null;
+    }
+
+    function wordAtEvent(e, td) {
+      const tr = td.parentElement;
+      const lineNo = Number(tr && tr.dataset.line);
+      const line = (state.codeLines && state.codeLines[lineNo - 1]) || "";
+      const pos = caretPos(e);
+      if (!line || !pos || !pos.node || pos.node.nodeType !== 3) return "";
+      let col = 0;
+      let found = false;
+      const walker = document.createTreeWalker(td, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        if (walker.currentNode === pos.node) {
+          col += pos.offset;
+          found = true;
+          break;
+        }
+        col += (walker.currentNode.textContent || "").length;
+      }
+      if (!found) return "";
+      const re = /[A-Za-z_][A-Za-z0-9_]*/g;
+      let m;
+      while ((m = re.exec(line))) {
+        const end = m.index + m[0].length;
+        if (col >= m.index && col <= end) return m[0];
+      }
+      return "";
+    }
+
+    function closeSymPop() {
+      const pop = $("sym-pop");
+      if (!pop) return;
+      pop.hidden = true;
+      pop.innerHTML = "";
+      state.symOpen = false;
+    }
+
+    function openSymPop(x, y, word, hits, truncated) {
+      const pop = $("sym-pop");
+      if (!pop) return;
+      if (!hits.length) {
+        closeSymPop();
+        toast("No matches");
+        return;
+      }
+      let html = '<div class="sym-title">' + escapeHtml(word) + "</div>";
+      for (const hit of hits) {
+        html += '<button type="button" class="sym-hit" data-path="' + escapeHtml(hit.path)
+          + '" data-line="' + hit.line + '"><span class="k">' + hit.kind
+          + '</span><span class="p">' + escapeHtml(hit.path) + ":" + hit.line
+          + '</span><span class="t">' + escapeHtml(hit.text) + "</span></button>";
+      }
+      if (truncated) html += '<div class="sym-more">\u7ED3\u679C\u5DF2\u622A\u65AD</div>';
+      pop.innerHTML = html;
+      pop.hidden = false;
+      state.symOpen = true;
+      const left = Math.max(8, Math.min(x, window.innerWidth - 380));
+      const top = Math.max(8, Math.min(y + 8, window.innerHeight - 280));
+      pop.style.left = left + "px";
+      pop.style.top = top + "px";
+      pop.querySelectorAll(".sym-hit").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const path = btn.getAttribute("data-path") || "";
+          const line = btn.getAttribute("data-line") || "1";
+          closeSymPop();
+          navigate(path, "#L" + line);
+        });
+      });
+    }
+
+    async function onSymbolClick(e, word) {
+      let data;
+      try {
+        data = await api("/api/symbol?q=" + encodeURIComponent(word));
+      } catch (err) {
+        toast(err.message || String(err));
+        return;
+      }
+      const hits = data.hits || [];
+      const defs = hits.filter((hit) => hit.kind === "def");
+      if ((e.metaKey || e.ctrlKey) && defs.length === 1) {
+        closeSymPop();
+        navigate(defs[0].path, "#L" + defs[0].line);
+        return;
+      }
+      openSymPop(e.clientX, e.clientY, word, hits, !!data.truncated);
+    }
+
+    function bindCodeInteractions(host) {
+      host.addEventListener("click", (e) => {
+        if (e.target.closest("a")) return;
+        closeSymPop();
+        const ln = e.target.closest(".ln");
+        if (ln) {
+          e.preventDefault();
+          e.stopPropagation();
+          const n = Number(ln.dataset.line);
+          if (!n) return;
+          if (e.shiftKey && state.lineAnchor) {
+            const a = Math.min(state.lineAnchor, n);
+            const b = Math.max(state.lineAnchor, n);
+            setLineHash("#L" + a + "-L" + b);
+          } else {
+            state.lineAnchor = n;
+            setLineHash("#L" + n);
+          }
+          return;
+        }
+        const td = e.target.closest("td.code");
+        if (!td) return;
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed && td.contains(sel.anchorNode)) return;
+        const word = wordAtEvent(e, td);
+        if (word.length < 2) return;
+        e.stopPropagation();
+        onSymbolClick(e, word);
+      });
+    }
+
+
+    
+    function loadScript(url) {
+      if (state.scripts[url]) return state.scripts[url];
+      state.scripts[url] = new Promise((resolve, reject) => {
+        const el = document.createElement("script");
+        el.src = url;
+        el.async = true;
+        el.onload = () => resolve();
+        el.onerror = () => reject(new Error("\u811A\u672C\u52A0\u8F7D\u5931\u8D25"));
+        document.head.appendChild(el);
+      });
+      return state.scripts[url];
+    }
+
+    function fileBoxOpen(data, meta, actions) {
+      return renderCrumbs(data.path)
+        + '<div class="file-box"><div class="file-box-head"><div class="title">'
+        + '<span class="dir-ico">' + ICO.file + "</span>"
+        + '<span class="name">' + escapeHtml(data.name) + "</span></div>"
+        + '<div class="meta">' + meta + "</div>"
+        + '<div class="actions">' + actions + "</div></div>";
+    }
+
+    function bindCopy(path) {
+      const copyPath = $("copy-path");
+      if (!copyPath) return;
+      copyPath.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(path);
+          toast("Path copied");
+        } catch (err) {
+          toast(path);
+        }
+      });
+    }
+
+    function copyPathBtn() {
+      return '<button type="button" class="btn" id="copy-path">Copy path</button>';
+    }
+
+    function isRichKind(kind) {
+      return kind === "csv" || kind === "tsv" || kind === "jsonl" || kind === "xlsx"
+        || kind === "pdf" || kind === "docx" || kind === "video" || kind === "audio" || kind === "html";
+    }
+
+    function previewActions(data) {
+      const kind = data.preview || "";
+      const raw = '<a class="btn" href="/raw/' + encodePath(data.path) + '">Raw</a>';
+      if (kind === "html") {
+        return '<button type="button" class="btn active" data-pv-mode="preview">Preview</button>'
+          + '<button type="button" class="btn" data-pv-mode="code">Code</button>'
+          + '<a class="btn" target="_blank" rel="noreferrer" href="/raw/' + encodePath(data.path) + '">New Tab</a>'
+          + copyPathBtn();
+      }
+      if (kind === "csv" || kind === "tsv" || kind === "jsonl") {
+        return '<button type="button" class="btn active" data-pv-mode="table">Table</button>'
+          + '<button type="button" class="btn" data-pv-mode="code">Code</button>'
+          + raw + copyPathBtn();
+      }
+      return raw + copyPathBtn();
+    }
+
+    const PREVIEW_PAGE = 1000;
+    const SHEET_JS = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    const MAMMOTH_JS = "https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js";
+
+    function parseDelimited(text, sep) {
+      const src = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quote = false;
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        if (quote) {
+          if (ch === '"') {
+            if (src[i + 1] === '"') {
+              cell += '"';
+              i += 1;
+            } else {
+              quote = false;
+            }
+          } else {
+            cell += ch;
+          }
+          continue;
+        }
+        if (ch === '"') {
+          quote = true;
+          continue;
+        }
+        if (ch === sep) {
+          row.push(cell);
+          cell = "";
+          continue;
+        }
+        if (ch === "\n") {
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = "";
+          continue;
+        }
+        if (ch === "\r") continue;
+        cell += ch;
+      }
+      if (cell.length || row.length) {
+        row.push(cell);
+        rows.push(row);
+      }
+      if (!rows.length) return { header: [], body: [] };
+      let width = 0;
+      for (const item of rows) width = Math.max(width, item.length);
+      const norm = rows.map((item) => {
+        const copy = item.slice();
+        while (copy.length < width) copy.push("");
+        return copy;
+      });
+      const body = norm.slice(1).map((item, idx) => ({ n: idx + 2, cells: item }));
+      return { header: norm[0], body: body };
+    }
+
+    function cellText(value) {
+      if (value === undefined || value === null) return "";
+      if (typeof value === "object") return JSON.stringify(value);
+      return String(value);
+    }
+
+    function parseJsonl(text) {
+      const keys = [];
+      const records = [];
+      const lines = String(text).split("\n");
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const val = JSON.parse(line);
+          if (val && typeof val === "object" && !Array.isArray(val)) {
+            for (const key of Object.keys(val)) {
+              if (!keys.includes(key)) keys.push(key);
+            }
+            records.push(val);
+          } else {
+            if (!keys.includes("_value")) keys.push("_value");
+            records.push({ _value: val });
+          }
+        } catch (err) {
+          if (!keys.includes("_raw")) keys.push("_raw");
+          records.push({ _raw: line });
+        }
+      }
+      const body = records.map((rec, idx) => ({
+        n: idx + 1,
+        cells: keys.map((key) => cellText(rec[key])),
+      }));
+      return { header: keys, body: body };
+    }
+
+    async function fetchRawText(path) {
+      const res = await fetch("/raw/" + encodePath(path));
+      if (!res.ok) throw new Error("raw " + res.status);
+      return res.text();
+    }
+
+    async function fetchRawBuf(path) {
+      const res = await fetch("/raw/" + encodePath(path));
+      if (!res.ok) throw new Error("raw " + res.status);
+      return res.arrayBuffer();
+    }
+
+    function compareCells(a, b) {
+      return String(a ?? "").localeCompare(String(b ?? ""), undefined, { numeric: true, sensitivity: "base" });
+    }
+
+    function tableHtml(header, rows, sortCol, sortDir) {
+      let head = '<tr><th class="ln"></th>';
+      header.forEach((name, i) => {
+        const mark = sortCol === i ? (sortDir > 0 ? " \u2191" : " \u2193") : "";
+        head += '<th data-col="' + i + '">' + escapeHtml(name) + mark + "</th>";
+      });
+      head += "</tr>";
+      let body = "";
+      for (const row of rows) {
+        body += '<tr><td class="ln">' + row.n + "</td>";
+        for (let i = 0; i < header.length; i += 1) {
+          body += "<td>" + escapeHtml(row.cells[i] ?? "") + "</td>";
+        }
+        body += "</tr>";
+      }
+      return '<table class="grid"><thead>' + head + "</thead><tbody>" + body + "</tbody></table>";
+    }
+
+    // \u5408\u5E76\u5355\u5143\u683C\u7ED1\u5728\u539F\u59CB\u884C\u5217\u4E0A\u3002\u7B5B\u9009\u6216\u6392\u5E8F\u4F1A\u6253\u4E71\u51E0\u4F55, \u8FD9\u65F6\u6539\u753B\u666E\u901A\u7F51\u683C\u3002
+    function mountGrid(host, model) {
+      host.innerHTML = '<div class="preview-bar"><input class="grid-filter" placeholder="\u8FC7\u6EE4\u884C" />'
+        + '<span class="grid-count"></span></div><div class="grid-wrap"></div><div class="grid-foot"></div>';
+      const input = host.querySelector(".grid-filter");
+      const wrap = host.querySelector(".grid-wrap");
+      const foot = host.querySelector(".grid-foot");
+      const count = host.querySelector(".grid-count");
+      let query = "";
+      let sortCol = -1;
+      let sortDir = 1;
+      let shown = PREVIEW_PAGE;
+
+      function rowsNow() {
+        let rows = model.body;
+        if (query) {
+          const q = query.toLowerCase();
+          rows = rows.filter((row) => row.cells.some((cell) => String(cell).toLowerCase().includes(q)));
+        }
+        if (sortCol >= 0) {
+          const col = sortCol;
+          const dir = sortDir;
+          rows = rows.slice().sort((a, b) => compareCells(a.cells[col], b.cells[col]) * dir);
+        }
+        return rows;
+      }
+
+      function paint() {
+        const rows = rowsNow();
+        const slice = rows.slice(0, shown);
+        const useMerge = model.merges && model.merges.length && !query && sortCol < 0;
+        wrap.innerHTML = useMerge
+          ? mergeTable(model, shown)
+          : tableHtml(model.header, slice, sortCol, sortDir);
+        count.textContent = slice.length + " / " + rows.length;
+        foot.innerHTML = rows.length > shown
+          ? '<button type="button" class="btn" data-more>\u52A0\u8F7D\u66F4\u591A</button><button type="button" class="btn" data-all>\u5168\u90E8</button>'
+          : "";
+        wrap.querySelectorAll("th[data-col]").forEach((th) => {
+          th.addEventListener("click", () => {
+            const col = Number(th.getAttribute("data-col"));
+            if (sortCol === col) sortDir = -sortDir;
+            else {
+              sortCol = col;
+              sortDir = 1;
+            }
+            shown = PREVIEW_PAGE;
+            paint();
+          });
+        });
+        const more = foot.querySelector("[data-more]");
+        if (more) more.addEventListener("click", () => { shown += PREVIEW_PAGE; paint(); });
+        const all = foot.querySelector("[data-all]");
+        if (all) all.addEventListener("click", () => { shown = rows.length; paint(); });
+      }
+
+      input.addEventListener("input", () => {
+        query = input.value.trim();
+        shown = PREVIEW_PAGE;
+        paint();
+      });
+      paint();
+    }
+
+    function sheetMatrix(sheet) {
+      const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+      let width = 0;
+      for (const row of matrix) width = Math.max(width, row.length);
+      const norm = matrix.map((row) => {
+        const copy = row.map((cell) => cellText(cell));
+        while (copy.length < width) copy.push("");
+        return copy;
+      });
+      if (!norm.length) return { header: [], body: [] };
+      const body = norm.slice(1).map((cells, idx) => ({ n: idx + 2, cells: cells }));
+      return { header: norm[0], body: body, merges: sheet["!merges"] || [] };
+    }
+
+    function indexMerges(merges, rowCount) {
+      const skip = new Set();
+      const span = new Map();
+      for (const merge of merges) {
+        if (!merge || !merge.s || !merge.e) continue;
+        if (merge.e.r >= rowCount) continue;
+        const key = merge.s.r + "," + merge.s.c;
+        span.set(key, { rs: merge.e.r - merge.s.r + 1, cs: merge.e.c - merge.s.c + 1 });
+        for (let r = merge.s.r; r <= merge.e.r; r += 1) {
+          for (let c = merge.s.c; c <= merge.e.c; c += 1) {
+            if (r === merge.s.r && c === merge.s.c) continue;
+            skip.add(r + "," + c);
+          }
+        }
+      }
+      return { skip: skip, span: span };
+    }
+
+    function mergeTable(model, shown) {
+      const visible = model.body.slice(0, shown);
+      const rowCount = 1 + visible.length;
+      const indexed = indexMerges(model.merges || [], rowCount);
+      const header = model.header;
+      let html = '<tr><th class="ln">1</th>';
+      for (let c = 0; c < header.length; c += 1) {
+        if (indexed.skip.has("0," + c)) continue;
+        const box = indexed.span.get("0," + c);
+        const rs = box ? ' rowspan="' + box.rs + '"' : "";
+        const cs = box ? ' colspan="' + box.cs + '"' : "";
+        html += '<th data-col="' + c + '"' + rs + cs + ">" + escapeHtml(header[c] ?? "") + "</th>";
+      }
+      html += "</tr>";
+      visible.forEach((row, idx) => {
+        const r = idx + 1;
+        html += "<tr><td class=\"ln\">" + row.n + "</td>";
+        for (let c = 0; c < header.length; c += 1) {
+          if (indexed.skip.has(r + "," + c)) continue;
+          const box = indexed.span.get(r + "," + c);
+          const rs = box ? ' rowspan="' + box.rs + '"' : "";
+          const cs = box ? ' colspan="' + box.cs + '"' : "";
+          html += "<td" + rs + cs + ">" + escapeHtml(row.cells[c] ?? "") + "</td>";
+        }
+        html += "</tr>";
+      });
+      return '<table class="grid"><tbody>' + html + "</tbody></table>";
+    }
+
+    async function mountExcel(host, path) {
+      await loadScript(SHEET_JS);
+      if (!window.XLSX) throw new Error("SheetJS \u672A\u52A0\u8F7D");
+      const buf = await fetchRawBuf(path);
+      const wb = XLSX.read(buf, { type: "array" });
+      const names = wb.SheetNames || [];
+      if (!names.length) {
+        host.innerHTML = '<div class="empty">\u7A7A\u5DE5\u4F5C\u7C3F</div>';
+        return;
+      }
+      let name = names[0];
+      host.innerHTML = '<div class="sheet-tabs"></div><div class="grid-host"></div>';
+      const tabs = host.querySelector(".sheet-tabs");
+      const gridHost = host.querySelector(".grid-host");
+      const show = () => {
+        tabs.innerHTML = names.map((item) => {
+          const cls = item === name ? "btn active" : "btn";
+          return '<button type="button" class="' + cls + '" data-sheet="' + escapeHtml(item) + '">' + escapeHtml(item) + "</button>";
+        }).join("");
+        tabs.querySelectorAll("[data-sheet]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            name = btn.getAttribute("data-sheet") || name;
+            show();
+          });
+        });
+        mountGrid(gridHost, sheetMatrix(wb.Sheets[name]));
+      };
+      show();
+    }
+
+    async function mountDocx(host, path) {
+      await loadScript(MAMMOTH_JS);
+      if (!window.mammoth) throw new Error("mammoth \u672A\u52A0\u8F7D");
+      const buf = await fetchRawBuf(path);
+      const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+      host.innerHTML = '<article class="docx md">' + (result.value || "") + "</article>";
+    }
+
+    async function renderRichPreview(data) {
+      const host = $("pv-root");
+      if (!host) return;
+      const kind = data.preview;
+      let mode = kind === "csv" || kind === "tsv" || kind === "jsonl" ? "table" : "preview";
+
+      async function paint() {
+        host.innerHTML = '<div class="empty">Loading\u2026</div>';
+        try {
+          if (mode === "code") {
+            const text = data.content !== undefined ? data.content : await fetchRawText(data.path);
+            await mountCode(host, text, data.language || "plaintext", data.path);
+            return;
+          }
+          if (kind === "csv" || kind === "tsv") {
+            const text = data.content !== undefined ? data.content : await fetchRawText(data.path);
+            const sep = kind === "tsv" ? "\t" : ",";
+            mountGrid(host, parseDelimited(text, sep));
+            return;
+          }
+          if (kind === "jsonl") {
+            const text = data.content !== undefined ? data.content : await fetchRawText(data.path);
+            mountGrid(host, parseJsonl(text));
+            return;
+          }
+          if (kind === "xlsx") {
+            await mountExcel(host, data.path);
+            return;
+          }
+          if (kind === "docx") {
+            await mountDocx(host, data.path);
+            return;
+          }
+          if (kind === "pdf") {
+            host.innerHTML = '<iframe class="pdf-frame" title="pdf" src="/raw/' + encodePath(data.path) + '"></iframe>';
+            return;
+          }
+          if (kind === "video") {
+            host.innerHTML = '<div class="media-wrap"><video controls src="/raw/' + encodePath(data.path) + '"></video></div>';
+            return;
+          }
+          if (kind === "audio") {
+            host.innerHTML = '<div class="media-wrap"><audio controls src="/raw/' + encodePath(data.path) + '"></audio></div>';
+            return;
+          }
+          if (kind === "html") {
+            // \u540C\u6E90\u624D\u80FD\u8DD1\u76F8\u5BF9 module \u548C\u62A5\u8868\u811A\u672C; \u8FD9\u662F\u672C\u5730\u53EA\u8BFB\u9884\u89C8, \u6587\u4EF6\u6765\u81EA\u5F53\u524D\u5DE5\u4F5C\u533A\u3002
+            host.innerHTML = '<iframe class="html-frame" title="html" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" src="/raw/' + encodePath(data.path) + '"></iframe>';
+          }
+        } catch (err) {
+          host.innerHTML = '<div class="err">' + escapeHtml(err.message || String(err)) + "</div>";
+        }
+      }
+
+      document.querySelectorAll("[data-pv-mode]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          mode = btn.getAttribute("data-pv-mode") || mode;
+          document.querySelectorAll("[data-pv-mode]").forEach((item) => {
+            item.classList.toggle("active", item === btn);
+          });
+          paint();
+        });
+      });
+      await paint();
+    }
+
+
+    function resolveMdHref(srcPath, href, kind) {
+      if (!href || href.charAt(0) === "#" || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href) || href.indexOf("//") === 0) {
+        return href;
+      }
+      var pathPart = href;
+      var suffix = "";
+      var q = href.indexOf("?");
+      var h = href.indexOf("#");
+      var cut = -1;
+      if (q >= 0 && (h < 0 || q < h)) cut = q;
+      else if (h >= 0) cut = h;
+      if (cut >= 0) {
+        pathPart = href.slice(0, cut);
+        suffix = href.slice(cut);
+      }
+      if (!pathPart) return href;
+      if (pathPart.indexOf("/raw/") === 0 || pathPart.indexOf("/api/") === 0) {
+        return pathPart + suffix;
+      }
+      var src = String(srcPath || "").replace(/\\/g, "/");
+      var slash = src.lastIndexOf("/");
+      var dir = slash >= 0 ? src.slice(0, slash) : "";
+      var raw = pathPart.charAt(0) === "/" ? pathPart : (dir ? dir + "/" + pathPart : pathPart);
+      var segs = [];
+      var pieces = raw.replace(/\\/g, "/").split("/");
+      for (var i = 0; i < pieces.length; i++) {
+        var seg = pieces[i];
+        if (!seg || seg === ".") continue;
+        if (seg === "..") {
+          if (segs.length) segs.pop();
+          continue;
+        }
+        segs.push(seg);
+      }
+      var encoded = segs.map(encodeURIComponent).join("/");
+      if (kind === "image") return "/raw/" + encoded + suffix;
+      return "/" + encoded + suffix;
+    }
+
+    
+    const SIDEBAR_W_KEY = "code-ws.serve.sidebarW.v1";
+    const SIDEBAR_W_MIN = 180;
+    const SIDEBAR_W_DEFAULT = 280;
+    const SIDEBAR_W_MAX_RATIO = 0.6;
+
+    function clampSidebarW(px, viewW) {
+      const max = Math.max(SIDEBAR_W_MIN, Math.floor(viewW * SIDEBAR_W_MAX_RATIO));
+      return Math.min(max, Math.max(SIDEBAR_W_MIN, Math.round(px)));
+    }
+
+    function applySidebarW(px) {
+      const w = clampSidebarW(px, window.innerWidth);
+      document.documentElement.style.setProperty("--sidebarW", w + "px");
+      const handle = $("sidebar-resizer");
+      if (handle) {
+        handle.setAttribute("aria-valuenow", String(w));
+        handle.setAttribute("aria-valuemin", String(SIDEBAR_W_MIN));
+        handle.setAttribute("aria-valuemax", String(Math.max(
+          SIDEBAR_W_MIN,
+          Math.floor(window.innerWidth * SIDEBAR_W_MAX_RATIO),
+        )));
+      }
+      return w;
+    }
+
+    function readSidebarW() {
+      const raw = getComputedStyle(document.documentElement).getPropertyValue("--sidebarW");
+      const n = parseFloat(raw);
+      return Number.isFinite(n) ? n : SIDEBAR_W_DEFAULT;
+    }
+
+    function loadSidebarW() {
+      try {
+        const raw = localStorage.getItem(SIDEBAR_W_KEY);
+        if (raw == null) {
+          applySidebarW(SIDEBAR_W_DEFAULT);
+          return;
+        }
+        const n = Number(raw);
+        applySidebarW(Number.isFinite(n) ? n : SIDEBAR_W_DEFAULT);
+      } catch {
+        applySidebarW(SIDEBAR_W_DEFAULT);
+      }
+    }
+
+    function saveSidebarW(px) {
+      try { localStorage.setItem(SIDEBAR_W_KEY, String(px)); } catch {}
+    }
+
+    function bindSidebarResize() {
+      const handle = $("sidebar-resizer");
+      if (!handle) return;
+      let startX = 0;
+      let startW = 0;
+
+      function onMove(e) {
+        applySidebarW(startW + (e.clientX - startX));
+      }
+
+      function onUp(e) {
+        document.body.classList.remove("sidebar-resizing");
+        handle.releasePointerCapture(e.pointerId);
+        handle.removeEventListener("pointermove", onMove);
+        handle.removeEventListener("pointerup", onUp);
+        handle.removeEventListener("pointercancel", onUp);
+        saveSidebarW(applySidebarW(startW + (e.clientX - startX)));
+      }
+
+      handle.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        startX = e.clientX;
+        startW = readSidebarW();
+        document.body.classList.add("sidebar-resizing");
+        handle.setPointerCapture(e.pointerId);
+        handle.addEventListener("pointermove", onMove);
+        handle.addEventListener("pointerup", onUp);
+        handle.addEventListener("pointercancel", onUp);
+      });
+
+      handle.addEventListener("dblclick", () => {
+        saveSidebarW(applySidebarW(SIDEBAR_W_DEFAULT));
+      });
+
+      handle.addEventListener("keydown", (e) => {
+        const step = e.shiftKey ? 48 : 16;
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          saveSidebarW(applySidebarW(readSidebarW() - step));
+          return;
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          saveSidebarW(applySidebarW(readSidebarW() + step));
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        if (document.body.classList.contains("sidebar-resizing")) return;
+        applySidebarW(readSidebarW());
+      });
+    }
+
+
+    // 必须传入源文件路径: 目录页内嵌 README 时当前 URL 不是 md 自己.
+    function renderMarkdown(src, srcPath) {
+      const renderer = new marked.Renderer();
+      const rawCode = renderer.code.bind(renderer);
+      renderer.code = function(token) {
+        const lang = ((token && token.lang) || "").trim();
+        if (lang === "mermaid") {
+          return '<div class="mermaid">' + escapeHtml(token.text) + "</div>";
+        }
+        return rawCode(token);
+      };
+      return marked.parse(src, {
+        gfm: true,
+        renderer,
+        walkTokens: function(token) {
+          if ((token.type === "link" || token.type === "image") && token.href) {
+            token.href = resolveMdHref(srcPath, token.href, token.type);
+          }
+        },
+      });
+    }
+
+    async function renderBlob(path, opts) {
+      opts = opts || {};
+      const content = $("content");
+      const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
+      const scrollRatio = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+      content.innerHTML = '<div class="empty">Loading…</div>';
+      try {
+        const data = await api("/api/blob?path=" + encodeURIComponent(path));
+        state.currentPath = data.path || "";
+        state.currentType = data.type || "";
+        if (state.currentPath) pushRecent(state.currentPath);
+        if (data.type === "dir" && !path) {
+          state.rootEntries = data.entries || [];
+          state.treeKids[""] = state.rootEntries;
+        }
+        await revealTree(state.currentPath);
+
+        if (data.type === "dir") {
+          const rows = (data.entries || []).map((e) => {
+            const ico = e.type === "dir" ? ICO.folder : ICO.file;
+            const cls = e.type === "dir" ? "dir-ico folder" : "dir-ico";
+            return '<tr><td><div class="name-cell"><span class="' + cls + '">' + ico
+              + '</span><a href="/' + encodePath(e.path) + '">' + escapeHtml(e.name)
+              + (e.type === "dir" ? "/" : "") + "</a></div></td>"
+              + '<td class="type-cell">' + (e.type === "dir" ? "dir" : "file") + "</td></tr>";
+          }).join("");
+          // GitHub 目录页语义: 目录树 + 同层 README, 路由仍停在目录本身.
+          content.innerHTML = renderCrumbs(data.path)
+            + '<div class="file-box"><div class="file-box-head"><div class="title">'
+            + '<span class="dir-ico folder">' + ICO.folder + "</span>"
+            + '<span class="name">' + escapeHtml(data.name || state.rootName) + "</span></div>"
+            + '<div class="meta">' + (data.entries || []).length + " items</div></div>"
+            + '<table class="dir-table"><tbody>' + rows + "</tbody></table></div>"
+            + '<div id="readme-slot"></div>';
+          const readmePath = data.readme || "";
+          if (readmePath) {
+            try {
+              const rd = await api("/api/blob?path=" + encodeURIComponent(readmePath));
+              const slot = $("readme-slot");
+              if (slot && rd.type === "file" && !rd.binary && rd.content !== undefined) {
+                const head = '<div style="height:16px"></div><div class="file-box">'
+                  + '<div class="file-box-head"><div class="title">'
+                  + '<span class="dir-ico">' + ICO.file + "</span>"
+                  + '<span class="name">' + escapeHtml(rd.name) + "</span></div>"
+                  + '<div class="meta">README</div>'
+                  + '<div class="actions"><a class="btn" href="/' + encodePath(rd.path) + '">Open</a></div></div>';
+                if (rd.language === "markdown") {
+                  slot.innerHTML = head + '<article class="md">' + renderMarkdown(rd.content, rd.path) + "</article></div>";
+                  await highlightBlocks(slot);
+                  const nodes = slot.querySelectorAll(".mermaid");
+                  if (nodes.length) await mermaid.run({ nodes });
+                } else {
+                  slot.innerHTML = head + '<div id="readme-code"></div></div>';
+                  await mountCode($("readme-code"), rd.content, rd.language || "plaintext", rd.path);
+                }
+              }
+            } catch (readmeErr) {
+              const slot = $("readme-slot");
+              if (slot) {
+                slot.innerHTML = '<div style="height:16px"></div><div class="file-box"><div class="empty">README: '
+                  + escapeHtml(readmeErr.message || String(readmeErr)) + "</div></div>";
+              }
+            }
+          }
+          return;
+        }
+
+        const kind = data.preview || "";
+        if (kind === "image" || data.language === "image") {
+          content.innerHTML = fileBoxOpen(data, data.size + " bytes", '<a class="btn" href="/raw/' + encodePath(data.path) + '">Raw</a>')
+            + '<div class="img-wrap"><img src="/raw/' + encodePath(data.path)
+            + '" alt="' + escapeHtml(data.name) + '" /></div></div>';
+          return;
+        }
+
+        if (isRichKind(kind)) {
+          const meta = escapeHtml(kind) + " · " + data.size + " bytes";
+          content.innerHTML = fileBoxOpen(data, meta, previewActions(data))
+            + '<div id="pv-root"></div></div>';
+          bindCopy(data.path);
+          await renderRichPreview(data);
+          return;
+        }
+
+        if (data.binary || data.content === undefined) {
+          content.innerHTML = fileBoxOpen(
+            data,
+            "binary · " + data.size + " bytes",
+            '<a class="btn" href="/raw/' + encodePath(data.path) + '">Download</a>',
+          ) + '<div class="empty">Binary file is not inlined.</div></div>';
+          return;
+        }
+
+        if (kind === "markdown" || data.language === "markdown") {
+          const html = renderMarkdown(data.content, data.path);
+          content.innerHTML = fileBoxOpen(
+            data,
+            "markdown · " + data.size + " bytes",
+            previewActions(data),
+          ) + '<article class="md" id="md-view">' + html + "</article></div>";
+          bindCopy(data.path);
+          await highlightBlocks(content);
+          const nodes = content.querySelectorAll(".mermaid");
+          if (nodes.length) {
+            await mermaid.run({ nodes });
+          }
+          return;
+        }
+
+        const lang = data.language || "plaintext";
+        content.innerHTML = fileBoxOpen(
+          data,
+          escapeHtml(lang) + " · " + data.size + " bytes",
+          previewActions(data),
+        ) + '<div id="code-root"></div></div>';
+        bindCopy(data.path);
+        await mountCode($("code-root"), data.content, lang, data.path);
+      } catch (err) {
+        const msg = err.message || String(err);
+        if (opts.deleted && msg === "not found") {
+          state.currentPath = path;
+          state.currentType = "deleted";
+          setActiveTree(path);
+          content.innerHTML = renderCrumbs(path) + '<div class="empty">File deleted</div>';
+        } else {
+          content.innerHTML = '<div class="err">' + escapeHtml(msg) + "</div>";
+        }
+      } finally {
+        if (opts.preserveScroll) {
+          requestAnimationFrame(() => {
+            const nextMax = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
+            window.scrollTo(0, nextMax * scrollRatio);
+          });
+        }
+      }
+    }
+
+    const TYPE_ALIASES = {
+      md: [".md", ".markdown"], markdown: [".md", ".markdown"],
+      kt: [".kt", ".kts"], kotlin: [".kt", ".kts"],
+      ts: [".ts", ".tsx"], js: [".js", ".jsx", ".mjs", ".cjs"],
+      py: [".py"], go: [".go"], rs: [".rs"], java: [".java"],
+      json: [".json"], yml: [".yml", ".yaml"], yaml: [".yml", ".yaml"],
+    };
+
+    function parseSearchQuery(raw) {
+      const terms = [];
+      const exts = [];
+      for (const token of raw.trim().split(/\s+/).filter(Boolean)) {
+        const lower = token.toLowerCase();
+        if (lower.startsWith("ext:") || lower.startsWith("type:")) {
+          const val = lower.slice(lower.indexOf(":") + 1).replace(/^\./, "");
+          if (!val) continue;
+          const mapped = TYPE_ALIASES[val];
+          if (mapped) mapped.forEach((e) => { if (!exts.includes(e)) exts.push(e); });
+          else if (!exts.includes("." + val)) exts.push("." + val);
+          continue;
+        }
+        if (lower.startsWith(".") && lower.length > 1 && !lower.slice(1).includes("/")) {
+          if (!exts.includes(lower)) exts.push(lower);
+          continue;
+        }
+        terms.push(token);
+      }
+      return { terms, exts };
+    }
+
+    function basenameOf(path) {
+      const i = path.lastIndexOf("/");
+      return i >= 0 ? path.slice(i + 1) : path;
+    }
+
+    function extOf(path) {
+      const base = basenameOf(path).toLowerCase();
+      const dot = base.lastIndexOf(".");
+      return dot > 0 ? base.slice(dot) : "";
+    }
+
+    function parentOf(path) {
+      const i = path.lastIndexOf("/");
+      return i >= 0 ? path.slice(0, i) : "";
+    }
+
+    // fzf 风格: 连续命中加分, 间隙过大直接丢弃, 避免 readme 命中 dt-metadata.
+    function fuzzyScore(text, query) {
+      if (!query) return 0;
+      const hay = text.toLowerCase();
+      const needle = query.toLowerCase();
+      if (hay === needle) return 10000;
+      const exact = hay.indexOf(needle);
+      if (exact >= 0) {
+        let score = 5000 - exact * 2 - Math.max(0, hay.length - needle.length);
+        if (exact === 0) score += 800;
+        else {
+          const prev = hay[exact - 1];
+          if (prev === "/" || prev === "-" || prev === "_" || prev === ".") score += 400;
+        }
+        return score;
+      }
+      let qi = 0, score = 0, prevMatch = -2, gaps = 0;
+      for (let i = 0; i < hay.length && qi < needle.length; i++) {
+        if (hay[i] !== needle[qi]) continue;
+        let gain = 12;
+        if (i === prevMatch + 1) gain += 48;
+        else if (prevMatch >= 0) {
+          gaps += i - prevMatch - 1;
+          gain -= Math.min(30, (i - prevMatch - 1) * 4);
+        }
+        if (i === 0) gain += 24;
+        else {
+          const prev = hay[i - 1];
+          if (prev === "/" || prev === "-" || prev === "_" || prev === ".") gain += 20;
+        }
+        score += gain;
+        prevMatch = i;
+        qi += 1;
+      }
+      if (qi < needle.length) return -1;
+      if (gaps > Math.max(4, needle.length)) return -1;
+      score -= gaps * 6 + Math.max(0, hay.length - needle.length);
+      return score > 0 ? score : -1;
+    }
+
+    function scorePath(path, query) {
+      if (query.exts.length) {
+        if (!query.exts.includes(extOf(path))) return -1;
+      }
+      if (!query.terms.length) return query.exts.length ? 1 : 0;
+      const base = basenameOf(path);
+      let total = 0;
+      for (const term of query.terms) {
+        const baseScore = fuzzyScore(base, term);
+        const pathScore = fuzzyScore(path, term);
+        const fileLike = term.includes(".");
+        if (fileLike && baseScore < 0) return -1;
+        const best = Math.max(baseScore >= 0 ? baseScore + 1200 : -1, fileLike ? -1 : pathScore);
+        if (best < 0) return -1;
+        total += best;
+      }
+      total -= Math.min(80, path.split("/").length * 4);
+      return total;
+    }
+
+    function rankPaths(files, rawQuery, recent, limit) {
+      limit = limit || 50;
+      const query = parseSearchQuery(rawQuery);
+      const empty = !query.terms.length && !query.exts.length;
+      if (empty) {
+        const seen = new Set();
+        const out = [];
+        for (const path of recent) {
+          if (!files.includes(path) || seen.has(path)) continue;
+          seen.add(path);
+          out.push({ path, score: 1000000 - out.length, recent: true });
+          if (out.length >= limit) return out;
+        }
+        for (const path of files) {
+          if (seen.has(path)) continue;
+          out.push({ path, score: 0, recent: false });
+          if (out.length >= limit) break;
+        }
+        return out;
+      }
+      const boost = new Map();
+      recent.forEach((path, idx) => boost.set(path, Math.max(0, 200 - idx * 8)));
+      const ranked = [];
+      for (const path of files) {
+        const base = scorePath(path, query);
+        if (base < 0) continue;
+        ranked.push({ path, score: base + (boost.get(path) || 0), recent: boost.has(path) });
+      }
+      ranked.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+      return ranked.slice(0, limit);
+    }
+
+    function openPalette() {
+      state.paletteOpen = true;
+      $("palette").classList.add("open");
+      $("palette").setAttribute("aria-hidden", "false");
+      $("palette-input").value = "";
+      renderPalette("");
+      $("palette-input").focus();
+    }
+
+    function closePalette() {
+      state.paletteOpen = false;
+      $("palette").classList.remove("open");
+      $("palette").setAttribute("aria-hidden", "true");
+    }
+
+    function renderPalette(query) {
+      const ranked = rankPaths(state.files, query || "", loadRecent(), 50);
+      state.paletteItems = ranked.map((x) => x.path);
+      state.paletteMeta = ranked;
+      state.paletteIndex = 0;
+      state.paletteMode = (!query || !query.trim()) ? "recent" : "search";
+      paintPalette();
+    }
+
+    function paintPalette() {
+      const box = $("palette-results");
+      const meta = state.paletteMeta || [];
+      if (!meta.length) {
+        box.innerHTML = '<div class="palette-empty">No matching files</div>';
+        return;
+      }
+      const emptyMode = state.paletteMode === "recent";
+      let html = "";
+      let paintedRecentHead = false;
+      let paintedFilesHead = false;
+      meta.forEach((item, idx) => {
+        if (emptyMode && item.recent && !paintedRecentHead) {
+          html += '<div class="palette-section">Recent</div>';
+          paintedRecentHead = true;
+        } else if (emptyMode && !item.recent && !paintedFilesHead) {
+          html += '<div class="palette-section">Files</div>';
+          paintedFilesHead = true;
+        }
+        const cls = idx === state.paletteIndex ? " active" : "";
+        const base = basenameOf(item.path);
+        const parent = parentOf(item.path);
+        const ext = extOf(item.path).replace(/^\./, "") || "file";
+        html += '<button type="button" class="palette-item' + cls + '" data-idx="' + idx + '">'
+          + '<span class="dir-ico">' + ICO.file + '</span>'
+          + '<span class="meta"><span class="name">' + escapeHtml(base) + '</span>'
+          + (parent ? '<span class="sub">' + escapeHtml(parent) + '</span>' : '')
+          + '</span><span class="ext">' + escapeHtml(ext) + '</span></button>';
+      });
+      box.innerHTML = html;
+      for (const btn of box.querySelectorAll(".palette-item")) {
+        btn.addEventListener("click", () => {
+          navigate(state.paletteItems[Number(btn.dataset.idx)] || "");
+          closePalette();
+        });
+      }
+      const active = box.querySelector(".palette-item.active");
+      if (active) active.scrollIntoView({ block: "nearest" });
+    }
+
+    function navigate(path, hash) {
+      pushRecent(path);
+      const url = "/" + encodePath(path) + (hash || "");
+      history.pushState({}, "", url);
+      renderBlob(path);
+    }
+
+    async function refreshTreeDirs(dirs) {
+      const targets = [...new Set(dirs)];
+      for (const dir of targets) {
+        delete state.treeKids[dir];
+      }
+      for (const dir of targets) {
+        if (dir !== "" && !state.expanded[dir]) continue;
+        try {
+          await ensureTree(dir);
+        } catch {
+          delete state.treeKids[dir];
+          delete state.expanded[dir];
+        }
+      }
+      state.rootEntries = state.treeKids[""] || [];
+      paintTree();
+      setActiveTree(state.currentPath);
+    }
+
+    async function refreshIndex() {
+      const idx = await api("/api/index");
+      state.files = idx.files || [];
+      if (state.paletteOpen) {
+        renderPalette($("palette-input").value || "");
+      }
+    }
+
+    async function resyncWatch() {
+      await refreshIndex();
+      const dirs = ["", ...Object.keys(state.expanded)];
+      await refreshTreeDirs(dirs);
+      await renderBlob(currentRelPath(), {
+        preserveScroll: true,
+        deleted: true,
+      });
+    }
+
+    function currentAffected(change) {
+      const path = state.currentPath;
+      if (change.path === path || path.startsWith(change.path + "/")) {
+        return true;
+      }
+      return state.currentType === "dir" && parentOf(change.path) === path;
+    }
+
+    async function applyWatchEvent(event) {
+      if (event.type === "resync") {
+        await resyncWatch();
+        return;
+      }
+      if (event.type !== "files-changed" || !Array.isArray(event.changes)) {
+        return;
+      }
+
+      const topology = event.changes.some((change) => change.kind !== "change");
+      if (topology) {
+        await refreshIndex();
+      }
+
+      const dirs = new Set();
+      let affected = false;
+      let deleted = false;
+      for (const change of event.changes) {
+        affected ||= currentAffected(change);
+        deleted ||= change.kind === "delete"
+          && (state.currentPath === change.path || state.currentPath.startsWith(change.path + "/"));
+        if (change.kind === "change") continue;
+        dirs.add(parentOf(change.path));
+        if (change.kind === "delete") {
+          for (const dir of Object.keys(state.treeKids)) {
+            if (dir === change.path || dir.startsWith(change.path + "/")) {
+              delete state.treeKids[dir];
+              delete state.expanded[dir];
+            }
+          }
+        }
+      }
+      if (dirs.size > 0) {
+        await refreshTreeDirs([...dirs]);
+      }
+      if (affected) {
+        await renderBlob(currentRelPath(), {
+          preserveScroll: true,
+          deleted,
+        });
+      }
+    }
+
+    function enqueueWatch(event) {
+      state.watchQueue = state.watchQueue
+        .then(() => applyWatchEvent(event))
+        .catch((err) => toast(err.message || String(err)));
+    }
+
+    function scheduleWatchReconnect() {
+      const delays = [500, 1000, 2000, 5000];
+      const idx = Math.min(state.watchRetry, delays.length - 1);
+      clearTimeout(state.watchTimer);
+      state.watchTimer = setTimeout(connectWatch, delays[idx]);
+      state.watchRetry += 1;
+    }
+
+    function connectWatch() {
+      if (state.watchStatus !== "active") return;
+      paintWatchStatus("connecting");
+      const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+      const ws = new WebSocket(scheme + "//" + location.host + "/api/watch");
+      state.watchSocket = ws;
+      ws.addEventListener("open", () => {
+        const reconnect = state.watchSeen;
+        state.watchSeen = true;
+        state.watchRetry = 0;
+        paintWatchStatus("active");
+        if (reconnect) enqueueWatch({ type: "resync" });
+      });
+      ws.addEventListener("message", (msg) => {
+        try {
+          const event = JSON.parse(String(msg.data));
+          if (event.type === "watch-status" && event.status === "unavailable") {
+            state.watchStatus = "unavailable";
+            paintWatchStatus("unavailable");
+            ws.close();
+            return;
+          }
+          enqueueWatch(event);
+        } catch {
+          toast("Invalid watch event");
+        }
+      });
+      ws.addEventListener("error", () => ws.close());
+      ws.addEventListener("close", () => {
+        if (state.watchSocket === ws) state.watchSocket = null;
+        if (state.watchStatus !== "active") return;
+        paintWatchStatus("disconnected");
+        scheduleWatchReconnect();
+      });
+    }
+
+    async function boot() {
+      // 先拿启动期投影再连 watch, 避免首屏与变更事件交叉。
+      try {
+        const [idx, meta, root] = await Promise.all([
+          api("/api/index"),
+          api("/api/meta"),
+          api("/api/blob?path="),
+        ]);
+        state.files = idx.files || [];
+        state.watchStatus = meta.watch;
+        paintWatchStatus(state.watchStatus);
+        if (root.type === "dir") {
+          state.rootEntries = root.entries || [];
+          state.treeKids[""] = state.rootEntries;
+        }
+      } catch (err) {
+        $("tree").innerHTML = '<div class="err">' + escapeHtml(err.message || String(err)) + "</div>";
+      }
+      // renderBlob 内 revealTree 会按深链展开侧栏.
+      await renderBlob(currentRelPath());
+      if (state.watchStatus === "active") {
+        connectWatch();
+      }
+    }
+
+    $("btn-open").addEventListener("click", openPalette);
+    $("btn-copy").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(location.href);
+        toast("URL copied");
+      } catch {
+        prompt("Copy URL", location.href);
+      }
+    });
+    $("palette").addEventListener("click", (e) => {
+      if (e.target === $("palette")) closePalette();
+    });
+    $("palette-input").addEventListener("input", (e) => {
+      renderPalette(e.target.value || "");
+    });
+
+    window.addEventListener("keydown", (e) => {
+      const isPalette = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+      if (isPalette) {
+        e.preventDefault();
+        if (state.lightboxOpen) closeLightbox();
+        if (state.paletteOpen) closePalette();
+        else openPalette();
+        return;
+      }
+      if (e.key === "Escape") {
+        if (state.symOpen) {
+          e.preventDefault();
+          closeSymPop();
+          return;
+        }
+        if (state.lightboxOpen) {
+          e.preventDefault();
+          closeLightbox();
+          return;
+        }
+        if (state.paletteOpen) {
+          e.preventDefault();
+          closePalette();
+          return;
+        }
+      }
+      if (!state.paletteOpen) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        state.paletteIndex = Math.min(
+          state.paletteIndex + 1,
+          Math.max(state.paletteItems.length - 1, 0),
+        );
+        paintPalette();
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        state.paletteIndex = Math.max(state.paletteIndex - 1, 0);
+        paintPalette();
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const path = state.paletteItems[state.paletteIndex];
+        if (path) {
+          navigate(path);
+          closePalette();
+        }
+      }
+    });
+
+    window.addEventListener("popstate", () => {
+      renderBlob(currentRelPath());
+    });
+
+    window.addEventListener("hashchange", () => {
+      applyLineSelection();
+    });
+
+    document.addEventListener("click", async (e) => {
+      if (state.lightboxOpen) {
+        if (e.target.closest("#lightbox-stage > *")) return;
+        e.preventDefault();
+        closeLightbox();
+        return;
+      }
+      const zoomImg = e.target.closest("img");
+      if (zoomImg && (zoomImg.closest(".md") || zoomImg.closest(".img-wrap"))) {
+        e.preventDefault();
+        openLightbox(zoomImg);
+        return;
+      }
+      const zoomMermaid = e.target.closest(".mermaid");
+      if (zoomMermaid && zoomMermaid.closest(".md")) {
+        e.preventDefault();
+        openLightbox(zoomMermaid);
+        return;
+      }
+      const toggle = e.target.closest("[data-tree-toggle]");
+      if (toggle) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dir = toggle.getAttribute("data-tree-toggle") || "";
+        if (state.expanded[dir]) {
+          delete state.expanded[dir];
+        } else {
+          state.expanded[dir] = true;
+          try {
+            await ensureTree(dir);
+          } catch (err) {
+            toast(err.message || String(err));
+          }
+        }
+        paintTree();
+        setActiveTree(state.currentPath);
+        return;
+      }
+      if (state.symOpen && !e.target.closest("#sym-pop")) closeSymPop();
+      const a = e.target.closest("a");
+      if (!a) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target === "_blank") return;
+      const href = a.getAttribute("href") || "";
+      if (href.startsWith("#L") || href.startsWith("#l")) {
+        e.preventDefault();
+        history.pushState({}, "", location.pathname + location.search + href);
+        applyLineSelection();
+        return;
+      }
+      let parsed;
+      try { parsed = new URL(href, location.origin); } catch (err) { return; }
+      if (parsed.origin !== location.origin) return;
+      const pathOnly = parsed.pathname;
+      if (!pathOnly.startsWith("/") || pathOnly.startsWith("//") || pathOnly.startsWith("/raw/") || pathOnly.startsWith("/api/")) {
+        return;
+      }
+      e.preventDefault();
+      const path = decodeURIComponent(pathOnly.replace(/^\/+/, ""));
+      navigate(path, parsed.hash);
+    });
+
+    loadSidebarW();
+    bindSidebarResize();
+    boot();
+
+  </script>
+</body>
+</html>
