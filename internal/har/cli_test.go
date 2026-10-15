@@ -11,7 +11,7 @@ import (
 )
 
 func TestExecuteMatchesFixtureFilters(t *testing.T) {
-	fix := filepath.Join("..", "..", "..", "har-cli", "test", "fixtures", "sample.har")
+	fix := filepath.Join("..", "..", "archive", "har-cli", "test", "fixtures", "sample.har")
 
 	code, stdout, stderr := run(t, fix, "-f", "http.status == 200 and body.status == 1")
 	if code != 0 || stderr != "" {
@@ -91,7 +91,7 @@ func TestNoFilterKeepsNonMatchingBody(t *testing.T) {
 }
 
 func TestNoDedupeAndJSON(t *testing.T) {
-	fix := filepath.Join("..", "..", "..", "har-cli", "test", "fixtures", "sample.har")
+	fix := filepath.Join("..", "..", "archive", "har-cli", "test", "fixtures", "sample.har")
 	code, stdout, stderr := run(t, fix, "-s", "path", "--no-dedupe")
 	if code != 0 || stderr != "" {
 		t.Fatalf("code=%d stderr=%q", code, stderr)
@@ -199,7 +199,7 @@ func TestFishCompletionListsHar(t *testing.T) {
 	if err != nil {
 		t.Skip("fish not installed")
 	}
-	dir := filepath.Join("..", "..", "..", "har-cli", "test", "fixtures")
+	dir := filepath.Join("..", "..", "archive", "har-cli", "test", "fixtures")
 	script := filepath.Join(t.TempDir(), "har-cli.fish")
 	if err := os.WriteFile(script, []byte(Fish()+"\n"), 0o644); err != nil {
 		t.Fatal(err)

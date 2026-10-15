@@ -28,7 +28,7 @@ func findRoot() (string, error) {
 		dir := start
 		for {
 			tl := filepath.Join(dir, "tl", "justfile")
-			gomod := filepath.Join(dir, "go", "go.mod")
+			gomod := filepath.Join(dir, "go.mod")
 			if fileExists(tl) && fileExists(gomod) {
 				return dir, nil
 			}
@@ -69,7 +69,7 @@ func runJust(root, task, name string) error {
 func runGo(root, dest, task, name string) error {
 	switch task {
 	case "clean":
-		path := filepath.Join(root, "go", "bin", name)
+		path := filepath.Join(root, "bin", name)
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("clean %s: %w", name, err)
 		}
@@ -81,7 +81,7 @@ func runGo(root, dest, task, name string) error {
 		if err := buildGo(root, name); err != nil {
 			return err
 		}
-		src := filepath.Join(root, "go", "bin", name)
+		src := filepath.Join(root, "bin", name)
 		if _, err := install.Place(src, dest); err != nil {
 			return fmt.Errorf("install %s: %w", name, err)
 		}
@@ -94,12 +94,12 @@ func runGo(root, dest, task, name string) error {
 
 // buildGo 关闭 cgo，避免二进制绑上本机的 C 库。
 func buildGo(root, name string) error {
-	out := filepath.Join(root, "go", "bin", name)
+	out := filepath.Join(root, "bin", name)
 	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 		return fmt.Errorf("mkdir bin: %w", err)
 	}
 	cmd := exec.Command("go", "build", "-o", out, "./cmd/"+name)
-	cmd.Dir = filepath.Join(root, "go")
+	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

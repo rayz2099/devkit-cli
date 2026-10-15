@@ -264,7 +264,7 @@ func TestFishCompletion(t *testing.T) {
 	if code != 0 || stderr != "" {
 		t.Fatalf("code %d %s", code, stderr)
 	}
-	src, err := os.ReadFile(filepath.Join("..", "..", "..", "gh-image-cli", "src", "completion.ts"))
+	src, err := os.ReadFile(filepath.Join("..", "..", "archive", "gh-image-cli", "src", "completion.ts"))
 	if err != nil {
 		t.Fatal(err)
 	}

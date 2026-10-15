@@ -10,7 +10,7 @@ mkdir -p "$work/bin" "$work/home/.config" "$work/home/.cache" "$work/home/.local
 before="$(cd "$work/home/.config" && find . | sort | cksum)"
 
 (
-  cd "$root/go"
+  cd "$root"
   CGO_ENABLED=0 go build -o "$work/bin/" ./cmd/...
 )
 

@@ -13,7 +13,7 @@ func TestExampleConfigLoads(t *testing.T) {
 	if !ok {
 		t.Fatal("caller")
 	}
-	path := filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "rclone-cli", "config.example.json"))
+	path := filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "archive", "rclone-cli", "config.example.json"))
 	buf, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

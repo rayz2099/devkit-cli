@@ -18,9 +18,10 @@ bun.lockb
 # baoyu-design 本地设计沙箱, 不进主线合并
 designs/
 
-# serve 测试临时目录
+# serve 测试临时目录。循环符号链接不能进仓库，du -L 会一直跟下去。
 **/.tmp-serve-*/
+**/.tmp-symlink-test/
 .cursor
 
 # Go 模块构建产物
-go/bin/
+/bin/

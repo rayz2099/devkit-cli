@@ -29,7 +29,7 @@
 
 - Go via `mise`
 - [just](https://github.com/casey/just)
-- The CLIs are the Go binaries under `go/cmd`. Old TypeScript sources are in `archive/`
+- The CLIs are the Go binaries under `cmd/`. Old TypeScript sources are in `archive/`
 - `mysql` client (for `dsn-cli` Console)
 - `redis-cli` / `mongosh` / `psql` (for `dsn-cli` Console)
 
@@ -53,7 +53,7 @@ bash scripts/go/check.sh
 bash scripts/go/acceptance.sh
 ```
 
-`check.sh` runs `gofmt`, `go vet`, `go test`, and a cgo-free build of `go/cmd`. `acceptance.sh` builds into a temp directory, runs `--help` and `doctor` without touching a real config directory, and checks that `list` keeps `tl` and omits `alist-cli`.
+`check.sh` runs `gofmt`, `go vet`, `go test`, and a cgo-free build of `cmd/`. `acceptance.sh` builds into a temp directory, runs `--help` and `doctor` without touching a real config directory, and checks that `list` keeps `tl` and omits `alist-cli`.
 
 Each CLI has its own `doctor`. It checks the local config and exits non-zero when a check fails. It does not create the config file.
 
@@ -105,7 +105,7 @@ GPL-2.0-only. See [LICENSE](./LICENSE).
 
 - Go，由 `mise` 管理
 - just
-- 命令是 `go/cmd` 下的 Go 二进制。旧的 TypeScript 实现在 `archive/`
+- 命令是 `cmd/` 下的 Go 二进制。旧的 TypeScript 实现在 `archive/`
 - `mysql` 客户端（`dsn-cli` Console）
 - `redis-cli` / `mongosh` / `psql`（`dsn-cli` Console）
 
