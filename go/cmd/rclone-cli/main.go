@@ -1,7 +1,11 @@
 package main
 
-import "git.internal.linran.top/linran/devkit-cli/internal/stubcli"
+import (
+	"os"
+
+	"git.internal.linran.top/linran/devkit-cli/internal/rclone"
+)
 
 func main() {
-	stubcli.Run("rclone-cli")
+	os.Exit(rclone.Main(os.Args[1:]))
 }
