@@ -1,7 +1,11 @@
 package main
 
-import "git.internal.linran.top/linran/devkit-cli/internal/stubcli"
+import (
+	"os"
+
+	"git.internal.linran.top/linran/devkit-cli/internal/td"
+)
 
 func main() {
-	stubcli.Run("td-cli")
+	os.Exit(td.Execute(os.Args[1:], os.Stdout, os.Stderr))
 }
