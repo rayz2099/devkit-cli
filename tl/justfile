@@ -11,23 +11,23 @@ help:
     @just --list
 
 fmt:
-    gofmt -w $(find . -name '*.go' -not -path './.git/*')
+    mise exec -- gofmt -w $(find . -name '*.go' -not -path './.git/*')
 
 test:
-    go test ./...
+    mise exec -- go test ./...
 
 build:
     mkdir -p {{bin_dir}}
-    go build -o {{bin_path}} ./cmd/tl
+    mise exec -- go build -o {{bin_path}} ./cmd/tl
 
 clean:
     bun -e 'import { rmSync } from "node:fs"; rmSync("{{bin_dir}}", { recursive: true, force: true });'
 
 install:
-    go install ./cmd/tl
+    mise exec -- go install ./cmd/tl
 
 run *args:
-    go run ./cmd/tl {{args}}
+    mise exec -- go run ./cmd/tl {{args}}
 
 completion-fish:
-    @go run ./cmd/tl completion fish
+    @mise exec -- go run ./cmd/tl completion fish

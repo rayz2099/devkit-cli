@@ -1,0 +1,6 @@
+[tools]
+go = "1.27.2"
+
+[env]
+# mise 默认把 GOBIN 指到 Go 安装目录，go install 会把命令和 go 放在一起。
+GOBIN = "{{env.HOME}}/go/bin"
