@@ -80,7 +80,11 @@ func reposMerged(repos []Repo, from []string, remote string) ([]Repo, error) {
 	})
 }
 
+// checkAgents 校验模板目录是否存在；空路径表示不指定模板，直接放行。
 func checkAgents(path string) error {
+	if path == "" {
+		return nil
+	}
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("agents template not found: %s", path)
 	}

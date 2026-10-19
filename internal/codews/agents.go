@@ -14,24 +14,26 @@ const agentsFile = "AGENTS.md"
 
 const contextBody = "# Context\n\nDescribe the current task, target services, and links to PRD files here.\n"
 
-// ApplyAgents 只链接路由说明，避免 workspace 持有一份可被仓库改写的副本。
+// ApplyAgents 建立路由说明软链并初始化工作区结构；模板目录为空时跳过软链，允许工作区不依赖模板。
 func ApplyAgents(tplDir, wsDir string) error {
-	src := filepath.Join(tplDir, agentsFile)
-	if _, err := os.Stat(src); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("agents template not found: %s", src)
-		}
-		return err
-	}
 	if err := os.MkdirAll(wsDir, 0o755); err != nil {
 		return err
 	}
-	dst := filepath.Join(wsDir, agentsFile)
-	if _, err := os.Lstat(dst); err == nil {
-		return fmt.Errorf("workspace template target already exists: %s", dst)
-	}
-	if err := os.Symlink(src, dst); err != nil {
-		return err
+	if tplDir != "" {
+		src := filepath.Join(tplDir, agentsFile)
+		if _, err := os.Stat(src); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("agents template not found: %s", src)
+			}
+			return err
+		}
+		dst := filepath.Join(wsDir, agentsFile)
+		if _, err := os.Lstat(dst); err == nil {
+			return fmt.Errorf("workspace template target already exists: %s", dst)
+		}
+		if err := os.Symlink(src, dst); err != nil {
+			return err
+		}
 	}
 	specDir := filepath.Join(wsDir, "spec")
 	tasksDir := filepath.Join(wsDir, "tasks")

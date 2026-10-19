@@ -14,8 +14,7 @@ import (
 const helpText = `code-ws
 
 Usage:
-  code-ws init <branch> -t <profile> [-p|--project <repo>] [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
-  code-ws init <branch> -p|--project <repo> [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
+  code-ws init <branch> [-t <profile>] [-p|--project <repo>] [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
   code-ws init <branch> <project> [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
   code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]
   code-ws remove project <repo> [-v|--verbose] [-c|--config <path>]
@@ -326,11 +325,13 @@ func parseInit(opt optSet, sub string, tail []string) (Parsed, error) {
 	if project == "" && opt.hasProj {
 		project = opt.project
 	}
-	if project == "" {
-		return Parsed{}, errors.New("project or profile is required: <project> or -t <profile>")
+	if project != "" {
+		out.HasProj = true
+		out.Project = project
+		return out, nil
 	}
-	out.HasProj = true
-	out.Project = project
+	out.HasProf = true
+	out.Profile = "default"
 	return out, nil
 }
 

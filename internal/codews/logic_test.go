@@ -1,6 +1,8 @@
 package codews
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -357,5 +359,93 @@ func TestAgentsLink(t *testing.T) {
 	}
 	if err := ApplyAgents(filepath.Join(root, "missing"), ws); err == nil || !strings.Contains(err.Error(), "agents template not found:") {
 		t.Fatal(err)
+	}
+	wsNoTpl := filepath.Join(root, "ws-no-tpl")
+	if err := ApplyAgents("", wsNoTpl); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(wsNoTpl, "AGENTS.md")); err == nil {
+		t.Fatal("AGENTS.md should not be linked when template is empty")
+	}
+	if _, err := os.Stat(filepath.Join(wsNoTpl, "spec", "context.md")); err != nil {
+		t.Fatal("context.md should still be created")
+	}
+}
+
+// TestEmptyProfileAndNoTemplate 验证支持空 repos 与无 template 的 profile 解析、初始化全流程。
+func TestEmptyProfileAndNoTemplate(t *testing.T) {
+	raw, err := ParseConfigBytes([]byte(`{
+	  "workspaceRoot": "$HOME/projects/workspaces",
+	  "baseBranch": "master",
+	  "remote": "origin",
+	  "profiles": {
+	    "default": {"name": "default", "agentsTemplate": "", "repos": []}
+	  }
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog := "home: \"$HOME/projects\"\nprojects:\n"
+	cfg, err := ResolveConfig(raw, catalog, ResolveOpts{Home: "/home/dev", Tpl: "/tpl"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	prof := cfg.Profiles["default"]
+	if prof.Agents != "" {
+		t.Fatalf("expected empty agents, got %q", prof.Agents)
+	}
+	if len(prof.Repos) != 0 {
+		t.Fatalf("expected 0 repos, got %d", len(prof.Repos))
+	}
+	tpl, repos, err := InitTarget(cfg, Parsed{HasProf: true, Profile: "default"})
+	if err != nil || tpl != "" || len(repos) != 0 {
+		t.Fatalf("InitTarget failed: err=%v, tpl=%q, repos=%v", err, tpl, repos)
+	}
+	if err := checkAgents(tpl); err != nil {
+		t.Fatalf("checkAgents should accept empty template: %v", err)
+	}
+}
+
+// TestInitEmptyWorkspace 验证 code-ws init 在使用 default profile 初始化空项目且无模板时的端到端执行结果。
+func TestInitEmptyWorkspace(t *testing.T) {
+	root := t.TempDir()
+	confDir := filepath.Join(root, ".config", "code-ws")
+	if err := os.MkdirAll(confDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cfgJSON := `{
+	  "workspaceRoot": "` + filepath.Join(root, "workspaces") + `",
+	  "baseBranch": "master",
+	  "remote": "origin",
+	  "profiles": {
+	    "default": {"name": "default", "agentsTemplate": "", "repos": []}
+	  }
+	}`
+	cfgPath := filepath.Join(confDir, "config.json")
+	if err := os.WriteFile(cfgPath, []byte(cfgJSON), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	projYML := "home: \"" + filepath.Join(root, "projects") + "\"\nprojects:\n"
+	if err := os.WriteFile(filepath.Join(confDir, "project.yml"), []byte(projYML), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	err := Run(strings.NewReader(""), &out, io.Discard, []string{"init", "feature/empty-test", "-c", cfgPath})
+	if err != nil {
+		t.Fatalf("Run init failed: %v\nOutput: %s", err, out.String())
+	}
+	wsDir := filepath.Join(root, "workspaces", "empty-test-workspace")
+	if _, err := os.Stat(filepath.Join(wsDir, "empty-test.code-workspace")); err != nil {
+		t.Fatalf("workspace file missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(wsDir, "project.yml")); err != nil {
+		t.Fatalf("project.yml missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(wsDir, "spec", "context.md")); err != nil {
+		t.Fatalf("context.md missing: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(wsDir, "AGENTS.md")); err == nil {
+		t.Fatal("AGENTS.md should not exist when template is empty")
 	}
 }

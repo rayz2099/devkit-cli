@@ -21,6 +21,10 @@ func TestParseArgs(t *testing.T) {
 	if err != nil || got.Project != "shared-lib" || !got.Verbose || got.HasProf {
 		t.Fatal(err, got)
 	}
+	got, err = ParseArgs([]string{"init", "feature/spec101"})
+	if err != nil || got.Cmd != "init" || got.Branch != "feature/spec101" || !got.HasProf || got.Profile != "default" || got.HasProj {
+		t.Fatalf("%+v", got)
+	}
 	_, err = ParseArgs([]string{"init", "feature/spec101", "shared-lib", "-t", "work-01"})
 	if err == nil || !strings.Contains(err.Error(), "usage: code-ws init <branch> <project>") {
 		t.Fatal(err)

@@ -87,9 +87,13 @@ func ParseConfigBytes(buf []byte) (RawCfg, error) {
 	if err != nil {
 		return RawCfg{}, err
 	}
-	tpl, err := reqStr(obj, "initAgentsTemplate")
-	if err != nil {
-		return RawCfg{}, err
+	tpl := ""
+	if v, ok := obj["initAgentsTemplate"]; ok && v != nil {
+		str, ok := v.(string)
+		if !ok {
+			return RawCfg{}, errors.New("initAgentsTemplate must be a string")
+		}
+		tpl = strings.TrimSpace(str)
 	}
 	if _, ok := asObj(obj["profiles"]); !ok {
 		return RawCfg{}, errors.New("profiles must be an object")
@@ -129,13 +133,20 @@ func parseProf(buf []byte) (rawProf, error) {
 	if err != nil {
 		return rawProf{}, err
 	}
-	agents, err := reqStr(obj, "agentsTemplate")
-	if err != nil {
-		return rawProf{}, err
+	agents := ""
+	if v, ok := obj["agentsTemplate"]; ok && v != nil {
+		str, ok := v.(string)
+		if !ok {
+			return rawProf{}, errors.New("agentsTemplate must be a string")
+		}
+		agents = strings.TrimSpace(str)
 	}
 	reposRaw, ok := obj["repos"].([]any)
-	if !ok || len(reposRaw) == 0 {
-		return rawProf{}, errors.New("profile.repos must be a non-empty array")
+	if !ok {
+		if obj["repos"] != nil {
+			return rawProf{}, errors.New("profile.repos must be an array")
+		}
+		reposRaw = []any{}
 	}
 	repos := make([]string, 0, len(reposRaw))
 	for _, item := range reposRaw {
@@ -369,17 +380,25 @@ func ResolveConfig(cfg RawCfg, projectTxt string, opts ResolveOpts) (Cfg, error)
 			}
 			repos = append(repos, repo)
 		}
+		var agentsPath string
+		if raw.Agents != "" {
+			agentsPath = filepath.Join(opts.Tpl, raw.Agents)
+		}
 		profs[key] = Profile{
 			Name:   raw.Name,
-			Agents: filepath.Join(opts.Tpl, raw.Agents),
+			Agents: agentsPath,
 			Repos:  repos,
 		}
+	}
+	var initTpl string
+	if cfg.InitTpl != "" {
+		initTpl = filepath.Join(opts.Tpl, cfg.InitTpl)
 	}
 	return Cfg{
 		WsRoot:   ExpandHome(cfg.WsRoot, opts.Home),
 		Base:     cfg.Base,
 		Remote:   cfg.Remote,
-		InitTpl:  filepath.Join(opts.Tpl, cfg.InitTpl),
+		InitTpl:  initTpl,
 		Projects: outProjects,
 		Profiles: profs,
 		Order:    append([]string{}, cfg.Order...),
