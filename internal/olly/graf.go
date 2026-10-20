@@ -1,18 +1,17 @@
 package olly
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
-	"net/url"
 	"sort"
 	"strconv"
 	"strings"
+
+	"git.internal.linran.top/linran/devkit-cli/internal/grafana"
 )
 
 const (
@@ -21,97 +20,17 @@ const (
 	humanTopLimit     = 10
 )
 
-// DashRef 是从公网 URL 或裸 uid 抽出的看板定位。真正请求不走这个 origin。
-type DashRef struct {
-	UID   string
-	OrgID *int
-	From  *string
-	To    *string
-}
+// DashRef 继续留在 olly，分析和测试不用改 import。定位和 HTTP 已经抽到 grafana。
+type DashRef = grafana.DashRef
 
 // ParseDashRef 只从粘贴的 URL 里拿 uid、orgId 和时间窗。
 func ParseDashRef(source string) (DashRef, error) {
-	trimmed := strings.TrimSpace(source)
-	if trimmed == "" {
-		return DashRef{}, errors.New("grafana dashboard url or uid is required")
-	}
-	u, err := url.Parse(trimmed)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		if strings.Contains(trimmed, "/") || strings.ContainsAny(trimmed, " \t\n\r") {
-			return DashRef{}, fmt.Errorf("grafana dashboard ref is invalid: %s", trimmed)
-		}
-		return DashRef{UID: trimmed}, nil
-	}
-	uid := dashUID(u.Path)
-	if uid == "" {
-		return DashRef{}, fmt.Errorf("grafana url missing dashboard uid: %s", trimmed)
-	}
-	decoded, err := url.PathUnescape(uid)
-	if err != nil {
-		return DashRef{}, err
-	}
-	ref := DashRef{UID: decoded}
-	if text := u.Query().Get("orgId"); text != "" {
-		org, err := parseOrg(text)
-		if err != nil {
-			return DashRef{}, err
-		}
-		ref.OrgID = &org
-	}
-	if text := u.Query().Get("from"); text != "" {
-		ref.From = &text
-	}
-	if text := u.Query().Get("to"); text != "" {
-		ref.To = &text
-	}
-	return ref, nil
-}
-
-func dashUID(path string) string {
-	parts := strings.Split(path, "/")
-	for i, part := range parts {
-		if part == "d" && i+1 < len(parts) && parts[i+1] != "" {
-			return parts[i+1]
-		}
-	}
-	return ""
-}
-
-func parseOrg(val string) (int, error) {
-	num, err := strconv.ParseFloat(val, 64)
-	if err != nil || num != math.Trunc(num) || math.IsInf(num, 0) {
-		return 0, fmt.Errorf("grafana orgId is invalid: %s", val)
-	}
-	return int(num), nil
+	return grafana.ParseDashRef(source)
 }
 
 // BuildDashURL 给人点的链接必须用粘贴 URL 的 origin，不能把内网 API 地址暴露成入口。
 func BuildDashURL(source, webBase, path, uid string, orgID *int, from, to string) (string, error) {
-	origin := trimRightSlash(webBase)
-	if u, err := url.Parse(source); err == nil && u.Scheme != "" && u.Host != "" {
-		origin = u.Scheme + "://" + u.Host
-	}
-	dashPath := path
-	if dashPath == "" {
-		dashPath = "/d/" + uid
-	}
-	base, err := url.Parse(origin + "/")
-	if err != nil {
-		return "", err
-	}
-	ref, err := url.Parse(dashPath)
-	if err != nil {
-		return "", err
-	}
-	resolved := base.ResolveReference(ref)
-	var parts []string
-	if orgID != nil {
-		parts = append(parts, "orgId="+url.QueryEscape(strconv.Itoa(*orgID)))
-	}
-	parts = append(parts, "from="+url.QueryEscape(from), "to="+url.QueryEscape(to))
-	resolved.RawQuery = strings.Join(parts, "&")
-	resolved.Fragment = ""
-	return resolved.String(), nil
+	return grafana.BuildDashURL(source, webBase, path, uid, orgID, from, to)
 }
 
 // Panel 是看板里一个可查询的面板。row 只是容器，本身不查。
@@ -466,8 +385,7 @@ func formatLabels(labels map[string]string) string {
 
 // GrafGet 读看板定义。org 通过头传递，不放进 URL。
 func GrafGet(ctx context.Context, client *http.Client, cfg GrafanaConfig, uid string, orgID *int) (json.RawMessage, map[string]any, error) {
-	specURL := cfg.BaseURL + "/api/dashboards/uid/" + url.PathEscape(uid)
-	return grafDo(ctx, client, cfg, http.MethodGet, specURL, orgID, nil)
+	return grafana.Get(ctx, client, cfg, uid, orgID)
 }
 
 // GrafQuery 执行面板查询。
@@ -476,48 +394,8 @@ func GrafQuery(ctx context.Context, client *http.Client, cfg GrafanaConfig, body
 	if err != nil {
 		return nil, err
 	}
-	_, rec, err := grafDo(ctx, client, cfg, http.MethodPost, cfg.BaseURL+"/api/ds/query", orgID, buf)
+	_, rec, err := grafana.Do(ctx, client, cfg, http.MethodPost, cfg.BaseURL+"/api/ds/query", orgID, buf)
 	return rec, err
-}
-
-func grafDo(ctx context.Context, client *http.Client, cfg GrafanaConfig, method, specURL string, orgID *int, body []byte) (json.RawMessage, map[string]any, error) {
-	var reader io.Reader
-	if body != nil {
-		reader = bytes.NewReader(body)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, specURL, reader)
-	if err != nil {
-		return nil, nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", BasicAuth(cfg.Username, cfg.Password))
-	if orgID != nil {
-		req.Header.Set("X-Grafana-Org-Id", strconv.Itoa(*orgID))
-	}
-	if method == http.MethodPost {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if client == nil {
-		client = http.DefaultClient
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-	buf, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, nil, err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, nil, fmt.Errorf("grafana http %d: %s", resp.StatusCode, string(buf))
-	}
-	val, err := decodeJSON(buf)
-	if err != nil {
-		return nil, nil, fmt.Errorf("grafana response is not json: %s", string(buf))
-	}
-	rec, _ := isRecord(val)
-	return json.RawMessage(buf), rec, nil
 }
 
 // AnalyzeInput 是 grafana 命令的入口。from/to/org 可以覆盖 URL 和看板默认时间。

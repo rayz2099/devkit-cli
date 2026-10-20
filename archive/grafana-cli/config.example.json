@@ -1,0 +1,11 @@
+{
+  "default_profile": "ops",
+  "profiles": {
+    "ops": {
+      "base_url": "http://10.0.48.10:3000",
+      "web_base_url": "https://grafana.example.com",
+      "username": "admin",
+      "password": "secret"
+    }
+  }
+}

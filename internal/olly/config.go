@@ -1,7 +1,6 @@
 package olly
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 
 	"git.internal.linran.top/linran/devkit-cli/internal/cfgfile"
 	"git.internal.linran.top/linran/devkit-cli/internal/doctor"
+	"git.internal.linran.top/linran/devkit-cli/internal/grafana"
 	"git.internal.linran.top/linran/devkit-cli/internal/xdg"
 )
 
@@ -57,14 +57,8 @@ type GraylogConfig struct {
 	Password string
 }
 
-// GrafanaConfig 走内网 basic。公网 URL 只用来抽 uid，不能拿来发请求。
-type GrafanaConfig struct {
-	BaseURL    string
-	WebBaseURL string
-	HasWeb     bool
-	Username   string
-	Password   string
-}
+// GrafanaConfig 走内网 basic。字段校验在 grafana 包，这里保留原来的类型名。
+type GrafanaConfig = grafana.Config
 
 // Guard 确认缓存和状态不会落到配置目录里。本命令不写缓存，但路径非法时必须先失败。
 func Guard() error {
@@ -182,10 +176,9 @@ func RequireGrafana(app App) (GrafanaConfig, error) {
 	return *app.Grafana, nil
 }
 
-// BasicAuth 是 Grafana 和 Graylog 共用的 basic 头。浏览器 btoa 对 ASCII 口令结果相同。
+// BasicAuth 是 Grafana 和 Graylog 共用的 basic 头。实现放在 grafana，避免两套编码。
 func BasicAuth(user, pass string) string {
-	raw := user + ":" + pass
-	return "Basic " + base64.StdEncoding.EncodeToString([]byte(raw))
+	return grafana.BasicAuth(user, pass)
 }
 
 // Doctor 只检查已有配置能否解析、已出现的后端必填字段是否合法。不联网。
@@ -356,35 +349,6 @@ func normalizeGray(raw json.RawMessage) (GraylogConfig, error) {
 	}, nil
 }
 
-type rawGraf struct {
-	BaseURL    *string `json:"base_url"`
-	WebBaseURL *string `json:"web_base_url"`
-	Username   *string `json:"username"`
-	Password   *string `json:"password"`
-}
-
 func normalizeGraf(raw json.RawMessage) (GrafanaConfig, error) {
-	var in rawGraf
-	if err := json.Unmarshal(raw, &in); err != nil {
-		return GrafanaConfig{}, errors.New("config grafana is invalid")
-	}
-	if in.BaseURL == nil || *in.BaseURL == "" {
-		return GrafanaConfig{}, errors.New("config missing grafana.base_url")
-	}
-	if in.Username == nil || *in.Username == "" {
-		return GrafanaConfig{}, errors.New("config missing grafana.username")
-	}
-	if in.Password == nil || *in.Password == "" {
-		return GrafanaConfig{}, errors.New("config missing grafana.password")
-	}
-	cfg := GrafanaConfig{
-		BaseURL:  trimRightSlash(withScheme(*in.BaseURL)),
-		Username: *in.Username,
-		Password: *in.Password,
-	}
-	if in.WebBaseURL != nil && *in.WebBaseURL != "" {
-		cfg.WebBaseURL = trimRightSlash(withScheme(*in.WebBaseURL))
-		cfg.HasWeb = true
-	}
-	return cfg, nil
+	return grafana.Normalize(raw)
 }
