@@ -1,0 +1,23 @@
+{
+  "default_profile": "super_doris",
+  "profiles": {
+    "super_doris": {
+      "host": "10.0.32.42",
+      "query_port": 9030,
+      "http_port": 8030,
+      "user": "root",
+      "password": "",
+      "database": "dw",
+      "timeout_sec": 10
+    },
+    "local": {
+      "host": "127.0.0.1",
+      "query_port": 9030,
+      "http_port": 8030,
+      "user": "root",
+      "password": "",
+      "database": "",
+      "timeout_sec": 10
+    }
+  }
+}

@@ -24,6 +24,7 @@ type Mod struct {
 var all = []Mod{
 	{Name: "code-ws", Kind: KindGo},
 	{Name: "codeup-cli", Kind: KindGo},
+	{Name: "doris-cli", Kind: KindGo},
 	{Name: "dsn-cli", Kind: KindGo},
 	{Name: "gh-image-cli", Kind: KindGo},
 	{Name: "har-cli", Kind: KindGo},
