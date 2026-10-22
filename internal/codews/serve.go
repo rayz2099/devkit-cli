@@ -2,6 +2,7 @@ package codews
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -391,33 +392,175 @@ func AccessURLs(host string, port int, lan bool) []string {
 	return urls
 }
 
+type ifaceKind int
+
+const (
+	kindWiFi ifaceKind = iota + 1
+	kindEthernet
+	kindOther
+)
+
+// macosHardwarePorts 查询系统硬件端口映射表，用于解决 macOS 下 en0/en1 无法单纯通过名称区分无线与有线网卡的问题。
+func macosHardwarePorts() map[string]string {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "networksetup", "-listallhardwareports")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+	ports := make(map[string]string)
+	var curPort string
+	for _, rawLine := range strings.Split(string(out), "\n") {
+		line := strings.TrimSpace(rawLine)
+		if strings.HasPrefix(line, "Hardware Port:") {
+			curPort = strings.TrimSpace(strings.TrimPrefix(line, "Hardware Port:"))
+		} else if strings.HasPrefix(line, "Device:") && curPort != "" {
+			dev := strings.TrimSpace(strings.TrimPrefix(line, "Device:"))
+			ports[dev] = curPort
+			curPort = ""
+		}
+	}
+	return ports
+}
+
+// classifyInterface 识别网卡物理类型，保证优先从局域网 WiFi 地址启动预览，便于移动端真机同网段联调。
+func classifyInterface(iface net.Interface, macPorts map[string]string) ifaceKind {
+	name := strings.ToLower(iface.Name)
+	for _, pfx := range []string{"utun", "tun", "tap", "docker", "veth", "br-", "virbr", "awdl", "llw", "p2p", "bridge", "vmnet", "vboxnet", "tailscale", "wg"} {
+		if strings.HasPrefix(name, pfx) {
+			return kindOther
+		}
+	}
+
+	switch runtime.GOOS {
+	case "darwin":
+		if macPorts != nil {
+			if port, ok := macPorts[iface.Name]; ok {
+				p := strings.ToLower(port)
+				if strings.Contains(p, "wi-fi") || strings.Contains(p, "airport") || strings.Contains(p, "wireless") {
+					return kindWiFi
+				}
+				if strings.Contains(p, "ethernet") || strings.Contains(p, "lan") || strings.Contains(p, "thunderbolt") {
+					return kindEthernet
+				}
+			}
+		}
+		if name == "en0" || strings.Contains(name, "wifi") || strings.Contains(name, "wlan") {
+			return kindWiFi
+		}
+		if strings.HasPrefix(name, "en") || strings.HasPrefix(name, "eth") {
+			return kindEthernet
+		}
+
+	case "linux":
+		// Linux sysfs: /sys/class/net/<name>/wireless 存在即为无线物理网卡
+		if _, err := os.Stat("/sys/class/net/" + iface.Name + "/wireless"); err == nil {
+			return kindWiFi
+		}
+		if strings.HasPrefix(name, "wl") || strings.Contains(name, "wifi") || strings.Contains(name, "wlan") {
+			return kindWiFi
+		}
+		if strings.HasPrefix(name, "eth") || strings.HasPrefix(name, "en") || strings.HasPrefix(name, "em") ||
+			strings.HasPrefix(name, "eno") || strings.HasPrefix(name, "enp") || strings.HasPrefix(name, "ens") {
+			return kindEthernet
+		}
+
+	case "windows":
+		// Windows: net.Interfaces() 返回本地网络连接名（如 "Wi-Fi", "以太网"）
+		if strings.Contains(name, "wi-fi") || strings.Contains(name, "wifi") || strings.Contains(name, "wlan") || strings.Contains(name, "wireless") || strings.Contains(name, "无线") {
+			if !strings.Contains(name, "virtual") && !strings.Contains(name, "vethernet") && !strings.Contains(name, "tap") {
+				return kindWiFi
+			}
+		}
+		if strings.Contains(name, "ethernet") || strings.Contains(name, "以太网") || strings.Contains(name, "local area connection") || strings.Contains(name, "本地连接") || strings.Contains(name, "eth") {
+			if !strings.Contains(name, "virtual") && !strings.Contains(name, "vethernet") && !strings.Contains(name, "loopback") {
+				return kindEthernet
+			}
+		}
+
+	default:
+		if strings.Contains(name, "wifi") || strings.Contains(name, "wlan") || strings.HasPrefix(name, "wl") {
+			return kindWiFi
+		}
+		if strings.HasPrefix(name, "eth") || strings.HasPrefix(name, "en") {
+			return kindEthernet
+		}
+	}
+
+	return kindOther
+}
+
+// listLan 收集并按优先级排序本机局域网 IPv4 地址：WiFi 优先，其次有线 Ethernet，最后其他虚拟/隧道网卡。
 func listLan() []string {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil
 	}
-	var ips []string
+
+	macPorts := macosHardwarePorts()
+
+	var wifiIPs []string
+	var ethIPs []string
+	var otherPrivateIPs []string
+	var otherIPs []string
+
 	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
 			continue
 		}
+		kind := classifyInterface(iface, macPorts)
+
 		for _, addr := range addrs {
 			netIP, ok := addr.(*net.IPNet)
 			if !ok {
 				continue
 			}
 			ip := netIP.IP.To4()
-			if ip == nil || ip.IsLoopback() {
+			if ip == nil || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
 				continue
 			}
-			ips = append(ips, ip.String())
+			ipStr := ip.String()
+
+			switch kind {
+			case kindWiFi:
+				wifiIPs = append(wifiIPs, ipStr)
+			case kindEthernet:
+				ethIPs = append(ethIPs, ipStr)
+			default:
+				if ip.IsPrivate() {
+					otherPrivateIPs = append(otherPrivateIPs, ipStr)
+				} else {
+					otherIPs = append(otherIPs, ipStr)
+				}
+			}
 		}
 	}
-	return ips
+
+	var result []string
+	seen := make(map[string]bool)
+	add := func(ips []string) {
+		for _, ip := range ips {
+			if !seen[ip] {
+				seen[ip] = true
+				result = append(result, ip)
+			}
+		}
+	}
+
+	add(wifiIPs)
+	add(ethIPs)
+	add(otherPrivateIPs)
+	add(otherIPs)
+
+	return result
 }
 
 func openBrowser(url string) {

@@ -127,3 +127,12 @@ func TestConfigCheck(t *testing.T) {
 		t.Fatal("wrote a module marker")
 	}
 }
+
+func TestListLanPriority(t *testing.T) {
+	ips := listLan()
+	if len(ips) == 0 {
+		t.Fatal("expected at least one IP")
+	}
+	t.Logf("detected LAN IPs in priority order: %v", ips)
+}
+

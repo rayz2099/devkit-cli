@@ -39,7 +39,7 @@
       --focus: 0 0 0 2px var(--bgCanvas), 0 0 0 4px var(--accentFg);
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
     body {
       font: 14px/1.5 var(--font);
       color: var(--fgDefault);
@@ -61,7 +61,7 @@
       border-radius: 6px;
       box-shadow: inset 0 -1px 0 #bfc6cd;
     }
-    .app { min-height: 100%; display: flex; flex-direction: column; }
+    .app { height: 100vh; min-height: 100%; display: flex; flex-direction: column; overflow: hidden; }
     .topbar {
       height: var(--headerH);
       display: flex;
@@ -175,12 +175,14 @@
       display: grid;
       grid-template-columns: var(--sidebarW) minmax(0, 1fr);
       min-height: 0;
+      overflow: hidden;
     }
     .sidebar {
       position: relative;
       border-right: 1px solid var(--borderDefault);
       background: var(--bgCanvas);
       min-width: 0;
+      height: 100%;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -188,7 +190,8 @@
     .sidebar-tree {
       flex: 1;
       min-height: 0;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       padding: 12px 0 24px;
     }
     .sidebar-resizer {
@@ -296,6 +299,7 @@
       display: grid;
       place-items: center;
     }
+    .tree-item .ico.folder { color: #0969da; }
     .tree-item.active .ico { color: var(--accentFg); }
     .tree-item .ico svg { width: 16px; height: 16px; fill: currentColor; }
     .tree-item .name {
@@ -303,7 +307,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .main { min-width: 0; overflow: auto; background: var(--bgCanvas); }
+    .main { min-width: 0; height: 100%; overflow-y: auto; background: var(--bgCanvas); }
     .main-inner {
       max-width: 1280px;
       margin: 0 auto;
@@ -377,7 +381,23 @@
       text-align: right;
       color: var(--fgMuted);
       font-size: 12px;
-      width: 90px;
+      width: 96px;
+    }
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1px 6px;
+      min-width: 32px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--mono);
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: 0.02em;
+      border: 1px solid var(--borderMuted);
+      text-transform: uppercase;
+      user-select: none;
     }
     .dir-ico {
       width: 16px;
@@ -758,10 +778,700 @@
   <script>
 
     const ICO = {
-      folder: '<svg viewBox="0 0 16 16"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"/></svg>',
-      file: '<svg viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>',
-      chevron: '<svg viewBox="0 0 16 16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>',
+      folder: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"/></svg>',
+      file: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>',
+      chevron: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/></svg>',
+      python: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M7.92 1c-1.84 0-3.08.38-3.08 1.48v1.1h3.12v.37H3.45C2.18 3.95 1 5.09 1 6.57c0 1.58 1.07 2.5 2.5 2.5h.78v-1.12c0-1.42 1.2-2.45 2.65-2.45h3.12V4.4c0-1.2-1.07-2.4-2.13-2.4v-1zm-1.1 1.02a.45.45 0 1 1 0 .9.45.45 0 0 1 0-.9zM8.08 15c1.84 0 3.08-.38 3.08-1.48v-1.1H8.04v-.37h4.51c1.27 0 2.45-1.14 2.45-2.62 0-1.58-1.07-2.5-2.5-2.5h-.78v1.12c0 1.42-1.2 2.45-2.65 2.45H5.96v1.1c0 1.2 1.07 2.4 2.12 2.4v1zm1.1-1.02a.45.45 0 1 1 0-.9.45.45 0 0 1 0 .9z"/></svg>',
+      json: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M5.5 2A1.5 1.5 0 0 0 4 3.5V6a1 1 0 0 1-1 1H2v2h1a1 1 0 0 1 1 1v2.5A1.5 1.5 0 0 0 5.5 14H6v-1.5h-.5a.5.5 0 0 1-.5-.5V9.75A1.75 1.75 0 0 0 3.25 8 1.75 1.75 0 0 0 5 6.25V4a.5.5 0 0 1 .5-.5H6V2h-.5zm5 0A1.5 1.5 0 0 1 12 3.5V6a1 1 0 0 0 1 1h1v2h-1a1 1 0 0 0-1 1v2.5a1.5 1.5 0 0 1-1.5 1.5H10v-1.5h.5a.5.5 0 0 0 .5-.5V9.75A1.75 1.75 0 0 1 12.75 8 1.75 1.75 0 0 1 11 6.25V4a.5.5 0 0 0-.5-.5H10V2h.5z"/></svg>',
+      markdown: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9zM2.5 3a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-11zM3 10V6h1.2l1.3 2 1.3-2H8v4H6.8V8.1L5.5 10.1 4.2 8.1V10H3zm7-1.5h1V6h1.5v2.5h1l-2 2.5-2-2.5z"/></svg>',
+      javascript: '<svg viewBox="0 0 16 16"><rect width="14" height="14" x="1" y="1" rx="2" fill="currentColor"/><path fill="#1f2328" d="M5.5 11.5c-.8 0-1.4-.4-1.7-.9l.9-.6c.2.3.5.5.8.5.4 0 .7-.2.7-.7V5.5H7.3v4.3c0 1.1-.7 1.7-1.8 1.7zm4.7 0c-1.2 0-1.9-.7-2-1.5l1-.5c.1.5.5.8 1 .8.5 0 .9-.3.9-.6 0-.4-.3-.5-.9-.7l-.4-.1c-.9-.3-1.4-.8-1.4-1.6 0-1 .8-1.8 2-1.8 1 0 1.6.5 1.8 1.3l-1 .4c-.1-.4-.4-.6-.8-.6-.5 0-.8.3-.8.6 0 .3.2.5.7.6l.4.1c1.1.4 1.6.9 1.6 1.7 0 1-.8 1.9-2.1 1.9z"/></svg>',
+      typescript: '<svg viewBox="0 0 16 16"><rect width="14" height="14" x="1" y="1" rx="2" fill="currentColor"/><path fill="#ffffff" d="M3 5.5h4.4v1.2H5.8v4.8H4.6V6.7H3V5.5zm7.2 6c-1.2 0-1.9-.7-2-1.5l1-.5c.1.5.5.8 1 .8.5 0 .9-.3.9-.6 0-.4-.3-.5-.9-.7l-.4-.1c-.9-.3-1.4-.8-1.4-1.6 0-1 .8-1.8 2-1.8 1 0 1.6.5 1.8 1.3l-1 .4c-.1-.4-.4-.6-.8-.6-.5 0-.8.3-.8.6 0 .3.2.5.7.6l.4.1c1.1.4 1.6.9 1.6 1.7 0 1-.8 1.9-2.1 1.9z"/></svg>',
+      go: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M1.5 5.5A2.5 2.5 0 0 1 4 3h1.8a2.5 2.5 0 0 1 2.45 2H7A1.2 1.2 0 0 0 5.8 4.2H4a1.3 1.3 0 0 0 0 2.6h1.8a2.5 2.5 0 0 1 2.45 2H7A1.2 1.2 0 0 0 5.8 8H4A2.5 2.5 0 0 1 1.5 5.5zm8 0A2.5 2.5 0 0 1 12 3h1a2.5 2.5 0 0 1 2.5 2.5v5A2.5 2.5 0 0 1 13 13h-1a2.5 2.5 0 0 1-2.5-2.5v-5zm2.5-1.3a1.3 1.3 0 0 0-1.3 1.3v5a1.3 1.3 0 0 0 1.3 1.3h1a1.3 1.3 0 0 0 1.3-1.3v-5a1.3 1.3 0 0 0-1.3-1.3h-1z"/></svg>',
+      rust: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 1a1 1 0 0 1 .9.56l.44.88a5.5 5.5 0 0 1 1.35.56l.93-.34a1 1 0 0 1 1.15.42l1 1.73a1 1 0 0 1-.25 1.2l-.74.64c.1.48.15.98.15 1.49 0 .48-.05.95-.14 1.41l.76.65a1 1 0 0 1 .25 1.2l-1 1.73a1 1 0 0 1-1.15.42l-.93-.34a5.5 5.5 0 0 1-1.35.56l-.44.88A1 1 0 0 1 8 15a1 1 0 0 1-.9-.56l-.44-.88a5.5 5.5 0 0 1-1.35-.56l-.93.34a1 1 0 0 1-1.15-.42l-1-1.73a1 1 0 0 1 .25-1.2l.74-.64a5.5 5.5 0 0 1 0-2.82l-.74-.64a1 1 0 0 1-.25-1.2l1-1.73a1 1 0 0 1 1.15-.42l.93.34c.42-.23.87-.42 1.35-.56l.44-.88A1 1 0 0 1 8 1zm0 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>',
+      java: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M6.8 1.5c-1.4 1.9-.3 3.4 0 4.5-1.1-.3-2.1-1.5-1.4-3.2.4-.7.9-1 1.4-1.3zm3.5.8c-.8 1.3-.2 2.4.3 3.3.6 1 0 2.2-.5 2.8.9-.6 1.5-1.7 1.2-2.8-.3-1-.6-2.1-1-3.3zM3 11c0 1.7 2.2 2.5 5 2.5s5-.8 5-2.5v-2H3v2zm9-1.2h1.2c.7 0 1.3.5 1.3 1.2s-.6 1.2-1.3 1.2H12v-2.4zM2 14.5c2.3.8 9.7.8 12 0v-.8H2v.8z"/></svg>',
+      shell: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13zm0 1.2h13a.3.3 0 0 1 .3.3V5H1.2v-1.5a.3.3 0 0 1 .3-.3zm-.3 3h13.6v6.3a.3.3 0 0 1-.3.3h-13a.3.3 0 0 1-.3-.3V6.2zm2 1.5-.35.35 1.65 1.65-1.65 1.65.35.35 2-2-2-2zm4.5 3.5v-.5h3.5v.5h-3.5z"/></svg>',
+      html: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="m5.15 4.15-3.5 3.5a.5.5 0 0 0 0 .7l3.5 3.5.7-.7L2.7 8l3.15-3.15-.7-.7zm5.7 0-.7.7L13.3 8l-3.15 3.15.7.7 3.5-3.5a.5.5 0 0 0 0-.7l-3.5-3.5zm-3.9 8.2 2.5-8.5-1-.3-2.5 8.5 1 .3z"/></svg>',
+      css: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M6.5 1.5h-1.2l-.6 3H2.5v1.2h1.9l-.6 3H1.5v1.2h2l-.7 3.6h1.2l.7-3.6h3l-.7 3.6h1.2l.7-3.6h2.4V8.7H9.7l.6-3h2.2V4.5h-2l.7-3H10l-.6 3H6.3l.7-3zm-1 4.2h3.1l-.6 3H4.9l.6-3z"/></svg>',
+      database: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 1c3.3 0 6 1.1 6 2.5v9c0 1.4-2.7 2.5-6 2.5s-6-1.1-6-2.5v-9C2 2.1 4.7 1 8 1zm0 1.2C5.3 2.2 3.2 3 3.2 3.5S5.3 4.8 8 4.8s4.8-.8 4.8-1.3S10.7 2.2 8 2.2zm4.8 3.5c-.8.6-2.6 1.1-4.8 1.1s-4-.5-4.8-1.1v2.1c.7.6 2.6 1.1 4.8 1.1s4.1-.5 4.8-1.1V5.7zm0 3.5c-.8.6-2.6 1.1-4.8 1.1s-4-.5-4.8-1.1v2.1c.7.6 2.6 1.1 4.8 1.1s4.1-.5 4.8-1.1V9.2z"/></svg>',
+      image: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M1.75 2.5h12.5c.69 0 1.25.56 1.25 1.25v8.5c0 .69-.56 1.25-1.25 1.25H1.75C1.06 13.5.5 12.94.5 12.25v-8.5C.5 3.06 1.06 2.5 1.75 2.5zm0 1.2v8.5h12.5v-8.5H1.75zm2.75 1.8a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5zm7.75 5.5H3.75l2.5-3.3 1.8 2.2 2.4-3.1 2.3 4.2z"/></svg>',
+      video: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M1 3.5C1 2.67 1.67 2 2.5 2h11c.83 0 1.5.67 1.5 1.5v9c0 .83-.67 1.5-1.5 1.5h-11C1.67 14 1 13.33 1 12.5v-9zm1.5-.3a.3.3 0 0 0-.3.3V5h2V3.2H2.5zm3.2 0V5h4.6V3.2H5.7zm5.8 0V5h2V3.5a.3.3 0 0 0-.3-.3h-1.7zm2 3H2.2v3.6h11.6V6.2zm0 4.8h-2v1.8h1.7a.3.3 0 0 0 .3-.3V11zm-3.2 1.8V11H5.7v1.8h4.6zm-5.8 0V11H2.2v1.5c0 .17.13.3.3.3h1.7z"/></svg>',
+      audio: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M12.5 1.5a.5.5 0 0 0-.5.5v7.6A2.5 2.5 0 1 0 13 12V4.4l-6 1.5V11A2.5 2.5 0 1 0 8 13.2V4.1a.5.5 0 0 1 .38-.49l4.5-1.12a.5.5 0 0 1 .12-.01z"/></svg>',
+      archive: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2.5 2A1.5 1.5 0 0 0 1 3.5v9A1.5 1.5 0 0 0 2.5 14h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 13.5 2h-11zm5 1.2h1v1h-1v-1zm-1 1h1v1h-1v-1zm1 1h1v1h-1v-1zm-1 1h1v1h-1v-1zm1 1h1v1h-1v-1zm-1 1h1v1.5a1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1v-.5zM2.2 3.5a.3.3 0 0 1 .3-.3h4v8.6H2.5a.3.3 0 0 1-.3-.3v-8zm7.3 8.3V3.2h4a.3.3 0 0 1 .3.3v8a.3.3 0 0 1-.3.3h-4z"/></svg>',
+      model: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M8 .5 1.5 4.2v7.6L8 15.5l6.5-3.7V4.2L8 .5zm0 1.4 5 2.9-5 2.9-5-2.9 5-2.9zm-5.3 4 4.7 2.7v5.6l-4.7-2.7V5.9zm6 8.3V8.6l4.7-2.7v5.6l-4.7 2.7z"/></svg>',
+      config: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2.5 3a1.5 1.5 0 0 1 3 0h8.5v1.2H5.5a1.5 1.5 0 0 1-3 0H1V3h1.5zm8 4.5a1.5 1.5 0 0 1 3 0H15v1.2h-1.5a1.5 1.5 0 0 1-3 0H1V7.5h9.5zm-5 4.5a1.5 1.5 0 0 1 3 0H15v1.2H8.5a1.5 1.5 0 0 1-3 0H1V12h4.5z"/></svg>',
+      text: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2 1.75C2 .78 2.78 0 3.75 0h6.59c.46 0 .91.18 1.24.51l2.91 2.91c.33.33.51.78.51 1.24v9.59A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25V1.75zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .14.11.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5H3.75zM5 8h6v1.2H5V8zm0 2.5h6v1.2H5v-1.2zM5 5.5h3v1.2H5V5.5z"/></svg>',
+      pdf: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M2 1.75C2 .78 2.78 0 3.75 0h6.59c.46 0 .91.18 1.24.51l2.91 2.91c.33.33.51.78.51 1.24v9.59A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25V1.75zM3.75 1.5a.25.25 0 0 0-.25.25v12.5c0 .14.11.25.25.25h9.5a.25.25 0 0 0 .25-.25V6H9.5A1.5 1.5 0 0 1 8 4.5V1.5H3.75zM4.5 9h2c.8 0 1.5.5 1.5 1.2 0 .8-.7 1.3-1.5 1.3H5.5v1.5H4.5V9zm1 1.7h1c.3 0 .6-.2.6-.5s-.3-.5-.6-.5h-1v1zm3-1.7h1.5c1.1 0 1.8.7 1.8 1.8 0 1.1-.7 1.8-1.8 1.8H8.5V9zm1 2.8h.5c.6 0 1-.3 1-1s-.4-1-1-1h-.5v2z"/></svg>',
+      git: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M11.75 2.5a2.25 2.25 0 1 0-3 2.12v2.88a2.25 2.25 0 0 0-1.5 2.13v.12a2.25 2.25 0 1 0 1.5 0V9.63c.45-.3.8-.73 1-1.24l2.5-1.25a2.25 2.25 0 1 0-.5-1.34l-2 1V4.62c.45-.3.8-.73 1-1.24a2.24 2.24 0 0 0 .5-.88z"/></svg>',
+      docker: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M15.5 7.5c-.3-.2-.8-.2-1.1 0-.2.1-.4.4-.4.7 0 .1 0 .2.1.3-.8.7-1.9 1-3.1 1H2c-.4 0-.8.2-1 .5-.6 1 .2 2.7 1.5 3.5 1.8 1.1 4.5 1.5 7 .8 2.2-.6 4-2.1 4.8-4.1.4 0 .9-.2 1.2-.5.3-.3.4-.8.3-1.2-.1-.4-.5-.8-.9-.9l.6-.2zM1 7h1.5v1.5H1V7zm2 0h1.5v1.5H3V7zm2 0h1.5v1.5H5V7zm2 0h1.5v1.5H7V7zm-4-2h1.5v1.5H3V5zm2 0h1.5v1.5H5V5zm2 0h1.5v1.5H7V5zm2 0h1.5v1.5H9V5zm-2-2h1.5v1.5H7V3z"/></svg>',
+      binary: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M5 2V1h1v1h4V1h1v1h1a2 2 0 0 1 2 2v1h1v1h-1v4h1v1h-1v1a2 2 0 0 1-2 2h-1v1h-1v-1H6v1H5v-1H4a2 2 0 0 1-2-2v-1H1v-1h1V6H1V5h1V4a2 2 0 0 1 2-2h1zm-1 2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H4zm1.5 2h5v4h-5V6z"/></svg>',
+      key: '<svg viewBox="0 0 16 16"><path fill="currentColor" d="M10.5 1a4.5 4.5 0 0 0-4.4 5.4L1 11.5V15h3.5v-1.5H6V12h1.5l1.1-1.1c.6.4 1.2.6 1.9.6a4.5 4.5 0 1 0 0-9zm1.5 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>',
     };
+
+    function getFileMeta(name, isDir) {
+      if (isDir) {
+        return {
+          icon: ICO.folder,
+          color: "#0969da",
+          badgeText: "dir",
+          badgeBg: "var(--bgNeutralMuted)",
+          badgeBorder: "var(--borderMuted)",
+          badgeColor: "var(--fgMuted)",
+        };
+      }
+      const rawName = name || "";
+      const lower = rawName.toLowerCase();
+
+      // 特殊配置文件
+      if (lower === "dockerfile" || lower.startsWith("dockerfile.") || lower === "docker-compose.yml" || lower === "docker-compose.yaml" || lower === ".dockerignore") {
+        return {
+          icon: ICO.docker,
+          color: "#2496ed",
+          badgeText: "DOCKER",
+          badgeBg: "rgba(36, 150, 237, 0.1)",
+          badgeBorder: "rgba(36, 150, 237, 0.3)",
+          badgeColor: "#0969da",
+        };
+      }
+      if (lower === ".gitignore" || lower === ".gitattributes" || lower === ".gitmodules") {
+        return {
+          icon: ICO.git,
+          color: "#f05032",
+          badgeText: "GIT",
+          badgeBg: "rgba(240, 80, 50, 0.1)",
+          badgeBorder: "rgba(240, 80, 50, 0.3)",
+          badgeColor: "#cf222e",
+        };
+      }
+      if (lower === "makefile" || lower === "justfile" || lower === "cmakelists.txt") {
+        return {
+          icon: ICO.config,
+          color: "#d29922",
+          badgeText: "BUILD",
+          badgeBg: "rgba(210, 153, 34, 0.1)",
+          badgeBorder: "rgba(210, 153, 34, 0.3)",
+          badgeColor: "#9a6700",
+        };
+      }
+      if (lower === "package.json" || lower === "package-lock.json" || lower === "pnpm-lock.yaml" || lower === "yarn.lock" || lower === "bun.lock" || lower === "bun.lockb") {
+        return {
+          icon: ICO.json,
+          color: "#cb3837",
+          badgeText: "PKG",
+          badgeBg: "rgba(203, 56, 55, 0.1)",
+          badgeBorder: "rgba(203, 56, 55, 0.3)",
+          badgeColor: "#cf222e",
+        };
+      }
+      if (lower === "cargo.toml" || lower === "cargo.lock") {
+        return {
+          icon: ICO.rust,
+          color: "#dea584",
+          badgeText: "CARGO",
+          badgeBg: "rgba(222, 165, 132, 0.15)",
+          badgeBorder: "rgba(222, 165, 132, 0.4)",
+          badgeColor: "#9a4918",
+        };
+      }
+      if (lower === "go.mod" || lower === "go.sum") {
+        return {
+          icon: ICO.go,
+          color: "#00add8",
+          badgeText: "GO",
+          badgeBg: "rgba(0, 173, 216, 0.1)",
+          badgeBorder: "rgba(0, 173, 216, 0.3)",
+          badgeColor: "#007a99",
+        };
+      }
+
+      // 复合后缀（Live2D / Cubism 与多段归档）
+      if (lower.endsWith(".model3.json")) {
+        return {
+          icon: ICO.model,
+          color: "#8a63d2",
+          badgeText: "MODEL3",
+          badgeBg: "rgba(138, 99, 210, 0.12)",
+          badgeBorder: "rgba(138, 99, 210, 0.35)",
+          badgeColor: "#6e40c9",
+        };
+      }
+      if (lower.endsWith(".motion3.json")) {
+        return {
+          icon: ICO.model,
+          color: "#8a63d2",
+          badgeText: "MOTION",
+          badgeBg: "rgba(138, 99, 210, 0.12)",
+          badgeBorder: "rgba(138, 99, 210, 0.35)",
+          badgeColor: "#6e40c9",
+        };
+      }
+      if (lower.endsWith(".cdi3.json")) {
+        return {
+          icon: ICO.model,
+          color: "#8a63d2",
+          badgeText: "CDI3",
+          badgeBg: "rgba(138, 99, 210, 0.12)",
+          badgeBorder: "rgba(138, 99, 210, 0.35)",
+          badgeColor: "#6e40c9",
+        };
+      }
+      if (lower.endsWith(".psd2live.json") || lower.endsWith(".psd2live")) {
+        return {
+          icon: ICO.model,
+          color: "#8a63d2",
+          badgeText: "PSD2LIVE",
+          badgeBg: "rgba(138, 99, 210, 0.12)",
+          badgeBorder: "rgba(138, 99, 210, 0.35)",
+          badgeColor: "#6e40c9",
+        };
+      }
+      if (lower.endsWith(".tar.gz") || lower.endsWith(".tar.bz2") || lower.endsWith(".tar.xz")) {
+        return {
+          icon: ICO.archive,
+          color: "#b27d12",
+          badgeText: "ARCHIVE",
+          badgeBg: "rgba(178, 125, 18, 0.1)",
+          badgeBorder: "rgba(178, 125, 18, 0.3)",
+          badgeColor: "#875a00",
+        };
+      }
+      if (lower.endsWith(".d.ts")) {
+        return {
+          icon: ICO.typescript,
+          color: "#3178c6",
+          badgeText: "D.TS",
+          badgeBg: "rgba(49, 120, 198, 0.1)",
+          badgeBorder: "rgba(49, 120, 198, 0.3)",
+          badgeColor: "#0969da",
+        };
+      }
+
+      // 单后缀匹配
+      const dot = lower.lastIndexOf(".");
+      const ext = dot >= 0 ? lower.slice(dot + 1) : "";
+
+      switch (ext) {
+        // 模型与 3D
+        case "can3":
+          return {
+            icon: ICO.model,
+            color: "#8a63d2",
+            badgeText: "CAN3",
+            badgeBg: "rgba(138, 99, 210, 0.12)",
+            badgeBorder: "rgba(138, 99, 210, 0.35)",
+            badgeColor: "#6e40c9",
+          };
+        case "cmo3":
+          return {
+            icon: ICO.model,
+            color: "#8a63d2",
+            badgeText: "CMO3",
+            badgeBg: "rgba(138, 99, 210, 0.12)",
+            badgeBorder: "rgba(138, 99, 210, 0.35)",
+            badgeColor: "#6e40c9",
+          };
+        case "moc3":
+          return {
+            icon: ICO.model,
+            color: "#8a63d2",
+            badgeText: "MOC3",
+            badgeBg: "rgba(138, 99, 210, 0.12)",
+            badgeBorder: "rgba(138, 99, 210, 0.35)",
+            badgeColor: "#6e40c9",
+          };
+        case "obj":
+        case "fbx":
+        case "gltf":
+        case "glb":
+        case "blend":
+        case "stl":
+        case "dae":
+          return {
+            icon: ICO.model,
+            color: "#e67e22",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(230, 126, 34, 0.1)",
+            badgeBorder: "rgba(230, 126, 34, 0.3)",
+            badgeColor: "#b25900",
+          };
+
+        // 编程语言
+        case "py":
+        case "pyw":
+        case "ipynb":
+          return {
+            icon: ICO.python,
+            color: "#3572A5",
+            badgeText: "PY",
+            badgeBg: "rgba(53, 114, 165, 0.1)",
+            badgeBorder: "rgba(53, 114, 165, 0.3)",
+            badgeColor: "#20558a",
+          };
+        case "js":
+        case "mjs":
+        case "cjs":
+        case "jsx":
+          return {
+            icon: ICO.javascript,
+            color: "#d4a72c",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(212, 167, 44, 0.12)",
+            badgeBorder: "rgba(212, 167, 44, 0.35)",
+            badgeColor: "#9a6700",
+          };
+        case "ts":
+        case "mts":
+        case "cts":
+        case "tsx":
+          return {
+            icon: ICO.typescript,
+            color: "#3178c6",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(49, 120, 198, 0.1)",
+            badgeBorder: "rgba(49, 120, 198, 0.3)",
+            badgeColor: "#0969da",
+          };
+        case "go":
+          return {
+            icon: ICO.go,
+            color: "#00add8",
+            badgeText: "GO",
+            badgeBg: "rgba(0, 173, 216, 0.1)",
+            badgeBorder: "rgba(0, 173, 216, 0.3)",
+            badgeColor: "#007a99",
+          };
+        case "rs":
+          return {
+            icon: ICO.rust,
+            color: "#dea584",
+            badgeText: "RS",
+            badgeBg: "rgba(222, 165, 132, 0.15)",
+            badgeBorder: "rgba(222, 165, 132, 0.4)",
+            badgeColor: "#9a4918",
+          };
+        case "java":
+        case "jar":
+        case "class":
+          return {
+            icon: ICO.java,
+            color: "#b07219",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(176, 114, 25, 0.1)",
+            badgeBorder: "rgba(176, 114, 25, 0.3)",
+            badgeColor: "#875200",
+          };
+        case "kt":
+        case "kts":
+          return {
+            icon: ICO.java,
+            color: "#a97bff",
+            badgeText: "KT",
+            badgeBg: "rgba(169, 123, 255, 0.12)",
+            badgeBorder: "rgba(169, 123, 255, 0.35)",
+            badgeColor: "#7c3aed",
+          };
+        case "c":
+        case "h":
+          return {
+            icon: ICO.html,
+            color: "#555555",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(85, 85, 85, 0.1)",
+            badgeBorder: "rgba(85, 85, 85, 0.3)",
+            badgeColor: "#333333",
+          };
+        case "cpp":
+        case "cc":
+        case "cxx":
+        case "hpp":
+        case "hh":
+        case "hxx":
+          return {
+            icon: ICO.html,
+            color: "#f34b7d",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(243, 75, 125, 0.1)",
+            badgeBorder: "rgba(243, 75, 125, 0.3)",
+            badgeColor: "#c2185b",
+          };
+        case "cs":
+          return {
+            icon: ICO.html,
+            color: "#178600",
+            badgeText: "CS",
+            badgeBg: "rgba(23, 134, 0, 0.1)",
+            badgeBorder: "rgba(23, 134, 0, 0.3)",
+            badgeColor: "#106300",
+          };
+        case "sh":
+        case "bash":
+        case "zsh":
+        case "fish":
+        case "ksh":
+          return {
+            icon: ICO.shell,
+            color: "#4eaa25",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(78, 170, 37, 0.1)",
+            badgeBorder: "rgba(78, 170, 37, 0.3)",
+            badgeColor: "#1a7f37",
+          };
+        case "html":
+        case "htm":
+        case "xhtml":
+          return {
+            icon: ICO.html,
+            color: "#e34c26",
+            badgeText: "HTML",
+            badgeBg: "rgba(227, 76, 38, 0.1)",
+            badgeBorder: "rgba(227, 76, 38, 0.3)",
+            badgeColor: "#b8300e",
+          };
+        case "css":
+        case "scss":
+        case "sass":
+        case "less":
+        case "styl":
+          return {
+            icon: ICO.css,
+            color: "#563d7c",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(86, 61, 124, 0.1)",
+            badgeBorder: "rgba(86, 61, 124, 0.3)",
+            badgeColor: "#422863",
+          };
+        case "sql":
+        case "prisma":
+          return {
+            icon: ICO.database,
+            color: "#e38c00",
+            badgeText: "SQL",
+            badgeBg: "rgba(227, 140, 0, 0.1)",
+            badgeBorder: "rgba(227, 140, 0, 0.3)",
+            badgeColor: "#a36100",
+          };
+        case "php":
+          return {
+            icon: ICO.html,
+            color: "#4f5d95",
+            badgeText: "PHP",
+            badgeBg: "rgba(79, 93, 149, 0.1)",
+            badgeBorder: "rgba(79, 93, 149, 0.3)",
+            badgeColor: "#3c4774",
+          };
+        case "rb":
+        case "erb":
+          return {
+            icon: ICO.html,
+            color: "#701516",
+            badgeText: "RB",
+            badgeBg: "rgba(112, 21, 22, 0.1)",
+            badgeBorder: "rgba(112, 21, 22, 0.3)",
+            badgeColor: "#701516",
+          };
+        case "swift":
+          return {
+            icon: ICO.html,
+            color: "#f05138",
+            badgeText: "SWIFT",
+            badgeBg: "rgba(240, 81, 56, 0.1)",
+            badgeBorder: "rgba(240, 81, 56, 0.3)",
+            badgeColor: "#cf222e",
+          };
+        case "dart":
+          return {
+            icon: ICO.html,
+            color: "#00b4ab",
+            badgeText: "DART",
+            badgeBg: "rgba(0, 180, 171, 0.1)",
+            badgeBorder: "rgba(0, 180, 171, 0.3)",
+            badgeColor: "#007a74",
+          };
+        case "lua":
+          return {
+            icon: ICO.html,
+            color: "#000080",
+            badgeText: "LUA",
+            badgeBg: "rgba(0, 0, 128, 0.1)",
+            badgeBorder: "rgba(0, 0, 128, 0.3)",
+            badgeColor: "#000080",
+          };
+        case "r":
+          return {
+            icon: ICO.html,
+            color: "#198ce7",
+            badgeText: "R",
+            badgeBg: "rgba(25, 140, 231, 0.1)",
+            badgeBorder: "rgba(25, 140, 231, 0.3)",
+            badgeColor: "#0969da",
+          };
+
+        // 数据与配置
+        case "json":
+        case "json5":
+        case "jsonc":
+        case "ndjson":
+          return {
+            icon: ICO.json,
+            color: "#cbcb41",
+            badgeText: "JSON",
+            badgeBg: "rgba(203, 203, 65, 0.12)",
+            badgeBorder: "rgba(203, 203, 65, 0.35)",
+            badgeColor: "#8c7300",
+          };
+        case "yml":
+        case "yaml":
+          return {
+            icon: ICO.config,
+            color: "#cb171e",
+            badgeText: "YAML",
+            badgeBg: "rgba(203, 23, 30, 0.1)",
+            badgeBorder: "rgba(203, 23, 30, 0.3)",
+            badgeColor: "#a30f14",
+          };
+        case "toml":
+          return {
+            icon: ICO.config,
+            color: "#9c4221",
+            badgeText: "TOML",
+            badgeBg: "rgba(156, 66, 33, 0.1)",
+            badgeBorder: "rgba(156, 66, 33, 0.3)",
+            badgeColor: "#7e3215",
+          };
+        case "xml":
+        case "plist":
+        case "xaml":
+          return {
+            icon: ICO.html,
+            color: "#0060ac",
+            badgeText: "XML",
+            badgeBg: "rgba(0, 96, 172, 0.1)",
+            badgeBorder: "rgba(0, 96, 172, 0.3)",
+            badgeColor: "#004780",
+          };
+        case "env":
+        case "conf":
+        case "ini":
+        case "cfg":
+        case "cnf":
+        case "properties":
+          return {
+            icon: ICO.config,
+            color: "#6e7681",
+            badgeText: ext ? ext.toUpperCase() : "CONF",
+            badgeBg: "rgba(110, 118, 129, 0.1)",
+            badgeBorder: "rgba(110, 118, 129, 0.3)",
+            badgeColor: "#57606a",
+          };
+
+        // 文档与纯文本
+        case "md":
+        case "markdown":
+        case "mdx":
+          return {
+            icon: ICO.markdown,
+            color: "#0969da",
+            badgeText: "MD",
+            badgeBg: "rgba(9, 105, 218, 0.1)",
+            badgeBorder: "rgba(9, 105, 218, 0.3)",
+            badgeColor: "#0969da",
+          };
+        case "txt":
+        case "text":
+          return {
+            icon: ICO.text,
+            color: "#656d76",
+            badgeText: "TXT",
+            badgeBg: "rgba(101, 109, 118, 0.1)",
+            badgeBorder: "rgba(101, 109, 118, 0.25)",
+            badgeColor: "#656d76",
+          };
+        case "log":
+          return {
+            icon: ICO.text,
+            color: "#8c959f",
+            badgeText: "LOG",
+            badgeBg: "rgba(140, 149, 159, 0.12)",
+            badgeBorder: "rgba(140, 149, 159, 0.3)",
+            badgeColor: "#57606a",
+          };
+        case "pdf":
+          return {
+            icon: ICO.pdf,
+            color: "#d9381e",
+            badgeText: "PDF",
+            badgeBg: "rgba(217, 56, 30, 0.1)",
+            badgeBorder: "rgba(217, 56, 30, 0.3)",
+            badgeColor: "#b2260f",
+          };
+        case "doc":
+        case "docx":
+        case "rtf":
+          return {
+            icon: ICO.text,
+            color: "#185abd",
+            badgeText: "DOC",
+            badgeBg: "rgba(24, 90, 189, 0.1)",
+            badgeBorder: "rgba(24, 90, 189, 0.3)",
+            badgeColor: "#134694",
+          };
+
+        // 图片与多媒体
+        case "png":
+        case "jpg":
+        case "jpeg":
+        case "gif":
+        case "webp":
+        case "bmp":
+        case "ico":
+        case "tiff":
+        case "svg":
+          return {
+            icon: ICO.image,
+            color: "#a074c4",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(160, 116, 196, 0.12)",
+            badgeBorder: "rgba(160, 116, 196, 0.35)",
+            badgeColor: "#8250df",
+          };
+        case "psd":
+        case "ai":
+          return {
+            icon: ICO.image,
+            color: "#0969da",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(9, 105, 218, 0.12)",
+            badgeBorder: "rgba(9, 105, 218, 0.3)",
+            badgeColor: "#0969da",
+          };
+        case "mp4":
+        case "mov":
+        case "avi":
+        case "mkv":
+        case "webm":
+        case "flv":
+          return {
+            icon: ICO.video,
+            color: "#cf222e",
+            badgeText: "VIDEO",
+            badgeBg: "rgba(207, 34, 46, 0.1)",
+            badgeBorder: "rgba(207, 34, 46, 0.3)",
+            badgeColor: "#cf222e",
+          };
+        case "mp3":
+        case "wav":
+        case "ogg":
+        case "flac":
+        case "aac":
+        case "m4a":
+          return {
+            icon: ICO.audio,
+            color: "#d19a66",
+            badgeText: "AUDIO",
+            badgeBg: "rgba(209, 154, 102, 0.12)",
+            badgeBorder: "rgba(209, 154, 102, 0.35)",
+            badgeColor: "#a36829",
+          };
+
+        // 归档与压缩
+        case "zip":
+        case "tar":
+        case "gz":
+        case "tgz":
+        case "bz2":
+        case "xz":
+        case "7z":
+        case "rar":
+        case "zst":
+          return {
+            icon: ICO.archive,
+            color: "#b27d12",
+            badgeText: "ZIP",
+            badgeBg: "rgba(178, 125, 18, 0.1)",
+            badgeBorder: "rgba(178, 125, 18, 0.3)",
+            badgeColor: "#875a00",
+          };
+
+        // 表格与数据
+        case "csv":
+        case "tsv":
+        case "xlsx":
+        case "xls":
+          return {
+            icon: ICO.text,
+            color: "#1f883d",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(31, 136, 61, 0.1)",
+            badgeBorder: "rgba(31, 136, 61, 0.3)",
+            badgeColor: "#1a7f37",
+          };
+
+        // 字体
+        case "ttf":
+        case "otf":
+        case "woff":
+        case "woff2":
+        case "eot":
+          return {
+            icon: ICO.text,
+            color: "#d14470",
+            badgeText: "FONT",
+            badgeBg: "rgba(209, 68, 112, 0.1)",
+            badgeBorder: "rgba(209, 68, 112, 0.3)",
+            badgeColor: "#ad2a53",
+          };
+
+        // 密钥与证书
+        case "pem":
+        case "crt":
+        case "key":
+        case "pub":
+        case "cer":
+        case "p12":
+          return {
+            icon: ICO.key,
+            color: "#dfb317",
+            badgeText: "KEY",
+            badgeBg: "rgba(223, 179, 23, 0.12)",
+            badgeBorder: "rgba(223, 179, 23, 0.35)",
+            badgeColor: "#9a7800",
+          };
+
+        // 二进制与原生动态库
+        case "exe":
+        case "dll":
+        case "so":
+        case "dylib":
+        case "bin":
+        case "wasm":
+        case "o":
+        case "a":
+          return {
+            icon: ICO.binary,
+            color: "#57606a",
+            badgeText: ext.toUpperCase(),
+            badgeBg: "rgba(87, 96, 106, 0.1)",
+            badgeBorder: "rgba(87, 96, 106, 0.25)",
+            badgeColor: "#57606a",
+          };
+
+        default:
+          return {
+            icon: ICO.file,
+            color: "var(--fgMuted)",
+            badgeText: ext ? ext.toUpperCase() : "FILE",
+            badgeBg: "var(--bgSubtle)",
+            badgeBorder: "var(--borderMuted)",
+            badgeColor: "var(--fgMuted)",
+          };
+      }
+    }
+
+    function renderBadge(meta) {
+      return '<span class="type-badge" style="color:' + meta.badgeColor
+        + ';border-color:' + meta.badgeBorder
+        + ';background:' + meta.badgeBg + '">'
+        + escapeHtml(meta.badgeText) + '</span>';
+    }
 
     const state = {
       rootName: "__CW_ROOT_NAME__",
@@ -955,16 +1665,17 @@
             + '" data-tree-toggle="' + escapeHtml(e.path)
             + '" aria-label="Toggle folder">' + ICO.chevron + "</button>"
             + '<a class="tree-link" href="/' + encodePath(e.path) + '">'
-            + '<span class="ico">' + ICO.folder + '</span><span class="name">'
+            + '<span class="ico folder" style="color:#0969da">' + ICO.folder + '</span><span class="name">'
             + escapeHtml(e.name) + "</span></a></div>"
             + (open ? renderTreeNodes(kids, depth + 1) : "");
           return row;
         }
+        const meta = getFileMeta(e.name, false);
         return '<div class="tree-item' + active + '" data-path="' + escapeHtml(e.path)
           + '" style="padding-left:' + pad + 'px">'
           + '<span class="tree-toggle spacer" aria-hidden="true"></span>'
           + '<a class="tree-link" href="/' + encodePath(e.path) + '">'
-          + '<span class="ico">' + ICO.file + '</span><span class="name">'
+          + '<span class="ico" style="color:' + meta.color + '">' + meta.icon + '</span><span class="name">'
           + escapeHtml(e.name) + "</span></a></div>";
       }).join("");
     }
@@ -974,6 +1685,19 @@
       $("tree").innerHTML =
         '<div class="sidebar-head"><span>Files</span><span class="badge">' + list.length + "</span></div>"
         + renderTreeNodes(list, 0);
+    }
+
+    function scrollTreeToActive() {
+      const tree = $("tree");
+      const active = tree ? tree.querySelector(".tree-item.active") : null;
+      if (!active || !tree) return;
+      const activeRect = active.getBoundingClientRect();
+      const treeRect = tree.getBoundingClientRect();
+      if (activeRect.top < treeRect.top + 8) {
+        tree.scrollTop -= (treeRect.top - activeRect.top + 16);
+      } else if (activeRect.bottom > treeRect.bottom - 8) {
+        tree.scrollTop += (activeRect.bottom - treeRect.bottom + 16);
+      }
     }
 
     // 深链/跳转时沿祖先展开并滚到当前项, 侧栏与主区路径对齐.
@@ -991,8 +1715,7 @@
       }
       paintTree();
       requestAnimationFrame(() => {
-        const active = document.querySelector(".tree-item.active");
-        if (active) active.scrollIntoView({ block: "nearest" });
+        scrollTreeToActive();
       });
     }
 
@@ -1461,10 +2184,13 @@
     }
 
     function fileBoxOpen(data, meta, actions) {
+      const fileMeta = getFileMeta(data.name, false);
       return renderCrumbs(data.path)
         + '<div class="file-box"><div class="file-box-head"><div class="title">'
-        + '<span class="dir-ico">' + ICO.file + "</span>"
-        + '<span class="name">' + escapeHtml(data.name) + "</span></div>"
+        + '<span class="dir-ico" style="color:' + fileMeta.color + '">' + fileMeta.icon + "</span>"
+        + '<span class="name">' + escapeHtml(data.name) + "</span>"
+        + renderBadge(fileMeta)
+        + "</div>"
         + '<div class="meta">' + meta + "</div>"
         + '<div class="actions">' + actions + "</div></div>";
     }
@@ -2036,9 +2762,14 @@
     async function renderBlob(path, opts) {
       opts = opts || {};
       const content = $("content");
-      const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
-      const scrollRatio = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+      const main = document.querySelector(".main");
+      const maxScroll = main ? Math.max(main.scrollHeight - main.clientHeight, 0) : 0;
+      const scrollRatio = maxScroll > 0 ? main.scrollTop / maxScroll : 0;
       content.innerHTML = '<div class="empty">Loading…</div>';
+      if (main && !opts.preserveScroll) {
+        main.scrollTop = 0;
+      }
+      window.scrollTo(0, 0);
       try {
         const data = await api("/api/blob?path=" + encodeURIComponent(path));
         state.currentPath = data.path || "";
@@ -2052,18 +2783,19 @@
 
         if (data.type === "dir") {
           const rows = (data.entries || []).map((e) => {
-            const ico = e.type === "dir" ? ICO.folder : ICO.file;
+            const meta = getFileMeta(e.name, e.type === "dir");
             const cls = e.type === "dir" ? "dir-ico folder" : "dir-ico";
-            return '<tr><td><div class="name-cell"><span class="' + cls + '">' + ico
+            return '<tr><td><div class="name-cell"><span class="' + cls + '" style="color:' + meta.color + '">' + meta.icon
               + '</span><a href="/' + encodePath(e.path) + '">' + escapeHtml(e.name)
               + (e.type === "dir" ? "/" : "") + "</a></div></td>"
-              + '<td class="type-cell">' + (e.type === "dir" ? "dir" : "file") + "</td></tr>";
+              + '<td class="type-cell">' + renderBadge(meta) + "</td></tr>";
           }).join("");
           // GitHub 目录页语义: 目录树 + 同层 README, 路由仍停在目录本身.
           content.innerHTML = renderCrumbs(data.path)
             + '<div class="file-box"><div class="file-box-head"><div class="title">'
             + '<span class="dir-ico folder">' + ICO.folder + "</span>"
-            + '<span class="name">' + escapeHtml(data.name || state.rootName) + "</span></div>"
+            + '<span class="name">' + escapeHtml(data.name || state.rootName) + "</span>"
+            + '<span class="type-badge" style="color:var(--fgMuted);border-color:var(--borderMuted);background:var(--bgNeutralMuted)">' + (data.path ? "dir" : "root") + "</span></div>"
             + '<div class="meta">' + (data.entries || []).length + " items</div></div>"
             + '<table class="dir-table"><tbody>' + rows + "</tbody></table></div>"
             + '<div id="readme-slot"></div>';
@@ -2073,10 +2805,13 @@
               const rd = await api("/api/blob?path=" + encodeURIComponent(readmePath));
               const slot = $("readme-slot");
               if (slot && rd.type === "file" && !rd.binary && rd.content !== undefined) {
+                const rdMeta = getFileMeta(rd.name, false);
                 const head = '<div style="height:16px"></div><div class="file-box">'
                   + '<div class="file-box-head"><div class="title">'
-                  + '<span class="dir-ico">' + ICO.file + "</span>"
-                  + '<span class="name">' + escapeHtml(rd.name) + "</span></div>"
+                  + '<span class="dir-ico" style="color:' + rdMeta.color + '">' + rdMeta.icon + "</span>"
+                  + '<span class="name">' + escapeHtml(rd.name) + "</span>"
+                  + renderBadge(rdMeta)
+                  + '</div>'
                   + '<div class="meta">README</div>'
                   + '<div class="actions"><a class="btn" href="/' + encodePath(rd.path) + '">Open</a></div></div>';
                 if (rd.language === "markdown") {
@@ -2161,10 +2896,10 @@
           content.innerHTML = '<div class="err">' + escapeHtml(msg) + "</div>";
         }
       } finally {
-        if (opts.preserveScroll) {
+        if (opts.preserveScroll && main) {
           requestAnimationFrame(() => {
-            const nextMax = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
-            window.scrollTo(0, nextMax * scrollRatio);
+            const nextMax = Math.max(main.scrollHeight - main.clientHeight, 0);
+            main.scrollTop = nextMax * scrollRatio;
           });
         }
       }
@@ -2354,12 +3089,12 @@
         const cls = idx === state.paletteIndex ? " active" : "";
         const base = basenameOf(item.path);
         const parent = parentOf(item.path);
-        const ext = extOf(item.path).replace(/^\./, "") || "file";
+        const pMeta = getFileMeta(base, false);
         html += '<button type="button" class="palette-item' + cls + '" data-idx="' + idx + '">'
-          + '<span class="dir-ico">' + ICO.file + '</span>'
+          + '<span class="dir-ico" style="color:' + pMeta.color + '">' + pMeta.icon + '</span>'
           + '<span class="meta"><span class="name">' + escapeHtml(base) + '</span>'
           + (parent ? '<span class="sub">' + escapeHtml(parent) + '</span>' : '')
-          + '</span><span class="ext">' + escapeHtml(ext) + '</span></button>';
+          + '</span><span class="ext">' + escapeHtml(pMeta.badgeText.toLowerCase()) + '</span></button>';
       });
       box.innerHTML = html;
       for (const btn of box.querySelectorAll(".palette-item")) {
