@@ -59,7 +59,12 @@ func mysqlConfig(raw string, connect, exec time.Duration) (*mysqldriver.Config, 
 	cfg.Params = map[string]string{}
 	for key, vals := range parsed.Query() {
 		if len(vals) > 0 {
-			cfg.Params[key] = vals[0]
+			switch key {
+			case "allowPublicKeyRetrieval", "useSSL", "serverTimezone", "characterEncoding", "useUnicode", "autoReconnect", "zeroDateTimeBehavior", "tinyInt1isBit":
+				continue
+			default:
+				cfg.Params[key] = vals[0]
+			}
 		}
 	}
 	return cfg, nil
