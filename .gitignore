@@ -25,3 +25,4 @@ designs/
 
 # Go 模块构建产物
 /bin/
+.claude
