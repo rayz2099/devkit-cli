@@ -29,6 +29,7 @@ var all = []Mod{
 	{Name: "gh-image-cli", Kind: KindGo},
 	{Name: "grafana-cli", Kind: KindGo},
 	{Name: "har-cli", Kind: KindGo},
+	{Name: "issue-cli", Kind: KindGo},
 	{Name: "jenkins-cli", Kind: KindGo},
 	{Name: "nacos-cli", Kind: KindGo},
 	{Name: "olly-cli", Kind: KindGo},
