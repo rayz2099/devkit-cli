@@ -57,6 +57,14 @@ func TestParseArgs(t *testing.T) {
 	if err != nil || got.Cmd != "help" {
 		t.Fatal(got, err)
 	}
+	got, err = ParseArgs([]string{"add", "project", "dt-vshop", "vshop-gw", "-v"})
+	if err != nil || got.Cmd != "add-project" || got.Repo != "dt-vshop" || len(got.Repos) != 2 || got.Repos[1] != "vshop-gw" || !got.Verbose {
+		t.Fatalf("%+v %v", got, err)
+	}
+	_, err = ParseArgs([]string{"add", "project"})
+	if err == nil || !strings.Contains(err.Error(), "usage: code-ws add project") {
+		t.Fatal(err)
+	}
 	got, err = ParseArgs([]string{"projects", "-c", "/tmp/config.json"})
 	if err != nil || got.Config != "/tmp/config.json" {
 		t.Fatal(got, err)

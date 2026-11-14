@@ -449,3 +449,35 @@ func TestInitEmptyWorkspace(t *testing.T) {
 		t.Fatal("AGENTS.md should not exist when template is empty")
 	}
 }
+
+// TestDefaultProfileUsesInitTpl 验证空骨架 default profile 在存在全局 initAgentsTemplate 时可继承模板。
+func TestDefaultProfileUsesInitTpl(t *testing.T) {
+	cfg := Cfg{
+		InitTpl: "/templates/work",
+		Projects: []Repo{
+			{Name: "dt-vshop", Path: "/src/dt-vshop", Branch: "master"},
+			{Name: "vshop-gw", Path: "/src/vshop-gw", Branch: "master"},
+		},
+		Profiles: map[string]Profile{
+			"default": {Name: "default", Agents: "", Repos: nil},
+		},
+	}
+	tpl, repos, err := InitTarget(cfg, Parsed{HasProf: true, Profile: "default"})
+	if err != nil || tpl != "/templates/work" || len(repos) != 0 {
+		t.Fatalf("unexpected InitTarget result: err=%v tpl=%q repos=%v", err, tpl, repos)
+	}
+
+	ws := WsProject{Branch: "feature/lazy", Repos: []string{"dt-vshop"}}
+	_, err = resolveAddRepos(cfg, ws, Parsed{Repos: []string{"dt-vshop", "vshop-gw"}})
+	if err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("expected existing error, got %v", err)
+	}
+	_, err = resolveAddRepos(cfg, ws, Parsed{Repos: []string{"vshop-gw", "vshop-gw"}})
+	if err == nil || !strings.Contains(err.Error(), "duplicate repo") {
+		t.Fatalf("expected duplicate error, got %v", err)
+	}
+	added, err := resolveAddRepos(cfg, WsProject{Branch: "feature/lazy"}, Parsed{Repos: []string{"dt-vshop", "vshop-gw"}, Branch: "custom", HasBranch: true})
+	if err != nil || len(added) != 2 || added[0].Checkout != "custom" || added[1].Name != "vshop-gw" {
+		t.Fatalf("unexpected added repos: err=%v added=%+v", err, added)
+	}
+}

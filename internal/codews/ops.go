@@ -115,7 +115,12 @@ func InitTarget(cfg Cfg, args Parsed) (string, []Repo, error) {
 			}
 			repos = []Repo{repo}
 		}
-		return prof.Agents, repos, nil
+		tpl := prof.Agents
+		if tpl == "" && args.Profile == "default" {
+			// 空骨架 default profile 未单独指定模板时，沿用 initAgentsTemplate 挂载 AGENTS.md。
+			tpl = cfg.InitTpl
+		}
+		return tpl, repos, nil
 	}
 	repo, err := repoOfName(cfg, args.Project)
 	if err != nil {
@@ -280,20 +285,47 @@ func loadWs(cfgPath string) (Cfg, string, WsProject, error) {
 	return cfg, wsDir, ws, nil
 }
 
+func resolveAddRepos(cfg Cfg, ws WsProject, args Parsed) ([]Repo, error) {
+	names := args.Repos
+	if len(names) == 0 && args.Repo != "" {
+		names = []string{args.Repo}
+	}
+	existing := make(map[string]bool, len(ws.Repos))
+	for _, name := range ws.Repos {
+		existing[name] = true
+	}
+	seen := make(map[string]bool, len(names))
+	repos := make([]Repo, 0, len(names))
+	for _, name := range names {
+		if seen[name] {
+			return nil, fmt.Errorf("duplicate repo in add project: %s", name)
+		}
+		seen[name] = true
+		repo, err := repoOfName(cfg, name)
+		if err != nil {
+			return nil, err
+		}
+		if existing[repo.Name] {
+			return nil, fmt.Errorf("repo already exists in workspace project.yml: %s", repo.Name)
+		}
+		repo = withCheckout(repo, args.Branch, args.HasBranch)
+		repos = append(repos, repo)
+	}
+	return repos, nil
+}
+
 func runAdd(out io.Writer, args Parsed) error {
 	cfg, wsDir, ws, err := loadWs(args.Config)
 	if err != nil {
 		return err
 	}
-	repo, err := repoOfName(cfg, args.Repo)
+	// 先整体校验所有目标仓库再执行 git 与写入，避免批量挂载中途部分成功产生脏状态。
+	added, err := resolveAddRepos(cfg, ws, args)
 	if err != nil {
 		return err
 	}
-	repo = withCheckout(repo, args.Branch, args.HasBranch)
-	for _, name := range ws.Repos {
-		if name == repo.Name {
-			return fmt.Errorf("repo already exists in workspace project.yml: %s", repo.Name)
-		}
+	if err := checkRepos(added); err != nil {
+		return err
 	}
 	if err := os.MkdirAll(wsDir, 0o755); err != nil {
 		return err
@@ -303,23 +335,28 @@ func runAdd(out io.Writer, args Parsed) error {
 		Base:   cfg.Base,
 		Remote: cfg.Remote,
 		WsDir:  wsDir,
-		Repos:  []Repo{repo},
+		Repos:  added,
 	})
 	if err := RunPlan(out, plan, args.Verbose); err != nil {
-		return err
-	}
-	if _, err := AddRepoJSON(wsDir, repo.Name); err != nil {
 		return err
 	}
 	current, err := reposFromWs(cfg, ws)
 	if err != nil {
 		return err
 	}
-	current = append(current, repo)
+	for _, repo := range added {
+		if _, err := AddRepoJSON(wsDir, repo.Name); err != nil {
+			return err
+		}
+		current = append(current, repo)
+	}
 	if _, err := WriteProjectFile(wsDir, ws.Branch, current); err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "project added: %s\n", filepath.Join(wsDir, repo.Name))
+	for _, repo := range added {
+		dst := filepath.Join(wsDir, repo.Name)
+		fmt.Fprintf(out, "project added: %s\n", dst)
+	}
 	return nil
 }
 

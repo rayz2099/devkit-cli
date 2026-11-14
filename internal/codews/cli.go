@@ -16,7 +16,7 @@ const helpText = `code-ws
 Usage:
   code-ws init <branch> [-t <profile>] [-p|--project <repo>] [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
   code-ws init <branch> <project> [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
-  code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]
+  code-ws add project <repo>... [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]
   code-ws remove project <repo> [-v|--verbose] [-c|--config <path>]
   code-ws sync master [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
   code-ws destroy [-v|--verbose] [-c|--config <path>]
@@ -42,6 +42,7 @@ type Parsed struct {
 	Config    string
 	Verbose   bool
 	Repo      string
+	Repos     []string
 	HasBranch bool
 	Path      string
 	HasPath   bool
@@ -232,10 +233,11 @@ func ParseArgs(args []string) (Parsed, error) {
 		return Parsed{Cmd: "list", Config: opt.config}, nil
 	}
 	if cmd == "add" && sub == "project" {
-		if len(tail) != 1 {
-			return Parsed{}, errors.New("usage: code-ws add project <repo> [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]")
+		if len(tail) < 1 {
+			return Parsed{}, errors.New("usage: code-ws add project <repo>... [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]")
 		}
-		out := Parsed{Cmd: "add-project", Repo: tail[0], Config: opt.config, Verbose: opt.verbose}
+		// 支持单次挂载多个仓库，减少规划确认后反复调用 CLI 的开销。
+		out := Parsed{Cmd: "add-project", Repo: tail[0], Repos: tail, Config: opt.config, Verbose: opt.verbose}
 		if opt.hasBranch {
 			out.Branch = opt.branch
 			out.HasBranch = true
