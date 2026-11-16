@@ -30,12 +30,12 @@ func TestDoneUsesVersionsAndSimpleStates(t *testing.T) {
 				calls = append(calls, r.Method+" "+r.URL.Path)
 				switch r.URL.Path {
 				case "/api/workspace/snapshot":
-					_, _ = io.WriteString(w, doneSnapshot)
+					_, _ = io.WriteString(fixtureWriter{w}, doneSnapshot)
 				case "/api/work-items/preview":
-					_, _ = io.WriteString(w, `{"treeVersion":9,"items":[],"ancestors":[]}`)
+					_, _ = io.WriteString(fixtureWriter{w}, `{"treeVersion":9,"items":[],"ancestors":[]}`)
 				case "/api/work-items/edit":
 					var body map[string]any
-					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					if err := json.NewDecoder(fixtureBody(t, r)).Decode(&body); err != nil {
 						t.Fatal(err)
 					}
 					target, _ := body["target"].(map[string]any)
@@ -62,7 +62,7 @@ func TestDoneUsesVersionsAndSimpleStates(t *testing.T) {
 					} else if changes["status"] != "COMPLETED" || body["transition"] != nil {
 						t.Fatal(body)
 					}
-					_, _ = io.WriteString(w, `{"status":"COMPLETED"}`)
+					_, _ = io.WriteString(fixtureWriter{w}, `{"status":"COMPLETED"}`)
 				default:
 					t.Error(r.URL.Path)
 				}
@@ -104,9 +104,9 @@ func TestDoneSafetyBoundaries(t *testing.T) {
 					t.Fatal("unsafe edit")
 				}
 				if r.URL.Path == "/api/work-items/preview" {
-					_, _ = io.WriteString(w, tc.preview)
+					_, _ = io.WriteString(fixtureWriter{w}, tc.preview)
 				} else {
-					_, _ = io.WriteString(w, tc.doc)
+					_, _ = io.WriteString(fixtureWriter{w}, tc.doc)
 				}
 			})
 			args := []string{"items", "done", tc.id}
@@ -128,9 +128,9 @@ func TestDoneConflictNeverRetries(t *testing.T) {
 				if r.URL.Path == "/api/work-items/edit" {
 					patches++
 					w.WriteHeader(http.StatusConflict)
-					fmt.Fprintf(w, `{"code":%q,"message":"conflict"}`, code)
+					fmt.Fprintf(fixtureWriter{w}, `{"code":%q,"message":"conflict"}`, code)
 				} else {
-					_, _ = io.WriteString(w, doneSnapshot)
+					_, _ = io.WriteString(fixtureWriter{w}, doneSnapshot)
 				}
 			})
 			if Execute([]string{"items", "done", "task", "--audience", "agent"}, opts) == 0 || patches != 1 || !strings.Contains(errOut.String(), code) {

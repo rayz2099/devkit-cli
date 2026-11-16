@@ -51,7 +51,18 @@ func (c *Client) Do(ctx context.Context, method, path string, q url.Values, body
 	var buf []byte
 	var err error
 	if body != nil {
-		buf, err = json.Marshal(body)
+		// CLI 接收业务字段，传输层统一组装 envelope，分页不进入业务 data。
+		data := make(map[string]any, len(body))
+		meta := map[string]any{"extra": map[string]string{}}
+		for key, value := range body {
+			if key == "page" {
+				meta["page"] = value
+			} else {
+				data[key] = value
+			}
+		}
+		env := map[string]any{"metadata": meta, "data": data}
+		buf, err = json.Marshal(env)
 		if err != nil {
 			return nil, errors.New("请求内容不能编码为 JSON")
 		}
@@ -81,23 +92,38 @@ func (c *Client) Do(ctx context.Context, method, path string, q url.Values, body
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		apiErr := &APIError{Code: "HTTP_ERROR", Message: http.StatusText(resp.StatusCode), Status: resp.StatusCode}
+		apiErr.RequestID = strings.ReplaceAll(resp.Header.Get("X-Request-Id"), c.cfg.Token, "[REDACTED]")
 		var remote struct {
-			Code      string `json:"code"`
-			Message   string `json:"message"`
-			Details   any    `json:"details"`
-			RequestID string `json:"requestId"`
+			Metadata struct {
+				Error *APIError `json:"error"`
+			} `json:"metadata"`
 		}
-		if json.Unmarshal(raw, &remote) == nil && remote.Code != "" {
-			apiErr.Code = strings.ReplaceAll(remote.Code, c.cfg.Token, "[REDACTED]")
-			apiErr.Message = strings.ReplaceAll(remote.Message, c.cfg.Token, "[REDACTED]")
-			apiErr.RequestID = strings.ReplaceAll(remote.RequestID, c.cfg.Token, "[REDACTED]")
-			apiErr.Details = redact(remote.Details, c.cfg.Token)
+		if json.Unmarshal(raw, &remote) == nil && remote.Metadata.Error != nil {
+			e := remote.Metadata.Error
+			apiErr.Code = strings.ReplaceAll(e.Code, c.cfg.Token, "[REDACTED]")
+			apiErr.Message = strings.ReplaceAll(e.Message, c.cfg.Token, "[REDACTED]")
+			apiErr.Details = redact(e.Details, c.cfg.Token)
 		}
 		return nil, apiErr
 	}
-	var out any
-	if err := json.Unmarshal(raw, &out); err != nil {
+	var env map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &env); err != nil {
 		return nil, errors.New("服务端未返回有效 JSON；写入结果可能未知")
+	}
+	var meta map[string]any
+	var out any
+	if json.Unmarshal(env["metadata"], &meta) != nil || meta == nil || json.Unmarshal(env["data"], &out) != nil {
+		return nil, errors.New("服务端响应缺少有效 metadata/data；写入结果可能未知")
+	}
+	// 输出沿用 CLI 的业务视图，将服务端分页结果投影到同一对象供后续查询使用。
+	if page, ok := meta["page"].(map[string]any); ok {
+		data, ok := out.(map[string]any)
+		if !ok {
+			return nil, errors.New("分页响应 data 必须是对象")
+		}
+		for key, value := range page {
+			data[key] = value
+		}
 	}
 	return redact(out, c.cfg.Token), nil
 }

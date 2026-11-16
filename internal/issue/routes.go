@@ -41,21 +41,21 @@ var routes = []route{
 	{group: "dashboard", action: "issues", path: "dashboard/issues", mode: modeSearch, view: "issues", help: "后端与我有关的异常树；scope=WORKSPACE 显式扩大范围", query: "q status ownerId participantId collaboratorId type priority categoryId tagId issue scope from to offset limit"},
 	{group: "activities", action: "list", path: "activities/timeline", mode: modeSearch, args: 1, help: "工作项时间线，含评论/进展/系统历史，保留 cursor", query: "scope cursor limit"},
 	{group: "activities", action: "feed", path: "activities/search", mode: modeSearch, help: "全局活动流，默认 RELATED", query: "scope cursor limit kind q actorId from to"},
-	{group: "activities", action: "create", path: "activities/create", mode: modeWrite, args: 1, help: "发布 {data:{type:COMMENT|PROGRESS_UPDATE,content}}"},
+	{group: "activities", action: "create", path: "activities/create", mode: modeWrite, args: 1, help: "发布 {activity:{type:COMMENT|PROGRESS_UPDATE,content}}"},
 	{group: "activities", action: "update", path: "activities/edit", mode: modeWrite, args: 1, version: true, help: "编辑活动并保留修订 {concurrency:{expectedVersion},changes:{content}}"},
 	{group: "activities", action: "revisions", path: "activities/revisions", mode: modeRead, args: 1, help: "读取活动修订历史"},
 	{group: "knowledge", action: "get", path: "knowledge/detail", mode: modeRead, args: 1, help: "读取根事项资料、结论、置顶和历史"},
 	{group: "knowledge", action: "update", path: "knowledge/edit", mode: modeWrite, args: 1, version: true, help: "资料命令 {concurrency:{expectedVersion},changes:{action:pin|unpin,activityId}}"},
 	{group: "relations", action: "list", path: "relations/search", mode: modeRead, args: 1, help: "读取关联"},
-	{group: "relations", action: "create", path: "relations/create", mode: modeWrite, args: 1, help: "新增关联 {data:{...}}"},
+	{group: "relations", action: "create", path: "relations/create", mode: modeWrite, args: 1, help: "新增关联 {relation:{...}}"},
 	{group: "relations", action: "update", path: "relations/edit", mode: modeWrite, args: 2, version: true, help: "编辑关联备注 {concurrency:{expectedVersion},changes:{note}}"},
 	{group: "relations", action: "delete", path: "relations/delete", mode: modeWrite, args: 2, version: true, confirm: true, help: "删除关联（不删除事项），需 --confirm"},
-	{group: "successors", action: "create", path: "work-items/create-successor", mode: modeWrite, args: 1, help: "创建后续事项 {data:{...}}"},
+	{group: "successors", action: "create", path: "work-items/create-successor", mode: modeWrite, args: 1, help: "创建后续事项 {successor:{...}}"},
 	{group: "templates", action: "list", path: "templates/search", mode: modeSearch, help: "列出模板，all=true 包含停用模板", query: "all"},
 	{group: "templates", action: "save", path: "templates/save", mode: modeWrite, help: "保存模板；更新时 target.id 和 concurrency.expectedVersion 必填"},
 	{group: "templates", action: "update", path: "templates/set-active", mode: modeWrite, args: 1, version: true, help: "启停模板 {concurrency:{expectedVersion},changes:{active}}"},
-	{group: "templates", action: "preview", path: "templates/preview", mode: modeWrite, args: 1, help: "预览模板 {data:{startDate}}"},
-	{group: "templates", action: "instantiate", path: "templates/instantiate", mode: modeWrite, args: 1, help: "实例化模板 {data:{...},concurrency:{expectedTemplateVersion,expectedWorkgroupVersion}}"},
+	{group: "templates", action: "preview", path: "templates/preview", mode: modeWrite, args: 1, help: "预览模板 {schedule:{startDate}}"},
+	{group: "templates", action: "instantiate", path: "templates/instantiate", mode: modeWrite, args: 1, help: "实例化模板 {item:{...},concurrency:{expectedTemplateVersion,expectedWorkgroupVersion}}"},
 	{group: "trash", action: "list", path: "trash/search", mode: modeRead, help: "列出删除批次"},
 	{group: "trash", action: "get", path: "trash/detail", mode: modeRead, args: 1, help: "读取删除批次"},
 	{group: "trash", action: "restore", path: "trash/restore", mode: modeWrite, args: 1, version: true, help: "按批次恢复 {concurrency:{expectedVersion}}"},
@@ -130,7 +130,7 @@ func (r route) validateBody(body map[string]any, confirm bool) error {
 		}
 	}
 	if r.path == "dictionaries/save" {
-		data, _ := body["data"].(map[string]any)
+		data, _ := body["entry"].(map[string]any)
 		if data == nil || (data["kind"] != "category" && data["kind"] != "tag") {
 			return errors.New("字典仅支持 category/tag")
 		}

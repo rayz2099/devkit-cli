@@ -216,7 +216,7 @@ source ~/.config/fish/completions/issue-cli.fish
 | `trash` | `list/get/restore` | 按删除批次读取、恢复 |
 | `workspace` | `snapshot/account/workflow/workgroups/dictionary` | 全量空间元数据、账号空间、流程发布、分工目录、category/tag 字典 |
 
-ID 作为位置参数；每条命令的准确参数见 `issue-cli RESOURCE COMMAND --help`。所有接口统一通过 `POST /api/<operation>` 调用；除 `items done` 快捷操作及只读/搜索命令外，所有写入和模板 preview 命令都要求 `--body-file FILE`，文件内容遵循新版后端 RPC 契约（CLI 自动注入 `target`），不展开为大量 flags。字段由后端严格验证；客户端额外校验并发版本、删除与后代终止确认。模板更新为 `templates save` + `target.id`；模板启停为 `templates update ID`。空间流程基于 `target.id` 发布新版本，而不是覆盖流程 ID。
+ID 作为位置参数；每条命令的准确参数见 `issue-cli RESOURCE COMMAND --help`。所有接口统一通过 `POST /api/<operation>` 调用；除 `items done` 快捷操作及只读/搜索命令外，所有写入和模板 preview 命令都要求 `--body-file FILE`，文件内容为后端契约的业务 `data` 对象（CLI 自动注入 `target`，并包装为 `{metadata,data}`），不展开为大量 flags。字段由后端严格验证；客户端额外校验并发版本、删除与后代终止确认。模板更新为 `templates save` + `target.id`；模板启停为 `templates update ID`。空间流程基于 `target.id` 发布新版本，而不是覆盖流程 ID。
 
 ```bash
 issue-cli items list --query 'q=发布' --query 'limit=50' --query 'offset=0' --audience agent
@@ -231,6 +231,8 @@ issue-cli workspace snapshot --audience agent
 ```
 
 `--query key=value` 可重复传入不同的 key；仅接受命令帮助列出的后端参数。`items list` / dashboard 的 `items` 是**匹配树的根事项**，`treeItems` 是这些根的**完整树**，都不代表平铺的匹配节点；`status` 仅筛根状态。根分页 offset/limit（limit 最大 100），`nextOffset`、`total` 原样保留，不自动翻页。活动游标同样不转换，下一页将返回的游标按后端格式放回 `--query 'cursor=...'`。
+
+CLI 将 `--query` 的分页字段放入请求 `metadata.page`；`--body-file` 中的 `page` 同样作为分页控制。其他字段放入 `data`。创建参数使用命名字段：工作项为 `item`、活动为 `activity`、关联为 `relation`、模板为 `template`、字典为 `entry`、流程为 `workflow`；模板预览为 `schedule`。错误从 `metadata.error` 读取，追踪号来自 `X-Request-Id` 响应头。
 
 ### 写入、版本与显式确认
 
@@ -266,7 +268,7 @@ issue-cli trash restore BATCH_ID --body-file restore.json
 
 删除命令在确认后添加后端要求的 `confirmation.confirmed=true`。restore.json 为 `{"concurrency":{"expectedVersion":1}}`，此版本属于**删除批次**而非事项。移动需要 `concurrency.expectedVersion`、根 `concurrency.expectedTreeVersion` 和 `destination.id`；子节点创建也应按后端要求携带根 `concurrency.expectedTreeVersion`。knowledge 的 `concurrency.expectedVersion` 属于知识对象，初始为 0，不是事项版本。活动编辑、关联更新/删除和模板启停使用各自对象版本。分工目录所有 action（含 create）需要目录 `concurrency.expectedVersion`；字典/模板/流程带有 `target.id` 时同样强制版本。
 
-正常结果只写 stdout；默认 human 用字段层级展示完整结果，`--audience agent` 返回后端 JSON；错误只写 stderr，agent 错误格式为 `{"error":{"code":"...","message":"...","status":409,"details":{},"requestId":"..."}}`，本地错误 code 为 CLIENT_ERROR，失败退出 1。服务返回的错误码、版本冲突和追踪号保留，Token 回显会脱敏。不跟随重定向，不自动重试，不生成或发送幂等键；网络/读取失败的写入结果可能未知，应先查询核实，不要盲目重放。配置缺失或不合法直接失败，不自动创建或选择其他配置。
+正常结果只写 stdout；默认 human 用字段层级展示完整结果，`--audience agent` 返回业务 JSON（解包响应 `data`，将 `metadata.page` 分页字段投影到顶层）；错误只写 stderr，agent 错误格式为 `{"error":{"code":"...","message":"...","status":409,"details":{},"requestId":"..."}}`，本地错误 code 为 CLIENT_ERROR，失败退出 1。服务返回的错误码、版本冲突和追踪号保留，Token 回显会脱敏。不跟随重定向，不自动重试，不生成或发送幂等键；网络/读取失败的写入结果可能未知，应先查询核实，不要盲目重放。配置缺失或不合法直接失败，不自动创建或选择其他配置。
 
 本地验证，不访问线上：
 

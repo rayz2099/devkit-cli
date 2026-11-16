@@ -64,7 +64,7 @@ func TestMalformedAndServerErrors(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			hits++
 			w.WriteHeader(tc.status)
-			_, _ = io.WriteString(w, tc.body)
+			_, _ = io.WriteString(fixtureWriter{w}, tc.body)
 		}))
 		cfg := Config{URL: srv.URL, Token: testToken}
 		cli, err := NewClient(cfg, srv.Client())
@@ -88,7 +88,7 @@ func TestMalformedAndServerErrors(t *testing.T) {
 func TestResponseRedactionAfterDecoding(t *testing.T) {
 	// 短占位符可与 JSON 关键字重名，脱敏不能在原始字节上破坏 JSON 语法。
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, `{"ok":true,"text":"true","true":"true"}`)
+		_, _ = io.WriteString(fixtureWriter{w}, `{"ok":true,"text":"true","true":"true"}`)
 	}))
 	defer srv.Close()
 	cfg := Config{URL: srv.URL, Token: "true"}
@@ -110,14 +110,14 @@ func TestActivityCursorPreserved(t *testing.T) {
 	cursor := `[123,"id-a"]`
 	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		if err := json.NewDecoder(fixtureBody(t, r)).Decode(&body); err != nil {
 			t.Fatal(err)
 		}
 		page, _ := body["page"].(map[string]any)
 		if page == nil || page["cursor"] != cursor {
 			t.Errorf("unexpected body: %v", body)
 		}
-		_, _ = io.WriteString(w, `{"items":[],"nextCursor":[120,"id-b"]}`)
+		_, _ = io.WriteString(fixtureWriter{w}, `{"items":[],"nextCursor":[120,"id-b"]}`)
 	})
 	args := []string{"activities", "feed", "--query", "cursor=" + cursor, "--audience", "agent"}
 	if Execute(args, opts) != 0 || !strings.Contains(out.String(), `"nextCursor":[120,"id-b"]`) {
@@ -127,7 +127,7 @@ func TestActivityCursorPreserved(t *testing.T) {
 
 func TestSubtreeExcludesOtherBranches(t *testing.T) {
 	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, `{"items":[{"id":"a","parentId":null},{"id":"b","parentId":"a"},{"id":"c","parentId":"b"},{"id":"other","parentId":null}]}`)
+		_, _ = io.WriteString(fixtureWriter{w}, `{"items":[{"id":"a","parentId":null},{"id":"b","parentId":"a"},{"id":"c","parentId":"b"},{"id":"other","parentId":null}]}`)
 	})
 	if Execute([]string{"items", "subtree", "b", "--audience", "agent"}, opts) != 0 {
 		t.Fatal(errOut)

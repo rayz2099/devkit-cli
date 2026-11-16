@@ -23,7 +23,7 @@ func harness(t *testing.T, h http.HandlerFunc) (Options, *bytes.Buffer, *bytes.B
 	t.Cleanup(srv.Close)
 	out, errOut := new(bytes.Buffer), new(bytes.Buffer)
 	opts := Options{Out: out, Err: errOut, HTTP: srv.Client(), Load: func(string) (Config, error) { return Config{URL: srv.URL, Token: testToken}, nil }, ReadFile: func(string) ([]byte, error) {
-		return []byte(`{"concurrency":{"expectedVersion":2,"expectedTreeVersion":7,"expectedTemplateVersion":1,"expectedWorkgroupVersion":1},"changes":{},"data":{"kind":"tag"}}`), nil
+		return []byte(`{"concurrency":{"expectedVersion":2,"expectedTreeVersion":7,"expectedTemplateVersion":1,"expectedWorkgroupVersion":1},"changes":{},"entry":{"kind":"tag"}}`), nil
 	}}
 	return opts, out, errOut
 }
@@ -86,7 +86,7 @@ func TestResourceContractRoutes(t *testing.T) {
 					t.Error("missing content type")
 				}
 				var body map[string]any
-				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				if err := json.NewDecoder(fixtureBody(t, r)).Decode(&body); err != nil {
 					t.Error(err)
 				}
 				if tc.args == "items delete a" {
@@ -101,7 +101,7 @@ func TestResourceContractRoutes(t *testing.T) {
 						t.Errorf("want view=%s, got %v", wantView, body["view"])
 					}
 				}
-				_, _ = io.WriteString(w, `{"ok":true}`)
+				_, _ = io.WriteString(fixtureWriter{w}, `{"ok":true}`)
 			})
 			args := strings.Fields(tc.args)
 			if tc.write {
@@ -131,8 +131,8 @@ func TestUnsafeInputNeverCallsServer(t *testing.T) {
 		{[]string{"items", "update", "a", "--body-file", "x"}, `{"concurrency":{"expectedVersion":1.5}}`},
 		{[]string{"templates", "save", "--body-file", "x"}, `{"target":{"id":"a"}}`},
 		{[]string{"workspace", "workflow", "--body-file", "x"}, `{"target":{"id":"a"}}`},
-		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"data":{"kind":"role"}}`},
-		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"target":{"id":"a"},"data":{"kind":"tag"}}`},
+		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"entry":{"kind":"role"}}`},
+		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"target":{"id":"a"},"entry":{"kind":"tag"}}`},
 		{[]string{"knowledge", "update", "a", "--body-file", "x"}, `null`},
 		{[]string{"items", "create", "--body-file", "x"}, `{} {}`},
 		{[]string{"items", "create"}, `{}`},
@@ -169,10 +169,11 @@ func TestConflictNoRetryAndRedaction(t *testing.T) {
 	calls := 0
 	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
 		calls++
+		w.Header().Set("X-Request-Id", "trace-1")
 		w.WriteHeader(409)
 		// JSON 转义后的凭据也必须脱敏。
 		tok := string(rune(92)) + "u0065" + testToken[1:]
-		fmt.Fprintf(w, `{"code":"VERSION_CONFLICT","message":"%s","requestId":"trace-1","details":{"secret":"%s"}}`, tok, tok)
+		fmt.Fprintf(fixtureWriter{w}, `{"code":"VERSION_CONFLICT","message":"%s","requestId":"trace-1","details":{"secret":"%s"}}`, tok, tok)
 	})
 	args := []string{"items", "update", "a", "--body-file", "x", "--audience", "agent"}
 	if Execute(args, opts) != 1 || calls != 1 || out.Len() != 0 {
@@ -187,7 +188,7 @@ func TestSearchKeepsTreeAndPaging(t *testing.T) {
 	doc := `{"items":[{"id":"root","status":"TODO"}],"treeItems":[{"id":"root"},{"id":"child","status":"COMPLETED"}],"total":23,"nextOffset":10}`
 	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
 		var req map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := json.NewDecoder(fixtureBody(t, r)).Decode(&req); err != nil {
 			t.Fatal(err)
 		}
 		filter, _ := req["filter"].(map[string]any)
@@ -195,7 +196,7 @@ func TestSearchKeepsTreeAndPaging(t *testing.T) {
 		if filter["q"] != "a&b" || page["limit"] != float64(10) || page["offset"] != float64(0) {
 			t.Errorf("unexpected search body: %v", req)
 		}
-		_, _ = io.WriteString(w, doc)
+		_, _ = io.WriteString(fixtureWriter{w}, doc)
 	})
 	args := []string{"items", "list", "--query", "q=a&b", "--query", "limit=10", "--query", "offset=0", "--audience", "agent"}
 	if Execute(args, opts) != 0 {
@@ -226,7 +227,7 @@ func TestTransitionAndKnowledgeInitialVersion(t *testing.T) {
 		},
 	} {
 		opts, _, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-			raw, _ := io.ReadAll(r.Body)
+			raw, _ := io.ReadAll(fixtureBody(t, r))
 			var want, got any
 			_ = json.Unmarshal([]byte(tc.wantBody), &want)
 			_ = json.Unmarshal(raw, &got)
@@ -235,7 +236,7 @@ func TestTransitionAndKnowledgeInitialVersion(t *testing.T) {
 			if !bytes.Equal(a, b) {
 				t.Errorf("payload changed: %s", raw)
 			}
-			_, _ = io.WriteString(w, `{"version":4}`)
+			_, _ = io.WriteString(fixtureWriter{w}, `{"version":4}`)
 		})
 		opts.ReadFile = func(string) ([]byte, error) { return []byte(tc.body), nil }
 		args := append(tc.args, "--body-file", "x")
@@ -297,7 +298,7 @@ func TestDoctorOfflineAndHuman(t *testing.T) {
 
 func TestHumanReadableOutputAndTokenRedaction(t *testing.T) {
 	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `{"items":[{"title":"发布服务","id":"a","secret":"%s"}],"nextOffset":null}`, testToken)
+		fmt.Fprintf(fixtureWriter{w}, `{"items":[{"title":"发布服务","id":"a","secret":"%s"}],"nextOffset":null}`, testToken)
 	})
 	if Execute([]string{"items", "list"}, opts) != 0 {
 		t.Fatal(errOut)
@@ -327,7 +328,7 @@ func TestViewsSelectExactOwnerNodes(t *testing.T) {
 				if r.Method != "POST" || r.URL.Path != "/api/workspace/snapshot" {
 					t.Error(r.Method, r.URL.Path)
 				}
-				_, _ = io.WriteString(w, doc)
+				_, _ = io.WriteString(fixtureWriter{w}, doc)
 			})
 			opts.Now = func() time.Time { return time.Date(2026, 11, 9, 1, 0, 0, 0, time.UTC) }
 			if Execute([]string{"me", tc.view, "--audience", "agent"}, opts) != 0 {

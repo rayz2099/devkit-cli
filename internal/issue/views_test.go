@@ -18,7 +18,9 @@ const personalSnapshot = `{"user":{"id":"me"},"workspace":{"timezone":"Asia/Shan
 func TestPersonalTablesAndGroups(t *testing.T) {
 	for _, view := range []string{"list", "unfinished", "groups"} {
 		t.Run(view, func(t *testing.T) {
-			opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, personalSnapshot) })
+			opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
+				_, _ = io.WriteString(fixtureWriter{w}, personalSnapshot)
+			})
 			if Execute([]string{"me", view}, opts) != 0 {
 				t.Fatal(errOut)
 			}
@@ -41,7 +43,9 @@ func TestPersonalTablesAndGroups(t *testing.T) {
 }
 
 func TestPersonalAgentRetainsFieldsAndRootContext(t *testing.T) {
-	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, personalSnapshot) })
+	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(fixtureWriter{w}, personalSnapshot)
+	})
 	if Execute([]string{"me", "groups", "--audience", "agent"}, opts) != 0 {
 		t.Fatal(errOut)
 	}
@@ -63,7 +67,7 @@ func TestPersonalAgentRetainsFieldsAndRootContext(t *testing.T) {
 func TestPersonalEmptyViews(t *testing.T) {
 	for _, view := range []string{"list", "groups", "doing", "due", "overdue", "done"} {
 		opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-			_, _ = io.WriteString(w, `{"user":{"id":"me"},"workspace":{"timezone":"UTC"},"items":[]}`)
+			_, _ = io.WriteString(fixtureWriter{w}, `{"user":{"id":"me"},"workspace":{"timezone":"UTC"},"items":[]}`)
 		})
 		if Execute([]string{"me", view}, opts) != 0 {
 			t.Fatal(errOut)
@@ -76,7 +80,7 @@ func TestPersonalEmptyViews(t *testing.T) {
 
 func TestPersonalGroupsRejectMissingRoot(t *testing.T) {
 	opts, _, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-		_, _ = io.WriteString(w, strings.ReplaceAll(personalSnapshot, `"rootId":"root"`, `"rootId":"missing"`))
+		_, _ = io.WriteString(fixtureWriter{w}, strings.ReplaceAll(personalSnapshot, `"rootId":"root"`, `"rootId":"missing"`))
 	})
 	if Execute([]string{"me", "groups"}, opts) == 0 || !strings.Contains(errOut.String(), "顶层事项") {
 		t.Fatal(errOut)
