@@ -28,32 +28,38 @@ func TestDoneUsesVersionsAndSimpleStates(t *testing.T) {
 			var calls []string
 			opts, _, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
 				calls = append(calls, r.Method+" "+r.URL.Path)
-				switch {
-				case r.URL.Path == "/api/snapshot":
+				switch r.URL.Path {
+				case "/api/workspace/snapshot":
 					_, _ = io.WriteString(w, doneSnapshot)
-				case strings.HasSuffix(r.URL.Path, "/preview"):
+				case "/api/work-items/preview":
 					_, _ = io.WriteString(w, `{"treeVersion":9,"items":[],"ancestors":[]}`)
-				case r.Method == "PATCH":
+				case "/api/work-items/edit":
 					var body map[string]any
 					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 						t.Fatal(err)
 					}
-					if body["expectedVersion"] != tc.version {
+					target, _ := body["target"].(map[string]any)
+					if target == nil || target["id"] != tc.id {
 						t.Fatal(body)
 					}
-					if tc.confirm && (body["expectedTreeVersion"] != float64(9) || body["confirmUnfinishedDescendants"] != true) {
+					conc, _ := body["concurrency"].(map[string]any)
+					if conc == nil || conc["expectedVersion"] != tc.version {
 						t.Fatal(body)
 					}
-					if !tc.confirm && body["expectedTreeVersion"] != nil {
+					conf, _ := body["confirmation"].(map[string]any)
+					if tc.confirm && (conc["expectedTreeVersion"] != float64(9) || conf == nil || conf["unfinishedDescendants"] != true) {
+						t.Fatal(body)
+					}
+					if !tc.confirm && (conc["expectedTreeVersion"] != nil || conf != nil) {
 						t.Fatal(body)
 					}
 					changes := body["changes"].(map[string]any)
 					if tc.id == "root" {
-						target := body["transitionTarget"].(map[string]any)
-						if target["type"] != "MACRO" || target["id"] != "finish" || len(changes) != 0 {
+						tr := body["transition"].(map[string]any)
+						if tr["type"] != "MACRO" || tr["id"] != "finish" || len(changes) != 0 {
 							t.Fatal(body)
 						}
-					} else if changes["status"] != "COMPLETED" || body["transitionTarget"] != nil {
+					} else if changes["status"] != "COMPLETED" || body["transition"] != nil {
 						t.Fatal(body)
 					}
 					_, _ = io.WriteString(w, `{"status":"COMPLETED"}`)
@@ -68,11 +74,11 @@ func TestDoneUsesVersionsAndSimpleStates(t *testing.T) {
 			if Execute(args, opts) != 0 {
 				t.Fatal(errOut)
 			}
-			expected := []string{"GET /api/snapshot"}
+			expected := []string{"POST /api/workspace/snapshot"}
 			if tc.confirm {
-				expected = append(expected, "GET /api/work-items/"+tc.id+"/preview")
+				expected = append(expected, "POST /api/work-items/preview")
 			}
-			expected = append(expected, "PATCH /api/work-items/"+tc.id)
+			expected = append(expected, "POST /api/work-items/edit")
 			if fmt.Sprint(calls) != fmt.Sprint(expected) {
 				t.Fatal(calls)
 			}
@@ -94,10 +100,10 @@ func TestDoneSafetyBoundaries(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			opts, _, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == "PATCH" {
-					t.Fatal("unsafe patch")
+				if r.URL.Path == "/api/work-items/edit" {
+					t.Fatal("unsafe edit")
 				}
-				if strings.HasSuffix(r.URL.Path, "/preview") {
+				if r.URL.Path == "/api/work-items/preview" {
 					_, _ = io.WriteString(w, tc.preview)
 				} else {
 					_, _ = io.WriteString(w, tc.doc)
@@ -119,7 +125,7 @@ func TestDoneConflictNeverRetries(t *testing.T) {
 		t.Run(code, func(t *testing.T) {
 			patches := 0
 			opts, _, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == "PATCH" {
+				if r.URL.Path == "/api/work-items/edit" {
 					patches++
 					w.WriteHeader(http.StatusConflict)
 					fmt.Fprintf(w, `{"code":%q,"message":"conflict"}`, code)

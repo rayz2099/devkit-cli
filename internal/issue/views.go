@@ -34,7 +34,7 @@ func (r *runner) addViews(root, items *cobra.Command) {
 			if err != nil {
 				return err
 			}
-			raw, err := cli.Do(cmd.Context(), "GET", "snapshot", nil, nil)
+			raw, err := cli.Do(cmd.Context(), "POST", "workspace/snapshot", nil, map[string]any{})
 			if err != nil {
 				return err
 			}
@@ -119,15 +119,14 @@ func (r *runner) addViews(root, items *cobra.Command) {
 		me.AddCommand(cmd)
 	}
 	items.AddCommand(&cobra.Command{Use: "subtree ID", Short: "从 snapshot 读取指定节点及全部后代（不分页）", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		spec := route{path: "work-items/%s"}
-		if _, err := spec.resolve(args); err != nil {
+		if err := validateIDs(args); err != nil {
 			return err
 		}
 		cli, err := r.client()
 		if err != nil {
 			return err
 		}
-		raw, err := cli.Do(cmd.Context(), "GET", "snapshot", nil, nil)
+		raw, err := cli.Do(cmd.Context(), "POST", "workspace/snapshot", nil, map[string]any{})
 		if err != nil {
 			return err
 		}

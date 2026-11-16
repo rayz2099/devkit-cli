@@ -14,16 +14,14 @@ func (r *runner) doneCommand() *cobra.Command {
 	cmd := &cobra.Command{Use: "done ID", Short: "完成工作项；未完后代须 --confirm，事项不跳过流程", Args: cobra.ExactArgs(1)}
 	cmd.Flags().BoolVar(&confirm, "confirm", false, "确认暂停未完成后代跟踪；先 preview 校验树版本")
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		spec := route{path: "work-items/%s"}
-		path, err := spec.resolve(args)
-		if err != nil {
+		if err := validateIDs(args); err != nil {
 			return err
 		}
 		cli, err := r.client()
 		if err != nil {
 			return err
 		}
-		raw, err := cli.Do(cmd.Context(), "GET", "snapshot", nil, nil)
+		raw, err := cli.Do(cmd.Context(), "POST", "workspace/snapshot", nil, map[string]any{})
 		if err != nil {
 			return err
 		}
@@ -47,14 +45,19 @@ func (r *runner) doneCommand() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		body := map[string]any{"expectedVersion": ver, "changes": map[string]any{}}
+		conc := map[string]any{"expectedVersion": ver}
+		body := map[string]any{
+			"target":      map[string]any{"id": args[0]},
+			"concurrency": conc,
+			"changes":     map[string]any{},
+		}
 		switch item["type"] {
 		case "ITEM":
 			target, err := completionTarget(state, item)
 			if err != nil {
 				return err
 			}
-			body["transitionTarget"] = target
+			body["transition"] = target
 		case "WORKGROUP", "TASK":
 			body["changes"] = map[string]any{"status": "COMPLETED"}
 		default:
@@ -77,7 +80,7 @@ func (r *runner) doneCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			raw, err := cli.Do(cmd.Context(), "GET", path+"/preview", nil, nil)
+			raw, err := cli.Do(cmd.Context(), "POST", "work-items/preview", nil, map[string]any{"target": map[string]any{"id": args[0]}})
 			if err != nil {
 				return err
 			}
@@ -92,10 +95,10 @@ func (r *runner) doneCommand() *cobra.Command {
 			if treeVer != pv {
 				return &APIError{Code: "CONFIRMATION_STALE", Message: "工作结构已变化，请重新查询并确认"}
 			}
-			body["confirmUnfinishedDescendants"] = true
-			body["expectedTreeVersion"] = pv
+			body["confirmation"] = map[string]any{"unfinishedDescendants": true}
+			conc["expectedTreeVersion"] = pv
 		}
-		out, err := cli.Do(cmd.Context(), "PATCH", path, nil, body)
+		out, err := cli.Do(cmd.Context(), "POST", "work-items/edit", nil, body)
 		if err != nil {
 			return err
 		}

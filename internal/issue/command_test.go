@@ -23,77 +23,88 @@ func harness(t *testing.T, h http.HandlerFunc) (Options, *bytes.Buffer, *bytes.B
 	t.Cleanup(srv.Close)
 	out, errOut := new(bytes.Buffer), new(bytes.Buffer)
 	opts := Options{Out: out, Err: errOut, HTTP: srv.Client(), Load: func(string) (Config, error) { return Config{URL: srv.URL, Token: testToken}, nil }, ReadFile: func(string) ([]byte, error) {
-		return []byte(`{"expectedVersion":2,"expectedTreeVersion":7,"changes":{},"kind":"tag"}`), nil
+		return []byte(`{"concurrency":{"expectedVersion":2,"expectedTreeVersion":7,"expectedTemplateVersion":1,"expectedWorkgroupVersion":1},"changes":{},"data":{"kind":"tag"}}`), nil
 	}}
 	return opts, out, errOut
 }
 
 func TestResourceContractRoutes(t *testing.T) {
 	// 此表固定服务实际路径，而非从实现推导预期值，避免路由拼错仍自证通过。
-	cases := []struct{ args, method, path string }{
-		{"items list", "GET", "/api/work-items"},
-		{"items get a", "GET", "/api/work-items/a"},
-		{"items children a", "GET", "/api/work-items/a/children"},
-		{"items preview a", "GET", "/api/work-items/a/preview"},
-		{"items create", "POST", "/api/work-items"},
-		{"items update a", "PATCH", "/api/work-items/a"},
-		{"items move a", "POST", "/api/work-items/a/move"},
-		{"items delete a", "DELETE", "/api/work-items/a"},
-		{"dashboard my-work", "GET", "/api/dashboard/my-work"},
-		{"dashboard owned", "GET", "/api/dashboard/owned"},
-		{"dashboard issues", "GET", "/api/dashboard/issues"},
-		{"activities list a", "GET", "/api/work-items/a/activities"},
-		{"activities feed", "GET", "/api/activities"},
-		{"activities create a", "POST", "/api/work-items/a/activities"},
-		{"activities update a", "PATCH", "/api/activities/a"},
-		{"activities revisions a", "GET", "/api/activities/a/revisions"},
-		{"knowledge get a", "GET", "/api/work-items/a/knowledge"},
-		{"knowledge update a", "PATCH", "/api/work-items/a/knowledge"},
-		{"relations list a", "GET", "/api/work-items/a/relations"},
-		{"relations create a", "POST", "/api/work-items/a/relations"},
-		{"relations update a b", "PATCH", "/api/work-items/a/relations/b"},
-		{"relations delete a b", "DELETE", "/api/work-items/a/relations/b"},
-		{"successors create a", "POST", "/api/work-items/a/successors"},
-		{"templates list", "GET", "/api/templates"},
-		{"templates save", "POST", "/api/templates"},
-		{"templates update a", "PATCH", "/api/templates/a"},
-		{"templates preview a", "POST", "/api/templates/a/preview"},
-		{"templates instantiate a", "POST", "/api/templates/a/instantiate"},
-		{"trash list", "GET", "/api/trash/batches"},
-		{"trash get a", "GET", "/api/trash/batches/a"},
-		{"trash restore a", "POST", "/api/trash/batches/a/restore"},
-		{"workspace snapshot", "GET", "/api/snapshot"},
-		{"workspace workflow", "POST", "/api/workspace/workflows"},
-		{"workspace workgroups", "POST", "/api/workspace/workgroups"},
-		{"workspace dictionary", "POST", "/api/workspace/dictionaries"},
+	cases := []struct {
+		args, path string
+		write      bool
+	}{
+		{"items list", "/api/work-items/search", false},
+		{"items get a", "/api/work-items/detail", false},
+		{"items children a", "/api/work-items/children", false},
+		{"items preview a", "/api/work-items/preview", false},
+		{"items create", "/api/work-items/create", true},
+		{"items update a", "/api/work-items/edit", true},
+		{"items move a", "/api/work-items/move", true},
+		{"items delete a", "/api/work-items/delete", true},
+		{"dashboard my-work", "/api/dashboard/search", false},
+		{"dashboard owned", "/api/dashboard/search", false},
+		{"dashboard issues", "/api/dashboard/search", false},
+		{"activities list a", "/api/activities/timeline", false},
+		{"activities feed", "/api/activities/search", false},
+		{"activities create a", "/api/activities/create", true},
+		{"activities update a", "/api/activities/edit", true},
+		{"activities revisions a", "/api/activities/revisions", false},
+		{"knowledge get a", "/api/knowledge/detail", false},
+		{"knowledge update a", "/api/knowledge/edit", true},
+		{"relations list a", "/api/relations/search", false},
+		{"relations create a", "/api/relations/create", true},
+		{"relations update a b", "/api/relations/edit", true},
+		{"relations delete a b", "/api/relations/delete", true},
+		{"successors create a", "/api/work-items/create-successor", true},
+		{"templates list", "/api/templates/search", false},
+		{"templates save", "/api/templates/save", true},
+		{"templates update a", "/api/templates/set-active", true},
+		{"templates preview a", "/api/templates/preview", true},
+		{"templates instantiate a", "/api/templates/instantiate", true},
+		{"trash list", "/api/trash/search", false},
+		{"trash get a", "/api/trash/detail", false},
+		{"trash restore a", "/api/trash/restore", true},
+		{"workspace snapshot", "/api/workspace/snapshot", false},
+		{"workspace account", "/api/account/detail", false},
+		{"workspace workflow", "/api/workflows/publish", true},
+		{"workspace workgroups", "/api/workgroups/configure", true},
+		{"workspace dictionary", "/api/dictionaries/save", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.args, func(t *testing.T) {
 			calls := 0
 			opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
 				calls++
-				if r.Method != tc.method || r.URL.Path != tc.path {
+				if r.Method != "POST" || r.URL.Path != tc.path {
 					t.Errorf("got %s %s", r.Method, r.URL.Path)
 				}
 				if r.Header.Get("Authorization") != "Bearer "+testToken {
 					t.Error("missing Bearer")
 				}
-				if tc.method != "GET" {
-					if r.Header.Get("Content-Type") != "application/json" {
-						t.Error("missing content type")
+				if r.Header.Get("Content-Type") != "application/json" {
+					t.Error("missing content type")
+				}
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+				}
+				if tc.args == "items delete a" {
+					conf, _ := body["confirmation"].(map[string]any)
+					if conf == nil || conf["confirmed"] != true {
+						t.Error("missing confirmation.confirmed")
 					}
-					var body map[string]any
-					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-						t.Error(err)
-					}
-					if tc.args == "items delete a" && body["confirmed"] != true {
-						t.Error("missing confirmed")
+				}
+				if strings.HasPrefix(tc.args, "dashboard ") {
+					wantView := strings.TrimPrefix(tc.args, "dashboard ")
+					if body["view"] != wantView {
+						t.Errorf("want view=%s, got %v", wantView, body["view"])
 					}
 				}
 				_, _ = io.WriteString(w, `{"ok":true}`)
 			})
 			args := strings.Fields(tc.args)
-			if tc.method != "GET" {
+			if tc.write {
 				args = append(args, "--body-file", "body.json", "--confirm")
 			}
 			args = append(args, "--audience", "agent")
@@ -112,16 +123,16 @@ func TestUnsafeInputNeverCallsServer(t *testing.T) {
 		args []string
 		body string
 	}{
-		{[]string{"items", "delete", "a", "--body-file", "x"}, `{"expectedVersion":1,"expectedTreeVersion":1,"confirmed":true}`},
+		{[]string{"items", "delete", "a", "--body-file", "x"}, `{"concurrency":{"expectedVersion":1,"expectedTreeVersion":1},"confirmation":{"confirmed":true}}`},
 		{[]string{"items", "update", "a", "--body-file", "x"}, `{"changes":{}}`},
-		{[]string{"items", "move", "a", "--body-file", "x"}, `{"expectedVersion":1}`},
-		{[]string{"items", "update", "a", "--body-file", "x"}, `{"expectedVersion":1,"changes":{},"confirmUnfinishedDescendants":true,"expectedTreeVersion":2}`},
-		{[]string{"items", "update", "a", "--body-file", "x", "--confirm"}, `{"expectedVersion":1,"changes":{},"confirmUnfinishedDescendants":true}`},
-		{[]string{"items", "update", "a", "--body-file", "x"}, `{"expectedVersion":1.5}`},
-		{[]string{"templates", "save", "--body-file", "x"}, `{"id":"a"}`},
-		{[]string{"workspace", "workflow", "--body-file", "x"}, `{"sourceId":"a"}`},
-		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"kind":"role"}`},
-		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"kind":"tag","id":"a"}`},
+		{[]string{"items", "move", "a", "--body-file", "x"}, `{"concurrency":{"expectedVersion":1}}`},
+		{[]string{"items", "update", "a", "--body-file", "x"}, `{"concurrency":{"expectedVersion":1,"expectedTreeVersion":2},"changes":{},"confirmation":{"unfinishedDescendants":true}}`},
+		{[]string{"items", "update", "a", "--body-file", "x", "--confirm"}, `{"concurrency":{"expectedVersion":1},"changes":{},"confirmation":{"unfinishedDescendants":true}}`},
+		{[]string{"items", "update", "a", "--body-file", "x"}, `{"concurrency":{"expectedVersion":1.5}}`},
+		{[]string{"templates", "save", "--body-file", "x"}, `{"target":{"id":"a"}}`},
+		{[]string{"workspace", "workflow", "--body-file", "x"}, `{"target":{"id":"a"}}`},
+		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"data":{"kind":"role"}}`},
+		{[]string{"workspace", "dictionary", "--body-file", "x"}, `{"target":{"id":"a"},"data":{"kind":"tag"}}`},
 		{[]string{"knowledge", "update", "a", "--body-file", "x"}, `null`},
 		{[]string{"items", "create", "--body-file", "x"}, `{} {}`},
 		{[]string{"items", "create"}, `{}`},
@@ -131,6 +142,7 @@ func TestUnsafeInputNeverCallsServer(t *testing.T) {
 		{[]string{"items", "list", "--query", "offset=-1"}, `{}`},
 		{[]string{"items", "list", "--query", "wat=x"}, `{}`},
 		{[]string{"items", "list", "--query", "q=a", "--query", "q=b"}, `{}`},
+		{[]string{"items", "list", "--body-file", "x", "--query", "q=a"}, `{}`},
 		{[]string{"items", "get"}, `{}`},
 		{[]string{"account"}, `{}`},
 	}
@@ -174,8 +186,14 @@ func TestConflictNoRetryAndRedaction(t *testing.T) {
 func TestSearchKeepsTreeAndPaging(t *testing.T) {
 	doc := `{"items":[{"id":"root","status":"TODO"}],"treeItems":[{"id":"root"},{"id":"child","status":"COMPLETED"}],"total":23,"nextOffset":10}`
 	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("q") != "a&b" || r.URL.Query().Get("limit") != "10" || r.URL.Query().Get("offset") != "0" {
-			t.Error(r.URL.RawQuery)
+		var req map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		filter, _ := req["filter"].(map[string]any)
+		page, _ := req["page"].(map[string]any)
+		if filter["q"] != "a&b" || page["limit"] != float64(10) || page["offset"] != float64(0) {
+			t.Errorf("unexpected search body: %v", req)
 		}
 		_, _ = io.WriteString(w, doc)
 	})
@@ -192,16 +210,25 @@ func TestSearchKeepsTreeAndPaging(t *testing.T) {
 
 func TestTransitionAndKnowledgeInitialVersion(t *testing.T) {
 	for _, tc := range []struct {
-		args []string
-		body string
+		args     []string
+		body     string
+		wantBody string
 	}{
-		{[]string{"items", "transition", "a", "--confirm"}, `{"expectedVersion":3,"expectedTreeVersion":8,"changes":{},"transitionTarget":{"type":"STATE","id":"done"},"confirmUnfinishedDescendants":true}`},
-		{[]string{"knowledge", "update", "a"}, `{"action":"save","expectedVersion":0,"links":[],"conclusion":"结论"}`},
+		{
+			[]string{"items", "transition", "a", "--confirm"},
+			`{"concurrency":{"expectedVersion":3,"expectedTreeVersion":8},"changes":{},"transition":{"type":"STATE","id":"done"},"confirmation":{"unfinishedDescendants":true}}`,
+			`{"target":{"id":"a"},"concurrency":{"expectedVersion":3,"expectedTreeVersion":8},"changes":{},"transition":{"type":"STATE","id":"done"},"confirmation":{"unfinishedDescendants":true}}`,
+		},
+		{
+			[]string{"knowledge", "update", "a"},
+			`{"concurrency":{"expectedVersion":0},"changes":{"action":"pin","activityId":"act-1"}}`,
+			`{"target":{"id":"a"},"concurrency":{"expectedVersion":0},"changes":{"action":"pin","activityId":"act-1"}}`,
+		},
 	} {
 		opts, _, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
 			raw, _ := io.ReadAll(r.Body)
 			var want, got any
-			_ = json.Unmarshal([]byte(tc.body), &want)
+			_ = json.Unmarshal([]byte(tc.wantBody), &want)
 			_ = json.Unmarshal(raw, &got)
 			a, _ := json.Marshal(want)
 			b, _ := json.Marshal(got)
@@ -297,8 +324,8 @@ func TestViewsSelectExactOwnerNodes(t *testing.T) {
 	}{{"unfinished", 3, ""}, {"doing", 1, "mine"}, {"due", 1, "mine"}, {"overdue", 1, "late"}, {"done", 1, "done"}} {
 		t.Run(tc.view, func(t *testing.T) {
 			opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path != "/api/snapshot" {
-					t.Error(r.URL.Path)
+				if r.Method != "POST" || r.URL.Path != "/api/workspace/snapshot" {
+					t.Error(r.Method, r.URL.Path)
 				}
 				_, _ = io.WriteString(w, doc)
 			})

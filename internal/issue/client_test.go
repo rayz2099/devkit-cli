@@ -2,6 +2,7 @@ package issue
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -108,8 +109,13 @@ func TestResponseRedactionAfterDecoding(t *testing.T) {
 func TestActivityCursorPreserved(t *testing.T) {
 	cursor := `[123,"id-a"]`
 	opts, out, errOut := harness(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("cursor") != cursor {
-			t.Error(r.URL.RawQuery)
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		page, _ := body["page"].(map[string]any)
+		if page == nil || page["cursor"] != cursor {
+			t.Errorf("unexpected body: %v", body)
 		}
 		_, _ = io.WriteString(w, `{"items":[],"nextCursor":[120,"id-b"]}`)
 	})

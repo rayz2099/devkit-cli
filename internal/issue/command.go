@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -82,7 +81,7 @@ func NewCommand(opts Options) *cobra.Command {
 		group.AddCommand(r.resourceCommand(spec))
 	}
 	// 状态与普通更新共用并发和确认边界，不复制流程判断。
-	status := route{group: "items", action: "transition", method: "PATCH", path: "work-items/%s", args: 1, version: true, help: "状态流转；ITEM 使用 {expectedVersion,changes:{},transitionTarget:{type:STATE|MACRO,id}}"}
+	status := route{group: "items", action: "transition", path: "work-items/edit", mode: modeWrite, args: 1, version: true, help: "状态流转；ITEM 使用 {concurrency:{expectedVersion},changes:{},transition:{type:STATE|MACRO,id}}"}
 	groups["items"].AddCommand(r.resourceCommand(status))
 	r.addViews(root, groups["items"])
 	configureCompletion(root)
@@ -108,84 +107,152 @@ func (r *runner) resourceCommand(spec route) *cobra.Command {
 	}
 	cmd := &cobra.Command{Use: use, Short: spec.help, Args: cobra.ExactArgs(spec.args)}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		path, err := spec.resolve(args)
-		if err != nil {
-			return err
-		}
-		q, err := parseQuery(query, spec.query)
-		if err != nil {
+		if err := validateIDs(args); err != nil {
 			return err
 		}
 		var body map[string]any
-		if spec.method != "GET" {
+		switch spec.mode {
+		case modeRead:
+			body = map[string]any{}
+		case modeSearch:
+			if file != "" && len(query) > 0 {
+				return errors.New("--body-file 与 --query 不能同时使用")
+			}
+			if file != "" {
+				var err error
+				body, err = r.readBodyFile(file)
+				if err != nil {
+					return err
+				}
+			} else if len(query) > 0 {
+				var err error
+				body, err = queryToBody(spec, query)
+				if err != nil {
+					return err
+				}
+			} else {
+				body = map[string]any{}
+			}
+			if spec.view != "" && body["view"] == nil {
+				body["view"] = spec.view
+			}
+		case modeWrite:
 			if file == "" {
 				return errors.New("写入/预览命令必须提供 --body-file JSON 文件")
 			}
-			raw, err := r.opts.ReadFile(file)
+			var err error
+			body, err = r.readBodyFile(file)
 			if err != nil {
-				return errors.New("无法读取 body 文件")
-			}
-			if len(raw) > 200000 {
-				return errors.New("JSON body 超过服务端 200000 字节限制")
-			}
-			dec := json.NewDecoder(bytes.NewReader(raw))
-			if err := dec.Decode(&body); err != nil || body == nil {
-				return errors.New("body 必须是 JSON 对象")
-			}
-			if err := dec.Decode(new(any)); err != io.EOF {
-				return errors.New("body 存在多余内容")
+				return err
 			}
 			if err := spec.validateBody(body, confirm); err != nil {
 				return err
 			}
-			if spec.action == "transition" && body["transitionTarget"] == nil {
+			if spec.action == "transition" && body["transition"] == nil {
 				changes, ok := body["changes"].(map[string]any)
 				if !ok || changes["status"] == nil {
-					return errors.New("transition 需要 transitionTarget，非 ITEM 可用 changes.status")
+					return errors.New("transition 需要 transition，非 ITEM 可用 changes.status")
 				}
 			}
 		}
+		spec.injectTarget(body, args)
 		cli, err := r.client()
 		if err != nil {
 			return err
 		}
-		out, err := cli.Do(cmd.Context(), spec.method, path, q, body)
+		out, err := cli.Do(cmd.Context(), "POST", spec.path, nil, body)
 		if err != nil {
 			return err
 		}
 		return r.output(out)
 	}
-	if spec.method != "GET" {
+	if spec.mode != modeRead {
 		cmd.Flags().StringVar(&file, "body-file", "", "请求 JSON 文件；字段遵循后端契约")
 	}
 	if spec.query != "" {
 		cmd.Flags().StringArrayVar(&query, "query", nil, "可重复 key=value；允许："+spec.query)
 	}
-	if spec.method != "GET" {
+	if spec.mode == modeWrite {
 		cmd.Flags().BoolVar(&confirm, "confirm", false, "显式确认删除/终止未完成后代，不交互、不自动重试")
 	}
 	return cmd
 }
 
-func parseQuery(entries []string, allowed string) (url.Values, error) {
-	out := url.Values{}
+func (r *runner) readBodyFile(file string) (map[string]any, error) {
+	raw, err := r.opts.ReadFile(file)
+	if err != nil {
+		return nil, errors.New("无法读取 body 文件")
+	}
+	if len(raw) > 200000 {
+		return nil, errors.New("JSON body 超过服务端 200000 字节限制")
+	}
+	var body map[string]any
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	if err := dec.Decode(&body); err != nil || body == nil {
+		return nil, errors.New("body 必须是 JSON 对象")
+	}
+	if err := dec.Decode(new(any)); err != io.EOF {
+		return nil, errors.New("body 存在多余内容")
+	}
+	return body, nil
+}
+
+// queryToBody 将 CLI 扁平 --query 参数映射为新版 POST 搜索契约的 filter/page 结构。
+func queryToBody(spec route, entries []string) (map[string]any, error) {
+	seen := map[string]bool{}
+	body := map[string]any{}
+	filter := map[string]any{}
+	page := map[string]any{}
 	for _, entry := range entries {
 		key, val, ok := strings.Cut(entry, "=")
-		if !ok || !strings.Contains(" "+allowed+" ", " "+key+" ") || key == "" {
+		if !ok || !strings.Contains(" "+spec.query+" ", " "+key+" ") || key == "" {
 			return nil, fmt.Errorf("不支持的 query 参数 %q", key)
 		}
-		if _, exists := out[key]; exists {
+		if seen[key] {
 			return nil, fmt.Errorf("query 参数不能重复：%s", key)
 		}
-		if key == "limit" || key == "offset" {
+		seen[key] = true
+		switch key {
+		case "limit", "offset":
 			n, err := strconv.Atoi(val)
 			if err != nil || n < 0 || (key == "limit" && (n < 1 || n > 100)) {
 				return nil, fmt.Errorf("%s 必须是整数（limit 1..100，offset >=0）", key)
 			}
+			page[key] = n
+		case "cursor":
+			if val == "" {
+				return nil, errors.New("cursor 不能为空")
+			}
+			page["cursor"] = val
+		case "all":
+			if val == "true" {
+				filter["all"] = true
+			} else if val == "false" {
+				filter["all"] = false
+			} else {
+				return nil, errors.New("all 必须是 true 或 false")
+			}
+		case "status":
+			filter["statuses"] = strings.Split(val, ",")
+		case "tagId":
+			filter["tagIds"] = strings.Split(val, ",")
+		case "scope":
+			if spec.path == "activities/timeline" {
+				body["scope"] = val
+			} else {
+				filter["scope"] = val
+			}
+		default:
+			filter[key] = val
 		}
-		out.Set(key, val)
 	}
-	return out, nil
+	if len(filter) > 0 {
+		body["filter"] = filter
+	}
+	if len(page) > 0 {
+		body["page"] = page
+	}
+	return body, nil
 }
 
 // errorAudience 在 Cobra 查找子命令前确定错误格式，未知命令也必须遵守 agent 协议。

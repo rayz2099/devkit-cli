@@ -214,9 +214,9 @@ source ~/.config/fish/completions/issue-cli.fish
 | `successors` | `create` | 创建后续事项 |
 | `templates` | `list/save/update/preview/instantiate` | 模板保存、启停、排期预览及实例化 |
 | `trash` | `list/get/restore` | 按删除批次读取、恢复 |
-| `workspace` | `snapshot/workflow/workgroups/dictionary` | 全量空间元数据、流程发布、分工目录、category/tag 字典 |
+| `workspace` | `snapshot/account/workflow/workgroups/dictionary` | 全量空间元数据、账号空间、流程发布、分工目录、category/tag 字典 |
 
-ID 作为位置参数；每条命令的准确参数见 `issue-cli RESOURCE COMMAND --help`。除 `items done` 快捷操作外，所有非 GET 命令（包括模板 preview）都要求 `--body-file FILE`，文件内容为**完整后端请求对象**，不展开为大量 flags。字段由后端严格验证；客户端额外校验并发版本、删除与后代终止确认。模板更新为 `templates save` + body.id；模板启停为 `templates update ID`。空间流程基于 sourceId 发布新版本，而不是覆盖流程 ID。
+ID 作为位置参数；每条命令的准确参数见 `issue-cli RESOURCE COMMAND --help`。所有接口统一通过 `POST /api/<operation>` 调用；除 `items done` 快捷操作及只读/搜索命令外，所有写入和模板 preview 命令都要求 `--body-file FILE`，文件内容遵循新版后端 RPC 契约（CLI 自动注入 `target`），不展开为大量 flags。字段由后端严格验证；客户端额外校验并发版本、删除与后代终止确认。模板更新为 `templates save` + `target.id`；模板启停为 `templates update ID`。空间流程基于 `target.id` 发布新版本，而不是覆盖流程 ID。
 
 ```bash
 issue-cli items list --query 'q=发布' --query 'limit=50' --query 'offset=0' --audience agent
@@ -237,25 +237,24 @@ issue-cli workspace snapshot --audience agent
 先读取对象版本，手动准备 JSON 文件，再提交一次。示例 `update.json`：
 
 ```json
-{"expectedVersion": 12, "changes": {"title": "发布检查"}}
+{"concurrency": {"expectedVersion": 12}, "changes": {"title": "发布检查"}}
 ```
 
 ITEM 流转示例 `transition.json`；目标 ID 来自 snapshot 流程元数据，不能假定宏状态名等于 ID：
 
 ```json
 {
-  "expectedVersion": 12,
+  "concurrency": {"expectedVersion": 12, "expectedTreeVersion": 20},
   "changes": {},
-  "transitionTarget": {"type": "STATE", "id": "TARGET_STATE_ID"},
-  "expectedTreeVersion": 20,
-  "confirmUnfinishedDescendants": true
+  "transition": {"type": "STATE", "id": "TARGET_STATE_ID"},
+  "confirmation": {"unfinishedDescendants": true}
 }
 ```
 
-非 ITEM 的简单状态通过 `changes.status` 提交。只有显式 `--confirm` 才允许 `confirmUnfinishedDescendants=true`，且必须携带**根事项**的 expectedTreeVersion。普通流转不需要这个确认时，请不要发送该字段。删除子树 `delete.json`：
+非 ITEM 的简单状态通过 `changes.status` 提交。只有显式 `--confirm` 才允许 `confirmation.unfinishedDescendants=true`，且必须携带**根事项**的 `concurrency.expectedTreeVersion`。普通流转不需要这个确认时，请不要发送该字段。删除子树 `delete.json`：
 
 ```json
-{"expectedVersion": 12, "expectedTreeVersion": 20}
+{"concurrency": {"expectedVersion": 12, "expectedTreeVersion": 20}}
 ```
 
 ```bash
@@ -265,7 +264,7 @@ issue-cli items delete ITEM_ID --body-file delete.json --confirm
 issue-cli trash restore BATCH_ID --body-file restore.json
 ```
 
-删除命令在确认后添加后端要求的 `confirmed=true`。restore.json 为 `{"expectedVersion":1}`，此版本属于**删除批次**而非事项。移动需要 `expectedVersion`、根 `expectedTreeVersion` 和 `targetParentId`；子节点创建也应按后端要求携带根 expectedTreeVersion。knowledge 的 expectedVersion 属于知识对象，初始为 0，不是事项版本。活动编辑、关联更新/删除和模板启停使用各自对象版本。分工目录所有 action（含 create）需要目录 expectedVersion；字典/模板有 id、流程有 sourceId 时同样强制版本。
+删除命令在确认后添加后端要求的 `confirmation.confirmed=true`。restore.json 为 `{"concurrency":{"expectedVersion":1}}`，此版本属于**删除批次**而非事项。移动需要 `concurrency.expectedVersion`、根 `concurrency.expectedTreeVersion` 和 `destination.id`；子节点创建也应按后端要求携带根 `concurrency.expectedTreeVersion`。knowledge 的 `concurrency.expectedVersion` 属于知识对象，初始为 0，不是事项版本。活动编辑、关联更新/删除和模板启停使用各自对象版本。分工目录所有 action（含 create）需要目录 `concurrency.expectedVersion`；字典/模板/流程带有 `target.id` 时同样强制版本。
 
 正常结果只写 stdout；默认 human 用字段层级展示完整结果，`--audience agent` 返回后端 JSON；错误只写 stderr，agent 错误格式为 `{"error":{"code":"...","message":"...","status":409,"details":{},"requestId":"..."}}`，本地错误 code 为 CLIENT_ERROR，失败退出 1。服务返回的错误码、版本冲突和追踪号保留，Token 回显会脱敏。不跟随重定向，不自动重试，不生成或发送幂等键；网络/读取失败的写入结果可能未知，应先查询核实，不要盲目重放。配置缺失或不合法直接失败，不自动创建或选择其他配置。
 
