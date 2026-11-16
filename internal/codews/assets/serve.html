@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>__CW_ROOT_NAME__ · code-ws serve</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.css" />
   <style>
     :root {
       --bgCanvas: #ffffff;
@@ -545,6 +546,11 @@
       overflow: auto;
       cursor: zoom-in;
     }
+    .md .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 4px 0;
+    }
     .md img, .img-wrap img {
       max-width: 100%;
       background: var(--bgSubtle);
@@ -775,6 +781,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/highlight.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.21/dist/katex.min.js"></script>
   <script>
 
     const ICO = {
@@ -2737,14 +2744,102 @@
     }
 
 
+    let mdMathReady = false;
+    function renderKatex(tex, displayMode) {
+      if (typeof katex === "undefined") {
+        return displayMode ? "<pre><code>" + escapeHtml(tex) + "</code></pre>" : "<code>" + escapeHtml(tex) + "</code>";
+      }
+      try {
+        return katex.renderToString(tex, { displayMode: !!displayMode, throwOnError: false, strict: false });
+      } catch (_) {
+        return escapeHtml(tex);
+      }
+    }
+
+    // 在 marked 解析前拦截公式, 避免 _ * \\ 被当成 Markdown 强调或转义破坏 LaTeX 语法.
+    function ensureMdMath() {
+      if (mdMathReady || typeof marked === "undefined" || typeof marked.use !== "function") return;
+      mdMathReady = true;
+      marked.use({
+        extensions: [
+          {
+            name: "blockKatex",
+            level: "block",
+            start(src) {
+              return src.indexOf("$$");
+            },
+            tokenizer(src) {
+              const match = src.match(/^\$\$([\s\S]+?)\$\$(?:[ \t]*(?:\n|$))/);
+              if (match) {
+                return {
+                  type: "blockKatex",
+                  raw: match[0],
+                  text: match[1].trim(),
+                };
+              }
+            },
+            renderer(token) {
+              return renderKatex(token.text, true) + "\n";
+            },
+          },
+          {
+            name: "inlineKatex",
+            level: "inline",
+            start(src) {
+              let rest = src;
+              while (rest) {
+                const idx = rest.indexOf("$");
+                if (idx === -1) return;
+                if (idx > 0 && rest[idx - 1] === "\\") {
+                  rest = rest.slice(idx + 1);
+                  continue;
+                }
+                return src.length - rest.length + idx;
+              }
+            },
+            tokenizer(src) {
+              const blockMatch = src.match(/^\$\$([^$\n]+?)\$\$/);
+              if (blockMatch) {
+                return {
+                  type: "inlineKatex",
+                  raw: blockMatch[0],
+                  text: blockMatch[1].trim(),
+                  displayMode: true,
+                };
+              }
+              const match = src.match(/^\$(?!\$)((?:\\.|[^$\\\n])+?)\$(?!\$|\d)/);
+              if (match) {
+                const text = match[1];
+                // 首尾有空白时按普通美元符号处理, 避免误伤 "$100 and $200".
+                if (/^\s|\s$/.test(text)) return;
+                return {
+                  type: "inlineKatex",
+                  raw: match[0],
+                  text,
+                  displayMode: false,
+                };
+              }
+            },
+            renderer(token) {
+              return renderKatex(token.text, token.displayMode);
+            },
+          },
+        ],
+      });
+    }
+
     // 必须传入源文件路径: 目录页内嵌 README 时当前 URL 不是 md 自己.
     function renderMarkdown(src, srcPath) {
+      ensureMdMath();
       const renderer = new marked.Renderer();
       const rawCode = renderer.code.bind(renderer);
       renderer.code = function(token) {
         const lang = ((token && token.lang) || "").trim();
         if (lang === "mermaid") {
           return '<div class="mermaid">' + escapeHtml(token.text) + "</div>";
+        }
+        if (lang === "math") {
+          return renderKatex(token.text, true);
         }
         return rawCode(token);
       };

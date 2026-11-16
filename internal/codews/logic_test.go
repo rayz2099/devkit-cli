@@ -307,7 +307,7 @@ func TestServeFSAndHTTP(t *testing.T) {
 	if strings.Contains(page, rootSentinel) {
 		t.Fatal("sentinel left")
 	}
-	if !strings.Contains(page, "palette-input") || !strings.Contains(page, "marked.min.js") {
+	if !strings.Contains(page, "palette-input") || !strings.Contains(page, "marked.min.js") || !strings.Contains(page, "katex.min.js") || !strings.Contains(page, "katex.min.css") {
 		t.Fatal("ui stripped")
 	}
 }
