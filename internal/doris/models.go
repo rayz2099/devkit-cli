@@ -3,22 +3,22 @@ package doris
 // FENode 代表前端 FE 节点的元数据与存活心跳状态。
 // 各字段保留自 Doris 内核 SHOW FRONTENDS，以供 Agent 判定主备分配与元数据同步延迟。
 type FENode struct {
-	Name           string `json:"name"`
-	IP             string `json:"ip"`
-	EditLogPort    int    `json:"edit_log_port"`
-	HTTPPort       int    `json:"http_port"`
-	QueryPort      int    `json:"query_port"`
-	RPCPort        int    `json:"rpc_port"`
-	Role           string `json:"role"`
-	IsMaster       bool   `json:"is_master"`
-	ClusterID      string `json:"cluster_id"`
-	Join           bool   `json:"join"`
-	Alive          bool   `json:"alive"`
-	ReplayedJnlID  string `json:"replayed_journal_id"`
-	LastHeartbeat  string `json:"last_heartbeat"`
-	IsHelper       bool   `json:"is_helper"`
-	ErrMsg         string `json:"err_msg,omitempty"`
-	Version        string `json:"version"`
+	Name          string `json:"name"`
+	IP            string `json:"ip"`
+	EditLogPort   int    `json:"edit_log_port"`
+	HTTPPort      int    `json:"http_port"`
+	QueryPort     int    `json:"query_port"`
+	RPCPort       int    `json:"rpc_port"`
+	Role          string `json:"role"`
+	IsMaster      bool   `json:"is_master"`
+	ClusterID     string `json:"cluster_id"`
+	Join          bool   `json:"join"`
+	Alive         bool   `json:"alive"`
+	ReplayedJnlID string `json:"replayed_journal_id"`
+	LastHeartbeat string `json:"last_heartbeat"`
+	IsHelper      bool   `json:"is_helper"`
+	ErrMsg        string `json:"err_msg,omitempty"`
+	Version       string `json:"version"`
 }
 
 // BENode 代表后端 BE 计算与存储节点的状态。
@@ -83,18 +83,18 @@ type FELogReport struct {
 // FEMetricsReport 包含 FE JVM 运行状态与核心业务指标。
 // 提取这些指标用于让 Agent 识别 Full GC 伪掉线和 BDB-JE 事务堆积。
 type FEMetricsReport struct {
-	NodeHost             string  `json:"node_host"`
-	JVMHeapUsedBytes     int64   `json:"jvm_heap_used_bytes"`
-	JVMHeapMaxBytes      int64   `json:"jvm_heap_max_bytes"`
-	JVMHeapUsedPct       float64 `json:"jvm_heap_used_pct"`
-	JVMYoungGCTimeMs     int64   `json:"jvm_young_gc_time_ms"`
-	JVMFullGCCount       int64   `json:"jvm_full_gc_count"`
-	JVMFullGCTimeMs      int64   `json:"jvm_full_gc_time_ms"`
-	ActiveConnections    int64   `json:"active_connections"`
-	EditLogWriteLatency  float64 `json:"edit_log_write_latency_ms"`
-	QueryTotal           int64   `json:"query_total"`
-	QueryErrTotal        int64   `json:"query_err_total"`
-	QueryLatencyMs       float64 `json:"query_latency_ms"`
+	NodeHost            string  `json:"node_host"`
+	JVMHeapUsedBytes    int64   `json:"jvm_heap_used_bytes"`
+	JVMHeapMaxBytes     int64   `json:"jvm_heap_max_bytes"`
+	JVMHeapUsedPct      float64 `json:"jvm_heap_used_pct"`
+	JVMYoungGCTimeMs    int64   `json:"jvm_young_gc_time_ms"`
+	JVMFullGCCount      int64   `json:"jvm_full_gc_count"`
+	JVMFullGCTimeMs     int64   `json:"jvm_full_gc_time_ms"`
+	ActiveConnections   int64   `json:"active_connections"`
+	EditLogWriteLatency float64 `json:"edit_log_write_latency_ms"`
+	QueryTotal          int64   `json:"query_total"`
+	QueryErrTotal       int64   `json:"query_err_total"`
+	QueryLatencyMs      float64 `json:"query_latency_ms"`
 }
 
 // ActiveQueryItem 表示当前在执行或高耗时的查询。

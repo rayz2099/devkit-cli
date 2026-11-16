@@ -135,4 +135,3 @@ func TestListLanPriority(t *testing.T) {
 	}
 	t.Logf("detected LAN IPs in priority order: %v", ips)
 }
-
