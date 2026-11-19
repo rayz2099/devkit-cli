@@ -189,14 +189,9 @@ func BuildForkPlan(args ForkArgs) ([]Cmd, error) {
 func BuildRemovePlan(wsDir string, repos []Repo) []Cmd {
 	cmds := make([]Cmd, 0, len(repos))
 	for _, repo := range repos {
-		cmds = append(cmds, Cmd{
-			Repo:    repo.Name,
-			Branch:  "workspace",
-			Step:    "worktree-remove",
-			Cwd:     repo.Path,
-			Args:    []string{"git", "worktree", "remove", "--force", filepath.Join(wsDir, repo.Name)},
-			Ignored: []string{"is not a working tree"},
-		})
+		cmd := worktreeRemoveCmd(repo, wsDir)
+		cmd.Ignored = []string{"is not a working tree"}
+		cmds = append(cmds, cmd)
 	}
 	return cmds
 }

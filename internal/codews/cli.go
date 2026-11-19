@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const destroyUsage = "code-ws destroy [--force [--delete-remote]] [-v|--verbose] [-c|--config <path>]"
+
 const helpText = `code-ws
 
 Usage:
@@ -19,7 +21,7 @@ Usage:
   code-ws add project <repo>... [-b|--branch <branch>] [-v|--verbose] [-c|--config <path>]
   code-ws remove project <repo> [-v|--verbose] [-c|--config <path>]
   code-ws sync master [--from <repo=branch>] [-v|--verbose] [-c|--config <path>]
-  code-ws destroy [-v|--verbose] [-c|--config <path>]
+  ` + destroyUsage + `
   code-ws fork <branch> [-v|--verbose] [-c|--config <path>]
   code-ws list [-c|--config <path>]
   code-ws projects [-t <profile> | --workspace] [-c|--config <path>]
@@ -27,50 +29,58 @@ Usage:
   code-ws config check [-c|--config <path>]
   code-ws serve [path] [--lan|--local] [--port <n>] [--no-watch] [--cf|--cloudflare]  # default LAN + watch + port 7001, next if busy
   code-ws completion fish
+
+Destroy options:
+  --force          Discard worktree changes and delete local task branches.
+  --delete-remote  Also delete matching task branches on the configured remote (requires --force).
 `
 
 // Parsed 是一次无副作用的参数结果。测试可以直接比字段，不必启动命令。
 type Parsed struct {
-	Cmd       string
-	Branch    string
-	Profile   string
-	HasProf   bool
-	Project   string
-	HasProj   bool
-	From      []string
-	Workspace bool
-	Config    string
-	Verbose   bool
-	Repo      string
-	Repos     []string
-	HasBranch bool
-	Path      string
-	HasPath   bool
-	Lan       bool
-	Watch     bool
-	Port      int
-	HasPort   bool
-	Cf        bool
+	Cmd          string
+	Branch       string
+	Profile      string
+	HasProf      bool
+	Project      string
+	HasProj      bool
+	From         []string
+	Workspace    bool
+	Config       string
+	Verbose      bool
+	Force        bool
+	DeleteRemote bool
+	Repo         string
+	Repos        []string
+	HasBranch    bool
+	Path         string
+	HasPath      bool
+	Lan          bool
+	Watch        bool
+	Port         int
+	HasPort      bool
+	Cf           bool
 }
 
 type optSet struct {
-	rest      []string
-	profile   string
-	hasProf   bool
-	project   string
-	hasProj   bool
-	branch    string
-	hasBranch bool
-	from      []string
-	workspace bool
-	config    string
-	help      bool
-	verbose   bool
-	lan       bool
-	watch     bool
-	port      int
-	hasPort   bool
-	cf        bool
+	rest         []string
+	profile      string
+	hasProf      bool
+	project      string
+	hasProj      bool
+	branch       string
+	hasBranch    bool
+	from         []string
+	workspace    bool
+	config       string
+	help         bool
+	verbose      bool
+	force        bool
+	deleteRemote bool
+	lan          bool
+	watch        bool
+	port         int
+	hasPort      bool
+	cf           bool
 }
 
 func valueAfter(args []string, idx int, flag string) (string, error) {
@@ -167,6 +177,10 @@ func parseOpts(args []string) (optSet, error) {
 			opt.help = true
 		case "-v", "--verbose":
 			opt.verbose = true
+		case "--force":
+			opt.force = true
+		case "--delete-remote":
+			opt.deleteRemote = true
 		default:
 			opt.rest = append(opt.rest, arg)
 		}
@@ -199,6 +213,9 @@ func ParseArgs(args []string) (Parsed, error) {
 	}
 	if opt.hasProj && cmd != "init" {
 		return Parsed{}, errors.New("--project is only supported by init")
+	}
+	if cmd != "destroy" && (opt.force || opt.deleteRemote) {
+		return Parsed{}, errors.New("--force and --delete-remote are only supported by destroy")
 	}
 	if cmd == "init" {
 		return parseInit(opt, sub, tail)
@@ -258,9 +275,12 @@ func ParseArgs(args []string) (Parsed, error) {
 	}
 	if cmd == "destroy" {
 		if sub != "" {
-			return Parsed{}, errors.New("usage: code-ws destroy [-v|--verbose] [-c|--config <path>]")
+			return Parsed{}, errors.New("usage: " + destroyUsage)
 		}
-		return Parsed{Cmd: "destroy-workspace", Config: opt.config, Verbose: opt.verbose}, nil
+		if opt.deleteRemote && !opt.force {
+			return Parsed{}, errors.New("--delete-remote requires --force")
+		}
+		return Parsed{Cmd: "destroy-workspace", Config: opt.config, Verbose: opt.verbose, Force: opt.force, DeleteRemote: opt.deleteRemote}, nil
 	}
 	if cmd == "fork" {
 		if sub == "" || len(tail) > 0 {

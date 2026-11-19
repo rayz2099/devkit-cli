@@ -58,6 +58,8 @@ func FishCompletion() string {
 		"complete -c code-ws -n '__fish_seen_subcommand_from add remove' -xa 'project' -d '项目操作'",
 		"complete -c code-ws -n '__fish_seen_subcommand_from project' -ka '(__code_ws_projects)' -d '项目名'",
 		"complete -c code-ws -n '__fish_seen_subcommand_from sync' -xa 'master' -d '同步主分支'",
+		"complete -c code-ws -n '__fish_seen_subcommand_from destroy' -l force -d '丢弃改动并删除本地任务分支'",
+		"complete -c code-ws -n '__fish_seen_subcommand_from destroy; and contains -- --force (commandline -opc)' -l delete-remote -d '同时删除远端任务分支'",
 		"complete -c code-ws -n '__fish_seen_subcommand_from projects' -s t -l template -d '只列出 profile 中的项目'",
 		"complete -c code-ws -n '__fish_seen_subcommand_from projects' -l workspace -d '只列出当前 workspace 的项目'",
 		"complete -c code-ws -n '__fish_seen_subcommand_from branches' -ka '(__code_ws_projects)' -d '项目名'",

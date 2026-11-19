@@ -83,6 +83,23 @@ func TestParseArgs(t *testing.T) {
 	}
 }
 
+func TestParseDestroyArgs(t *testing.T) {
+	got, err := ParseArgs([]string{"destroy"})
+	if err != nil || got.Cmd != "destroy-workspace" || got.Force || got.DeleteRemote {
+		t.Fatal(got, err)
+	}
+	got, err = ParseArgs([]string{"--force", "destroy", "--delete-remote"})
+	if err != nil || got.Cmd != "destroy-workspace" || !got.Force || !got.DeleteRemote {
+		t.Fatal(got, err)
+	}
+	if _, err := ParseArgs([]string{"destroy", "--delete-remote"}); err == nil || !strings.Contains(err.Error(), "requires --force") {
+		t.Fatal(err)
+	}
+	if _, err := ParseArgs([]string{"init", "feature/task", "--force"}); err == nil {
+		t.Fatal("unexpected --force for init")
+	}
+}
+
 func TestVersionDoesNotReadConfig(t *testing.T) {
 	t.Setenv("HOME", "")
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(t.TempDir(), "missing"))

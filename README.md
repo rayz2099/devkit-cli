@@ -154,6 +154,22 @@ bash scripts/go/acceptance.sh
 
 示例文件在 `archive/<tool>/`。第一次跑之前自己拷贝。
 
+### 清理 code-ws 工作区
+
+在**本机**的工作区目录中，按需要选择一条命令（兼容 Fish）：
+
+```bash
+code-ws destroy
+code-ws destroy --force
+code-ws destroy --force --delete-remote
+```
+
+- 不带参数：只卸载干净且改动已进入配置基准的 worktree，保留分支。
+- `--force`：跳过干净和合并检查，丢弃未提交改动，并删除本地任务分支；不删除基准分支或其他 worktree 正在使用的分支。
+- `--delete-remote`：必须与 `--force` 同用；配置的远端上有同名任务分支才删除。
+
+清理按仓库串行执行，失败不阻断其他仓库，最后汇总。工作区根目录、文档和清单保留；重跑不再逐条打印已经完成的步骤。
+
 ### 许可证
 
 GPL-2.0-only，见 [LICENSE](./LICENSE)。

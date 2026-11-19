@@ -52,18 +52,24 @@ func withMerge(repo Repo, merge string) Repo {
 	return repo
 }
 
+// repoFromWs 应用工作区覆盖，让清理与创建使用同一套分支配置。
+func repoFromWs(cfg Cfg, ws WsProject, name string) (Repo, error) {
+	repo, err := repoOfName(cfg, name)
+	if err != nil {
+		return Repo{}, err
+	}
+	br, ok := ws.Checkout[name]
+	repo = withCheckout(repo, br, ok)
+	repo = withMerge(repo, ws.Merges[name])
+	return repo, nil
+}
+
 func reposFromWs(cfg Cfg, ws WsProject) ([]Repo, error) {
 	out := make([]Repo, 0, len(ws.Repos))
 	for _, name := range ws.Repos {
-		repo, err := repoOfName(cfg, name)
+		repo, err := repoFromWs(cfg, ws, name)
 		if err != nil {
 			return nil, err
-		}
-		if br, ok := ws.Checkout[name]; ok {
-			repo = withCheckout(repo, br, true)
-		}
-		if merge, ok := ws.Merges[name]; ok {
-			repo = withMerge(repo, merge)
 		}
 		out = append(out, repo)
 	}
@@ -443,45 +449,6 @@ func runSync(out, errw io.Writer, args Parsed) error {
 		return fmt.Errorf("base branch sync failed: %d repo(s)", failures)
 	}
 	fmt.Fprintf(out, "base branches synced: %s\n", wsDir)
-	return nil
-}
-
-func runDestroy(out io.Writer, args Parsed) error {
-	cfg, wsDir, ws, err := loadWs(args.Config)
-	if err != nil {
-		return err
-	}
-	return DestroyWorkspace(out, args, cfg, wsDir, ws)
-}
-
-// DestroyWorkspace 只卸 git worktree。文档留在目录里，后面淬炼还要读。
-func DestroyWorkspace(out io.Writer, args Parsed, cfg Cfg, wsDir string, ws WsProject) error {
-	repos, err := reposFromWs(cfg, ws)
-	if err != nil {
-		return err
-	}
-	var failures []string
-	cleared := 0
-	for _, repo := range repos {
-		err := AssertDisposable(wsDir, []Repo{repo}, cfg.Remote, cfg.Base)
-		if err == nil {
-			err = RunPlan(out, BuildRemovePlan(wsDir, []Repo{repo}), args.Verbose)
-		}
-		if err != nil {
-			failures = append(failures, err.Error())
-			continue
-		}
-		cleared++
-	}
-	if len(failures) > 0 {
-		fmt.Fprintf(out, "workspace worktrees cleared: %d/%d\n", cleared, len(repos))
-		fmt.Fprintf(out, "workspace directory kept: %s\n", wsDir)
-		head := fmt.Sprintf("workspace cleanup incomplete: cleared=%d failed=%d", cleared, len(failures))
-		parts := append([]string{head}, failures...)
-		return errors.New(strings.Join(parts, "\n\n"))
-	}
-	fmt.Fprintf(out, "workspace worktrees cleared: %s\n", wsDir)
-	fmt.Fprintf(out, "workspace directory kept: %s\n", wsDir)
 	return nil
 }
 
