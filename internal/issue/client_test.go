@@ -37,6 +37,26 @@ func TestRedirectNeverForwarded(t *testing.T) {
 	}
 }
 
+func TestUserAgentIdentifiesClient(t *testing.T) {
+	// WAF 拦截 Go/curl 默认 UA 的 POST，客户端必须显式带可识别 UA。
+	var got string
+	hc := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		got = r.Header.Get("User-Agent")
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"metadata":{"extra":{}},"data":null}`))}, nil
+	})}
+	cfg := Config{URL: "https://example.invalid", Token: testToken}
+	cli, err := NewClient(cfg, hc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cli.Do(context.Background(), "POST", "work-items", nil, map[string]any{}); err != nil {
+		t.Fatal(err)
+	}
+	if got != userAgent || strings.Contains(got, "Go-http-client") {
+		t.Fatalf("user-agent=%q", got)
+	}
+}
+
 func TestTransportFailureNeverRetriesOrLeaks(t *testing.T) {
 	hits := 0
 	hc := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {

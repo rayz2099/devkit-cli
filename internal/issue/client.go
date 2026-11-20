@@ -46,6 +46,9 @@ func NewClient(cfg Config, hc *http.Client) (*Client, error) {
 	return &Client{cfg: cfg, http: &client}, nil
 }
 
+// userAgent 用可识别的自定义 UA：新域名前的 CloudWAF 会拦截 Go/curl 等库默认 UA 的 POST（418），自定义串放行。
+const userAgent = "devkit-cli/issue-cli/1.0"
+
 // Do 只执行一次；网络失败不含原始 URL，避免 transport 将凭据带入错误。
 func (c *Client) Do(ctx context.Context, method, path string, q url.Values, body map[string]any) (any, error) {
 	var buf []byte
@@ -77,6 +80,7 @@ func (c *Client) Do(ctx context.Context, method, path string, q url.Values, body
 	}
 	req.Header.Set("Authorization", "Bearer "+c.cfg.Token)
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", userAgent)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
